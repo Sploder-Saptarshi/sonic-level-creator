@@ -175,6 +175,38 @@ addTextToHeadings('/');
   <div class="clear">&nbsp;</div>  
 </div>
 
+
+        <script type="text/javascript">
+            function show_game()
+            {
+                if(swfobject.hasFlashPlayerVersion("6.0.65")) {//they have flash
+
+                    var flashvars = {
+                    id: "9f3210793951251c83ea5addaa24b963",territory: "EnglishUK",enableSkip: 1,levelid: 2914,contentSWF: "/games/swf/52/52.swf"                    };
+                    var params = {
+                        menu: "false"
+                    };
+
+                    swfobject.embedSWF("/swf/preloader/as3/v2/preloader-guest.swf",
+                                       "gameswf",
+                                       "640",
+                                       "448",
+                                       "9.0.0",
+                                       "../swf/expressInstall.swf",
+                                       flashvars,
+                                       params);
+
+                } else {//they dont have flash
+                    swfobject.createCSS("#gameswf div#fl", "display:block;");
+                    swfobject.createCSS("#gameswf div#preroll_mpu", "display:none;");
+                }
+            }
+        </script><script type="text/javascript">
+    //display the game after preroll
+    //show_game()
+    </script>
+<div class="clear">&nbsp;</div>
+</div>
 <div style="clear:both"></div>
 </div>
 
