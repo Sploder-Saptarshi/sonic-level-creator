@@ -78,9 +78,9 @@
       y: Math.floor(id / SHEET_COLS) * SHEET_BLOCK_SIZE
     };
   }
-  function encodeBin(grid2) {
-    const rows = grid2.length;
-    const cols = grid2[0].length;
+  function encodeBin(grid) {
+    const rows = grid.length;
+    const cols = grid[0].length;
     const out = [];
     function pushU32(v) {
       out.push(v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
@@ -91,15 +91,15 @@
       for (let r = 0; r < rows; r++) {
         pushU32(cols);
         for (let c = 0; c < cols; c++) {
-          pushU32(grid2[r][c]);
+          pushU32(grid[r][c]);
         }
       }
     }
     return out;
   }
-  function encodeAct(objects2) {
+  function encodeAct(objects) {
     const entries = [];
-    for (const obj of objects2) {
+    for (const obj of objects) {
       entries.push(
         obj.x >>> 8 & 255,
         obj.x & 255,
@@ -124,9 +124,9 @@
     const all = binBytes.concat(actBytes);
     return all.join(",");
   }
-  function countObjectsInTile(objects2, tileCol, tileRow) {
+  function countObjectsInTile(objects, tileCol, tileRow) {
     let count = 0;
-    for (const obj of objects2) {
+    for (const obj of objects) {
       const tc = Math.floor(obj.x / BLOCK_PX);
       const tr = Math.floor(obj.y / BLOCK_PX);
       if (tc === tileCol && tr === tileRow) {
@@ -142,7 +142,101 @@
     return Math.floor(px / BLOCK_PX);
   }
 
-  // ts/main.ts
+  // ts/state.ts
+  var S = {
+    grid: [],
+    objects: [],
+    activeTab: "tiles",
+    selectedTile: 1,
+    selectedObj: null,
+    zoom: 2,
+    spaceHeld: false,
+    selectedObjIdx: -1,
+    dragObj: null,
+    dragOffX: 0,
+    dragOffY: 0,
+    // Palette drag (started from thumbnail, ends on canvas)
+    paletteDrag: false,
+    paletteDragTile: 0,
+    paletteDragDef: null,
+    // Hover tile under cursor during palette drag
+    hoverBx: -1,
+    hoverBy: -1,
+    mouseOverCanvas: false,
+    // Pan state
+    panning: false,
+    panStartX: 0,
+    panStartY: 0,
+    panStartSX: 0,
+    panStartSY: 0,
+    // DOM refs (populated in boot)
+    shadow: null,
+    canvas: null,
+    ctx: null,
+    spritesheetImg: null,
+    thumbstrip: null,
+    descEl: null,
+    statusEl: null,
+    counterEl: null,
+    canvasWrap: null,
+    ghostEl: null
+  };
+  function cellSize() {
+    return Math.round(64 * S.zoom);
+  }
+  function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
+    S.grid = [];
+    for (let r = 0; r < rows; r++) S.grid.push(new Array(cols).fill(0));
+    S.objects = [];
+    S.selectedObjIdx = -1;
+  }
+  function inGrid(bx, by) {
+    return bx >= 0 && bx < S.grid[0].length && by >= 0 && by < S.grid.length;
+  }
+  function setStatus(msg) {
+    if (S.statusEl) S.statusEl.textContent = msg;
+  }
+  function updateDesc(text) {
+    if (S.descEl) S.descEl.textContent = text;
+  }
+  function canvasToWorld(e) {
+    const rect = S.canvas.getBoundingClientRect();
+    const cs = cellSize();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    return {
+      bx: Math.floor(mx / cs),
+      by: Math.floor(my / cs),
+      px: Math.floor(mx / cs * BLOCK_PX),
+      py: Math.floor(my / cs * BLOCK_PX)
+    };
+  }
+  function defsForTab(tab) {
+    if (tab === "objects") return OBJECTS;
+    if (tab === "rings") return RING_TYPES;
+    if (tab === "enemies") return ENEMIES;
+    return ESSENTIALS;
+  }
+  function objectsInTile(tc, tr) {
+    return countObjectsInTile(S.objects, tc, tr);
+  }
+  function totalObjects() {
+    let c = 0;
+    for (const o of S.objects) c += o.type <= 1 || o.type >= 63 && o.type <= 69 ? 1 + o.sub : 1;
+    return c;
+  }
+  function countPlacedTiles() {
+    let c = 0;
+    for (const row of S.grid) for (const id of row) if (id > 0) c++;
+    return c;
+  }
+  function findDef(typeId) {
+    for (const arr of [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES])
+      for (const d of arr) if (d.id === typeId) return d;
+    return null;
+  }
+
+  // ts/ui.ts
   var EDITOR_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :host { display: block; width: 100%; height: 100%; }
@@ -273,90 +367,34 @@ canvas.display { display: block; cursor: crosshair; }
   <div class="ghost" id="ghost"></div>
 </div>
 `;
-  var grid = [];
-  var objects = [];
-  var activeTab = "tiles";
-  var selectedTile = 1;
-  var selectedObj = null;
-  var zoom = 2;
-  var panning = false;
-  var panStartX = 0;
-  var panStartY = 0;
-  var panStartSX = 0;
-  var panStartSY = 0;
-  var painting = false;
-  var erasing = false;
-  var spaceHeld = false;
-  var selectedObjIdx = -1;
-  var dragObj = null;
-  var dragOffX = 0;
-  var dragOffY = 0;
-  var hoverBx = -1;
-  var hoverBy = -1;
-  var paletteDrag = false;
-  var paletteDragTile = 0;
-  var canvasMouseX = -1;
-  var canvasMouseY = -1;
-  var mouseOverCanvas = false;
-  var shadow;
-  var canvas;
-  var ctx;
-  var spritesheetImg;
-  var thumbstrip;
-  var descEl;
-  var statusEl;
-  var counterEl;
-  var canvasWrap;
-  var ghostEl;
-  function cellSize() {
-    return Math.round(64 * zoom);
-  }
-  function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
-    grid = [];
-    for (let r = 0; r < rows; r++) grid.push(new Array(cols).fill(0));
-    objects = [];
-    selectedObjIdx = -1;
-  }
-  function objectsInTile(tc, tr) {
-    return countObjectsInTile(objects, tc, tr);
-  }
-  function totalObjects() {
-    let c = 0;
-    for (const o of objects) c += o.type <= 1 || o.type >= 63 && o.type <= 69 ? 1 + o.sub : 1;
-    return c;
-  }
-  function updateCounter() {
-    const sel = selectedObjIdx >= 0 ? objects[selectedObjIdx] : null;
-    if (sel) {
-      const n = objectsInTile(pixelToTile(sel.x), pixelToTile(sel.y));
-      counterEl.textContent = `${n}/${MAX_OBJECTS_PER_TILE}`;
-    } else {
-      counterEl.textContent = `${totalObjects()}`;
-    }
-  }
-  function setStatus(msg) {
-    statusEl.textContent = msg;
-  }
-  function findDef(typeId) {
-    for (const arr of [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES])
-      for (const d of arr) if (d.id === typeId) return d;
-    return null;
+
+  // ts/render.ts
+  var GHOST_PX = 256;
+  var ghostCanvas;
+  var ghostCtx;
+  function initGhostCanvas() {
+    ghostCanvas = document.createElement("canvas");
+    ghostCanvas.width = GHOST_PX;
+    ghostCanvas.height = GHOST_PX;
+    ghostCtx = ghostCanvas.getContext("2d");
   }
   function draw() {
-    if (!ctx) return;
-    const W = canvas.width, H = canvas.height, cs = cellSize();
+    const { ctx, canvas: cvs, canvasWrap, grid, objects, spritesheetImg } = S;
+    if (!ctx || !cvs || !canvasWrap) return;
+    const W = cvs.width, H = cvs.height, cs = cellSize();
     const scrollX = canvasWrap.scrollLeft, scrollY = canvasWrap.scrollTop;
+    const viewW = canvasWrap.clientWidth || W, viewH = canvasWrap.clientHeight || H;
     ctx.fillStyle = "#d4e8c0";
     ctx.fillRect(0, 0, W, H);
-    const c0 = Math.max(0, Math.floor(scrollX / cs));
-    const r0 = Math.max(0, Math.floor(scrollY / cs));
-    const c1 = Math.min(grid[0].length, Math.ceil((scrollX + W) / cs) + 1);
-    const r1 = Math.min(grid.length, Math.ceil((scrollY + H) / cs) + 1);
+    const c0 = Math.max(0, Math.floor(scrollX / cs) - 1);
+    const r0 = Math.max(0, Math.floor(scrollY / cs) - 1);
+    const c1 = Math.min(grid[0].length, Math.ceil((scrollX + viewW) / cs) + 1);
+    const r1 = Math.min(grid.length, Math.ceil((scrollY + viewH) / cs) + 1);
     for (let r = r0; r < r1; r++) {
       for (let c = c0; c < c1; c++) {
         const id = grid[r][c];
-        const dx = c * cs - scrollX, dy = r * cs - scrollY;
-        if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg.complete) {
+        const dx = c * cs, dy = r * cs;
+        if (id > 0 && id < TOTAL_BLOCKS && (spritesheetImg == null ? void 0 : spritesheetImg.complete)) {
           const { x: sx, y: sy } = blockSheetXY(id);
           try {
             ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs);
@@ -373,14 +411,14 @@ canvas.display { display: block; cursor: crosshair; }
     ctx.strokeStyle = "rgba(0,0,0,0.15)";
     ctx.lineWidth = 1;
     for (let r = r0; r <= r1; r++) {
-      const y = Math.round(r * cs - scrollY) + 0.5;
+      const y = Math.round(r * cs) + 0.5;
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(W, y);
       ctx.stroke();
     }
     for (let c = c0; c <= c1; c++) {
-      const x = Math.round(c * cs - scrollX) + 0.5;
+      const x = Math.round(c * cs) + 0.5;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, H);
@@ -388,10 +426,10 @@ canvas.display { display: block; cursor: crosshair; }
     }
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
-      const dx = obj.x / BLOCK_PX * cs - scrollX;
-      const dy = obj.y / BLOCK_PX * cs - scrollY;
-      if (dx + cs < 0 || dx > W || dy + cs < 0 || dy > H) continue;
-      const isSel = i === selectedObjIdx;
+      const dx = obj.x / BLOCK_PX * cs;
+      const dy = obj.y / BLOCK_PX * cs;
+      if (dx + cs < scrollX || dx > scrollX + viewW || dy + cs < scrollY || dy > scrollY + viewH) continue;
+      const isSel = i === S.selectedObjIdx;
       const def = findDef(obj.type);
       ctx.fillStyle = isSel ? "rgba(255,80,80,0.7)" : "rgba(255,200,0,0.6)";
       ctx.fillRect(dx + 2, dy + 2, cs - 4, cs - 4);
@@ -407,10 +445,60 @@ canvas.display { display: block; cursor: crosshair; }
       }
     }
   }
+  function updateGhost(e) {
+    const { ghostEl, spritesheetImg, activeTab } = S;
+    if (!ghostEl) return;
+    if (!S.paletteDrag) {
+      hideGhost();
+      return;
+    }
+    const cs = cellSize();
+    ghostEl.classList.add("visible");
+    ghostEl.style.width = cs + "px";
+    ghostEl.style.height = cs + "px";
+    ghostEl.style.left = e.clientX - cs / 2 + "px";
+    ghostEl.style.top = e.clientY - cs / 2 + "px";
+    if (activeTab === "tiles" && (spritesheetImg == null ? void 0 : spritesheetImg.complete)) {
+      ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
+      const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
+      ghostCtx.imageSmoothingEnabled = false;
+      ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
+      ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
+      ghostEl.style.backgroundSize = "100% 100%";
+      ghostEl.style.display = "";
+    } else {
+      ghostEl.style.backgroundImage = "none";
+      ghostEl.style.backgroundColor = "rgba(255,200,0,0.5)";
+      ghostEl.style.display = "flex";
+      ghostEl.style.alignItems = "center";
+      ghostEl.style.justifyContent = "center";
+      ghostEl.style.fontSize = "10px";
+      ghostEl.style.color = "#fff";
+      ghostEl.style.textAlign = "center";
+      ghostEl.textContent = S.paletteDragDef ? S.paletteDragDef.name.split(" ")[0] : "";
+    }
+  }
+  function hideGhost() {
+    const { ghostEl } = S;
+    if (!ghostEl) return;
+    ghostEl.classList.remove("visible");
+    ghostEl.style.display = "";
+  }
+
+  // ts/thumbnails.ts
+  function updateCounter() {
+    var _a;
+    if (!S.counterEl) return;
+    const totalTiles = S.grid.length * (((_a = S.grid[0]) == null ? void 0 : _a.length) || 0);
+    const placedTiles = countPlacedTiles();
+    S.counterEl.textContent = `${totalObjects()}/${placedTiles}`;
+  }
   function buildThumbnails() {
+    const { thumbstrip, spritesheetImg, activeTab } = S;
+    if (!thumbstrip) return;
     thumbstrip.innerHTML = "";
     if (activeTab === "tiles") {
-      for (let i = 0; i < USED_BLOCKS; i++) {
+      for (let i = 1; i < USED_BLOCKS; i++) {
         const el = document.createElement("div");
         el.className = "thumb";
         el.title = `Block ${i}`;
@@ -418,33 +506,35 @@ canvas.display { display: block; cursor: crosshair; }
         cvs.width = BLOCK_PX;
         cvs.height = BLOCK_PX;
         const c = cvs.getContext("2d");
-        if (spritesheetImg.complete) {
+        if (spritesheetImg == null ? void 0 : spritesheetImg.complete) {
           const { x: sx, y: sy } = blockSheetXY(i);
           c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
         }
         el.appendChild(cvs);
         el.addEventListener("mousedown", (ev) => {
           ev.preventDefault();
-          selectedTile = i;
-          selectedObj = null;
-          selectedObjIdx = -1;
-          paletteDrag = true;
-          paletteDragTile = i;
+          S.selectedTile = i;
+          S.selectedObj = null;
+          S.selectedObjIdx = -1;
+          S.paletteDrag = true;
+          S.paletteDragTile = i;
           updateDesc(`Block ${i} \u2014 drag onto grid to place`);
           draw();
         });
         thumbstrip.appendChild(el);
       }
     } else {
-      const defs = activeTab === "objects" ? OBJECTS : activeTab === "rings" ? RING_TYPES : activeTab === "enemies" ? ENEMIES : ESSENTIALS;
-      for (const def of defs) {
+      for (const def of defsForTab(activeTab)) {
         const el = document.createElement("div");
         el.className = "thumb thumb-txt";
         el.title = def.desc;
         el.textContent = def.name;
-        el.addEventListener("click", () => {
-          selectedObj = def;
-          selectedObjIdx = -1;
+        el.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          S.selectedObj = def;
+          S.selectedObjIdx = -1;
+          S.paletteDrag = true;
+          S.paletteDragDef = def;
           updateDesc(`${def.name}: ${def.desc}`);
           draw();
         });
@@ -452,180 +542,24 @@ canvas.display { display: block; cursor: crosshair; }
       }
     }
   }
-  function updateDesc(text) {
-    descEl.textContent = text;
-  }
   function switchTab(tab) {
-    activeTab = tab;
-    selectedObj = null;
-    selectedObjIdx = -1;
-    shadow.querySelectorAll(".tab").forEach((b) => {
+    S.activeTab = tab;
+    S.selectedObj = null;
+    S.selectedObjIdx = -1;
+    S.shadow.querySelectorAll(".tab").forEach((b) => {
       b.classList.toggle("tab-active", b.getAttribute("data-tab") === tab);
     });
     buildThumbnails();
     updateDesc(`${tab.charAt(0).toUpperCase() + tab.slice(1)} tab \u2014 select an item below`);
     draw();
   }
-  function canvasToWorld(e) {
-    const rect = canvas.getBoundingClientRect();
-    const cs = cellSize();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const wx = mx + canvasWrap.scrollLeft, wy = my + canvasWrap.scrollTop;
-    return {
-      bx: Math.floor(wx / cs),
-      by: Math.floor(wy / cs),
-      px: Math.floor(wx / cs * BLOCK_PX),
-      py: Math.floor(wy / cs * BLOCK_PX)
-    };
-  }
-  function inGrid(bx, by) {
-    return bx >= 0 && bx < grid[0].length && by >= 0 && by < grid.length;
-  }
-  function onMouseDown(e) {
-    var _a;
-    e.preventDefault();
-    const { bx, by, px, py } = canvasToWorld(e);
-    if (spaceHeld || e.button === 1) {
-      panning = true;
-      panStartX = e.clientX;
-      panStartY = e.clientY;
-      panStartSX = canvasWrap.scrollLeft;
-      panStartSY = canvasWrap.scrollTop;
-      canvas.style.cursor = "grabbing";
-      return;
-    }
-    if (!inGrid(bx, by)) return;
-    if (e.button === 2) {
-      erasing = true;
-      if (activeTab === "tiles") {
-        grid[by][bx] = 0;
-      } else {
-        for (let i = objects.length - 1; i >= 0; i--) {
-          const o = objects[i];
-          if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-            objects.splice(i, 1);
-            break;
-          }
-        }
-      }
-      updateCounter();
-      draw();
-      return;
-    }
-    if (selectedObj && activeTab !== "tiles") {
-      if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
-        setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
-        return;
-      }
-      objects.push({ x: snap8(px), y: snap8(py), variant: 0, type: selectedObj.id, sub: 0 });
-      setStatus(`Placed ${selectedObj.name} at tile (${bx},${by})`);
-      updateCounter();
-      draw();
-      return;
-    }
-    if (activeTab !== "tiles") {
-      let found = -1;
-      for (let i = objects.length - 1; i >= 0; i--) {
-        const o = objects[i];
-        if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-          found = i;
-          break;
-        }
-      }
-      selectedObjIdx = found;
-      if (found >= 0) {
-        const o = objects[found];
-        dragObj = o;
-        dragOffX = px - o.x;
-        dragOffY = py - o.y;
-        setStatus(`Selected: ${((_a = findDef(o.type)) == null ? void 0 : _a.name) || o.type} at (${o.x},${o.y})`);
-      } else {
-        dragObj = null;
-        setStatus("");
-      }
-      updateCounter();
-      draw();
-    }
-  }
-  function onMouseMove(e) {
-    if (panning) {
-      canvasWrap.scrollLeft = panStartSX - (e.clientX - panStartX);
-      canvasWrap.scrollTop = panStartSY - (e.clientY - panStartY);
-      draw();
-      return;
-    }
-    const { bx, by, px, py } = canvasToWorld(e);
-    canvasMouseX = e.clientX;
-    canvasMouseY = e.clientY;
-    if (paletteDrag && inGrid(bx, by)) {
-      hoverBx = bx;
-      hoverBy = by;
-      mouseOverCanvas = true;
-    } else if (!paletteDrag) {
-      hoverBx = -1;
-      hoverBy = -1;
-      mouseOverCanvas = false;
-    }
-    if (dragObj && selectedObjIdx >= 0) {
-      dragObj.x = snap8(px - dragOffX);
-      dragObj.y = snap8(py - dragOffY);
-      updateCounter();
-    }
-    draw();
-  }
-  function onMouseUp(_e) {
-    painting = false;
-    erasing = false;
-    panning = false;
-    dragObj = null;
-    canvas.style.cursor = spaceHeld ? "grab" : "crosshair";
-    draw();
-  }
-  function onMouseLeave() {
-    paletteDrag = false;
-    painting = false;
-    erasing = false;
-    panning = false;
-    dragObj = null;
-    hoverBx = -1;
-    hoverBy = -1;
-    mouseOverCanvas = false;
-    canvas.style.cursor = spaceHeld ? "grab" : "crosshair";
-    draw();
-  }
-  function onContextMenu(e) {
-    e.preventDefault();
-  }
-  function onKeyDown(e) {
-    if (e.code === "Space" && !spaceHeld) {
-      e.preventDefault();
-      spaceHeld = true;
-      canvas.style.cursor = "grab";
-    }
-    if ((e.key === "Delete" || e.key === "Backspace") && selectedObjIdx >= 0) {
-      objects.splice(selectedObjIdx, 1);
-      selectedObjIdx = -1;
-      setStatus("Deleted");
-      updateCounter();
-      draw();
-    }
-  }
-  function onKeyUp(e) {
-    if (e.code === "Space") {
-      spaceHeld = false;
-      canvas.style.cursor = "crosshair";
-    }
-  }
-  function onWheel(e) {
-    e.preventDefault();
-    if (e.shiftKey) canvasWrap.scrollLeft += e.deltaY;
-    else canvasWrap.scrollTop += e.deltaY;
-  }
+
+  // ts/actions.ts
   function hasSonic() {
-    return objects.some((o) => o.type === 151);
+    return S.objects.some((o) => o.type === 151);
   }
   function hasGoal() {
-    return objects.some((o) => o.type === 44);
+    return S.objects.some((o) => o.type === 44);
   }
   async function doSave() {
     if (!hasSonic()) {
@@ -638,7 +572,8 @@ canvas.display { display: block; cursor: crosshair; }
     }
     setStatus("Saving...");
     try {
-      const bin = encodeBin(grid), act = encodeAct(objects);
+      const bin = encodeBin(S.grid);
+      const act = encodeAct(S.objects);
       const resp = await fetch("/editors/save.php", {
         method: "POST",
         headers: { "Content-Type": "application/octet-stream" },
@@ -659,123 +594,197 @@ canvas.display { display: block; cursor: crosshair; }
     window.open("/", "_blank");
   }
   function doFullscreen() {
-    const el = shadow.host;
+    const el = S.shadow.host;
     if (document.fullscreenElement) document.exitFullscreen();
     else el.requestFullscreen();
   }
   function doClearAll() {
     if (!confirm("Clear entire level? This cannot be undone.")) return;
     initGrid();
-    selectedObjIdx = -1;
+    S.selectedObjIdx = -1;
     setStatus("Level cleared");
     updateCounter();
     draw();
   }
   function resizeCanvas() {
-    canvas.width = grid[0].length * cellSize();
-    canvas.height = grid.length * cellSize();
+    if (!S.canvas) return;
+    S.canvas.width = S.grid[0].length * cellSize();
+    S.canvas.height = S.grid.length * cellSize();
     draw();
   }
   function setZoom(z) {
-    zoom = z;
-    shadow.querySelectorAll("[data-zoom]").forEach((b) => {
+    S.zoom = z;
+    S.shadow.querySelectorAll("[data-zoom]").forEach((b) => {
       b.classList.toggle("btn-active", parseFloat(b.getAttribute("data-zoom") || "0") === z);
     });
     resizeCanvas();
   }
-  var ghostCanvas;
-  var ghostCtx;
-  var GHOST_PX = 256;
-  function initGhostCanvas() {
-    ghostCanvas = document.createElement("canvas");
-    ghostCanvas.width = GHOST_PX;
-    ghostCanvas.height = GHOST_PX;
-    ghostCtx = ghostCanvas.getContext("2d");
-  }
-  function updateGhost(e) {
-    if (!paletteDrag) {
-      ghostEl.classList.remove("visible");
+
+  // ts/events.ts
+  function onMouseDown(e) {
+    e.preventDefault();
+    const { bx, by, px, py } = canvasToWorld(e);
+    if (S.spaceHeld || e.button === 1) {
+      S.panning = true;
+      S.panStartX = e.clientX;
+      S.panStartY = e.clientY;
+      S.panStartSX = S.canvasWrap.scrollLeft;
+      S.panStartSY = S.canvasWrap.scrollTop;
+      S.canvas.style.cursor = "grabbing";
       return;
     }
-    const cs = cellSize();
-    ghostEl.classList.add("visible");
-    ghostEl.style.width = cs + "px";
-    ghostEl.style.height = cs + "px";
-    ghostEl.style.left = e.clientX - cs / 2 + "px";
-    ghostEl.style.top = e.clientY - cs / 2 + "px";
-    if (activeTab === "tiles" && spritesheetImg.complete) {
-      ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
-      const { x: sx, y: sy } = blockSheetXY(paletteDragTile);
-      ghostCtx.imageSmoothingEnabled = false;
-      ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
-      ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
-      ghostEl.style.backgroundSize = "100% 100%";
+    if (!inGrid(bx, by)) return;
+    if (e.button === 2) {
+      if (S.activeTab === "tiles") {
+        S.grid[by][bx] = 0;
+      } else {
+        for (let i = S.objects.length - 1; i >= 0; i--) {
+          const o = S.objects[i];
+          if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
+            S.objects.splice(i, 1);
+            break;
+          }
+        }
+        S.selectedObjIdx = -1;
+        S.dragObj = null;
+      }
+      updateCounter();
+      draw();
+      return;
+    }
+    if (S.activeTab !== "tiles") {
+      let found = -1;
+      for (let i = S.objects.length - 1; i >= 0; i--) {
+        const o = S.objects[i];
+        if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
+          found = i;
+          break;
+        }
+      }
+      S.selectedObjIdx = found;
+      if (found >= 0) {
+        const o = S.objects[found];
+        S.dragObj = o;
+        S.dragOffX = px - o.x;
+        S.dragOffY = py - o.y;
+        setStatus(`Selected: ${findDefName(o.type)} at (${o.x},${o.y})`);
+      } else {
+        S.dragObj = null;
+        setStatus("");
+      }
+      updateCounter();
+      draw();
+    }
+  }
+  function onMouseMove(e) {
+    if (S.panning) {
+      S.canvasWrap.scrollLeft = S.panStartSX - (e.clientX - S.panStartX);
+      S.canvasWrap.scrollTop = S.panStartSY - (e.clientY - S.panStartY);
+      draw();
+      return;
+    }
+    const { bx, by, px, py } = canvasToWorld(e);
+    if (S.dragObj && S.selectedObjIdx >= 0) {
+      S.dragObj.x = snap8(px - S.dragOffX);
+      S.dragObj.y = snap8(py - S.dragOffY);
+      updateCounter();
+    }
+    draw();
+  }
+  function onMouseUp(_e) {
+    S.panning = false;
+    S.dragObj = null;
+    S.canvas.style.cursor = S.spaceHeld ? "grab" : "crosshair";
+    draw();
+  }
+  function onMouseLeave() {
+    S.panning = false;
+    S.dragObj = null;
+    S.canvas.style.cursor = S.spaceHeld ? "grab" : "crosshair";
+    draw();
+  }
+  function onContextMenu(e) {
+    e.preventDefault();
+  }
+  function onKeyDown(e) {
+    if (e.code === "Space" && !S.spaceHeld) {
+      e.preventDefault();
+      S.spaceHeld = true;
+      S.canvas.style.cursor = "grab";
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && S.selectedObjIdx >= 0) {
+      S.objects.splice(S.selectedObjIdx, 1);
+      S.selectedObjIdx = -1;
+      setStatus("Deleted");
+      updateCounter();
+      draw();
+    }
+  }
+  function onKeyUp(e) {
+    if (e.code === "Space") {
+      S.spaceHeld = false;
+      S.canvas.style.cursor = "crosshair";
+    }
+  }
+  function onWheel(e) {
+    e.preventDefault();
+    if (e.shiftKey) {
+      S.canvasWrap.scrollLeft += e.deltaY;
     } else {
-      ghostEl.style.backgroundImage = "none";
-      ghostEl.style.backgroundColor = "rgba(255,200,0,0.5)";
+      S.canvasWrap.scrollLeft += e.deltaX;
+      S.canvasWrap.scrollTop += e.deltaY;
     }
   }
   function onDocMouseMove(e) {
     updateGhost(e);
-    if (!paletteDrag) return;
-    const rect = canvas.getBoundingClientRect();
-    const cs = cellSize();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const wx = mx + canvasWrap.scrollLeft, wy = my + canvasWrap.scrollTop;
-    const bx = Math.floor(wx / cs), by = Math.floor(wy / cs);
-    if (bx >= 0 && bx < grid[0].length && by >= 0 && by < grid.length) {
-      hoverBx = bx;
-      hoverBy = by;
-      mouseOverCanvas = true;
+    if (!S.paletteDrag) return;
+    const { bx, by } = canvasToWorld(e);
+    if (inGrid(bx, by)) {
+      S.hoverBx = bx;
+      S.hoverBy = by;
+      S.mouseOverCanvas = true;
     } else {
-      hoverBx = -1;
-      hoverBy = -1;
-      mouseOverCanvas = false;
+      S.hoverBx = -1;
+      S.hoverBy = -1;
+      S.mouseOverCanvas = false;
     }
     draw();
   }
-  function onDocMouseUp(e) {
-    ghostEl.classList.remove("visible");
-    if (!paletteDrag) return;
-    if (mouseOverCanvas && hoverBx >= 0 && hoverBy >= 0) {
-      grid[hoverBy][hoverBx] = paletteDragTile;
-      setStatus(`Placed block ${paletteDragTile} at (${hoverBx},${hoverBy})`);
+  function onDocMouseUp(_e) {
+    hideGhost();
+    if (!S.paletteDrag) return;
+    if (S.mouseOverCanvas && S.hoverBx >= 0 && S.hoverBy >= 0) {
+      if (S.activeTab === "tiles") {
+        S.grid[S.hoverBy][S.hoverBx] = S.paletteDragTile;
+        setStatus(`Placed block ${S.paletteDragTile} at (${S.hoverBx},${S.hoverBy})`);
+      } else if (S.paletteDragDef) {
+        if (S.grid[S.hoverBy][S.hoverBx] === 0) {
+          setStatus("Objects must be placed on a tile!");
+        } else if (objectsInTile(S.hoverBx, S.hoverBy) >= MAX_OBJECTS_PER_TILE) {
+          setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
+        } else {
+          const px = S.hoverBx * BLOCK_PX;
+          const py = S.hoverBy * BLOCK_PX;
+          S.objects.push({ x: snap8(px), y: snap8(py), variant: 0, type: S.paletteDragDef.id, sub: 0 });
+          setStatus(`Placed ${S.paletteDragDef.name} at (${S.hoverBx},${S.hoverBy})`);
+        }
+      }
       updateCounter();
     }
-    paletteDrag = false;
-    hoverBx = -1;
-    hoverBy = -1;
-    mouseOverCanvas = false;
+    S.paletteDrag = false;
+    S.paletteDragDef = null;
+    S.hoverBx = -1;
+    S.hoverBy = -1;
+    S.mouseOverCanvas = false;
     draw();
   }
-  function boot() {
+  function findDefName(typeId) {
+    const def = findDef(typeId);
+    return def ? def.name : `${typeId}`;
+  }
+  function wireEvents() {
     var _a;
-    const host = document.getElementById("gamecontainer");
-    if (!host) return;
-    shadow = host.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = EDITOR_CSS;
-    shadow.appendChild(style);
-    const wrapper = document.createElement("div");
-    wrapper.style.cssText = "height:100%;display:flex;flex-direction:column;";
-    wrapper.innerHTML = EDITOR_HTML;
-    shadow.appendChild(wrapper);
-    canvas = shadow.querySelector("canvas.display");
-    ctx = canvas.getContext("2d");
-    canvasWrap = shadow.querySelector(".canvas-wrap");
-    thumbstrip = shadow.querySelector(".thumbstrip");
-    descEl = shadow.querySelector(".desc");
-    statusEl = shadow.querySelector(".status");
-    counterEl = shadow.querySelector(".counter");
-    ghostEl = shadow.querySelector(".ghost");
-    initGrid();
-    initGhostCanvas();
-    spritesheetImg = new Image();
-    spritesheetImg.onload = () => {
-      buildThumbnails();
-      draw();
-    };
-    spritesheetImg.src = "/editors/assets/spritesheet.png";
+    const { canvas, canvasWrap, shadow } = S;
     canvas.addEventListener("mousedown", onMouseDown);
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("mouseup", onMouseUp);
@@ -804,9 +813,39 @@ canvas.display { display: block; cursor: crosshair; }
       });
     });
     (_a = shadow.querySelector(".btn-clear")) == null ? void 0 : _a.addEventListener("click", doClearAll);
-    window.addEventListener("resize", () => {
-      resizeCanvas();
-    });
+    window.addEventListener("resize", resizeCanvas);
+  }
+
+  // ts/main.ts
+  function boot() {
+    const host = document.getElementById("gamecontainer");
+    if (!host) return;
+    const shadow = host.attachShadow({ mode: "open" });
+    S.shadow = shadow;
+    const style = document.createElement("style");
+    style.textContent = EDITOR_CSS;
+    shadow.appendChild(style);
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "height:100%;display:flex;flex-direction:column;";
+    wrapper.innerHTML = EDITOR_HTML;
+    shadow.appendChild(wrapper);
+    S.canvas = shadow.querySelector("canvas.display");
+    S.ctx = S.canvas.getContext("2d");
+    S.canvasWrap = shadow.querySelector(".canvas-wrap");
+    S.thumbstrip = shadow.querySelector(".thumbstrip");
+    S.descEl = shadow.querySelector(".desc");
+    S.statusEl = shadow.querySelector(".status");
+    S.counterEl = shadow.querySelector(".counter");
+    S.ghostEl = shadow.querySelector(".ghost");
+    initGrid();
+    initGhostCanvas();
+    S.spritesheetImg = new Image();
+    S.spritesheetImg.onload = () => {
+      buildThumbnails();
+      draw();
+    };
+    S.spritesheetImg.src = "/editors/assets/spritesheet.png";
+    wireEvents();
     requestAnimationFrame(() => {
       resizeCanvas();
       updateCounter();
