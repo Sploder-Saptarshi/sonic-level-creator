@@ -129,16 +129,30 @@ function zone_bytes(string $key): string {
     // (Utilities.readStringArray does param.split(",")), not a strict array.
     static $cache = [];
     if (!isset($cache[$key])) {
+        // onGetLevel feeds ONE ByteArray into parseBinFile (3D-int blockData)
+        // immediately followed by parseActFile (4 shorts + byte tables), so a
+        // BIN-only blob starves the ACT parser -> black screen. Concatenate.
         $map = [
-            'gh' => '/../games/swf/52/res/data/default/mc_gh_map_data.bin',
-            'la' => '/../games/swf/52/res/data/default/mc_la_map_data.bin',
-            'ma' => '/../games/swf/52/res/data/default/mc_ma_map_data.bin',
-            'sb' => '/../games/swf/52/res/data/default/mc_sb_map_data.bin',
-            'sl' => '/../games/swf/52/res/data/default/mc_sl_map_data.bin',
-            'sy' => '/../games/swf/52/res/data/default/mc_sy_map_data.bin',
+            'gh' => ['/../games/swf/52/res/data/default/mc_gh_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
+            'la' => ['/../games/swf/52/res/data/default/mc_la_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
+            'ma' => ['/../games/swf/52/res/data/default/mc_ma_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
+            'sb' => ['/../games/swf/52/res/data/default/mc_sb_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
+            'sl' => ['/../games/swf/52/res/data/default/mc_sl_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
+            'sy' => ['/../games/swf/52/res/data/default/mc_sy_map_data.bin',
+                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
         ];
-        $f = __DIR__ . ($map[$key] ?? $map['gh']);
-        $cache[$key] = is_file($f) ? implode(',', unpack('C*', file_get_contents($f))) : '';
+        $pair = $map[$key] ?? $map['gh'];
+        $bin = '';
+        foreach ($pair as $rel) {
+            $f = __DIR__ . $rel;
+            if (is_file($f)) $bin .= file_get_contents($f);
+        }
+        $cache[$key] = $bin !== '' ? implode(',', unpack('C*', $bin)) : '';
     }
     return $cache[$key];
 }
