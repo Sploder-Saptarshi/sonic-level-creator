@@ -162,8 +162,8 @@
 .btn-clear { background: #633; border-color: #a44; }
 .btn-clear:hover { background: #944; }
 
-/* \u2500\u2500 main split: canvas left, nothing right (canvas fills top 75%) \u2500\u2500 */
-.main { display: flex; flex: 1; min-height: 0; }
+/* \u2500\u2500 main split: canvas on top, tabs+options below \u2500\u2500 */
+.main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /* \u2500\u2500 canvas area \u2500\u2500 */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -182,12 +182,13 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
 .tab:hover { background: #ddd; }
 .tab-active { background: #fff; font-weight: bold; }
 .thumbstrip { flex: 1; display: flex; gap: 3px; padding: 4px;
-  overflow-x: auto; overflow-y: hidden; align-items: flex-start; }
-.thumb { width: 36px; height: 36px; border: 1px solid #888; cursor: pointer;
+  overflow-x: auto; overflow-y: hidden; align-items: stretch; }
+.thumb { height: 100%; aspect-ratio: 1; border: 1px solid #888; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
 .thumb:hover { border-color: #f00; }
-.thumb canvas { display: block; width: 32px; height: 32px; }
+.thumb canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated;
+  image-rendering: crisp-edges; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 .desc { height: 20px; padding: 2px 6px; background: #f0f0f0; border-top: 1px solid #ccc;
@@ -211,15 +212,22 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
 .btm-btn { padding: 3px 10px; border: 1px solid #666; background: #555; color: #fff;
   cursor: pointer; font-size: 11px; font-family: inherit; }
 .btm-btn:hover { background: #777; }
+
+/* \u2500\u2500 floating ghost \u2500\u2500 */
+.ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
+  width: 64px; height: 64px; opacity: 0.7;
+  border: 2px dashed #fff; background-size: cover; background-color: rgba(0,0,0,0.3);
+  image-rendering: pixelated; }
+.ghost.visible { display: block; }
 `;
   var EDITOR_HTML = `
 <div class="editor">
   <div class="topbar">
     <div class="topbar-l">
       <label>Zoom:</label>
-      <button class="btn btn-active" data-zoom="1">100%</button>
-      <button class="btn" data-zoom="0.5">50%</button>
-      <button class="btn" data-zoom="0.25">25%</button>
+      <button class="btn btn-active" data-zoom="2">100%</button>
+      <button class="btn" data-zoom="1">50%</button>
+      <button class="btn" data-zoom="0.5">25%</button>
     </div>
     <div class="topbar-r">
       <span>Object Counter:</span>
@@ -268,6 +276,8 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     </div>
     <button class="btm-btn" data-action="share">SHARE</button>
   </div>
+
+  <div class="ghost" id="ghost"></div>
 </div>
 `;
   var grid = [];
@@ -275,7 +285,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   var activeTab = "tiles";
   var selectedTile = 1;
   var selectedObj = null;
-  var zoom = 1;
+  var zoom = 2;
   var scrollX = 0;
   var scrollY = 0;
   var panning = false;
@@ -290,6 +300,13 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   var dragObj = null;
   var dragOffX = 0;
   var dragOffY = 0;
+  var hoverBx = -1;
+  var hoverBy = -1;
+  var paletteDrag = false;
+  var paletteDragTile = 0;
+  var canvasMouseX = -1;
+  var canvasMouseY = -1;
+  var mouseOverCanvas = false;
   var shadow;
   var canvas;
   var ctx;
@@ -299,6 +316,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   var statusEl;
   var counterEl;
   var canvasWrap;
+  var ghostEl;
   function cellSize() {
     return Math.round(64 * zoom);
   }
@@ -405,20 +423,22 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
         el.className = "thumb";
         el.title = `Block ${i}`;
         const cvs = document.createElement("canvas");
-        cvs.width = 32;
-        cvs.height = 32;
+        cvs.width = BLOCK_PX;
+        cvs.height = BLOCK_PX;
         const c = cvs.getContext("2d");
         if (spritesheetImg.complete) {
           const { x: sx, y: sy } = blockSheetXY(i);
-          c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, 32, 32);
+          c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
         }
         el.appendChild(cvs);
-        el.addEventListener("click", () => {
+        el.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
           selectedTile = i;
           selectedObj = null;
           selectedObjIdx = -1;
-          activeTab = "tiles";
-          updateDesc(`Block ${i} \u2014 click/drag to paint, right-click to erase`);
+          paletteDrag = true;
+          paletteDragTile = i;
+          updateDesc(`Block ${i} \u2014 drag onto grid to place`);
           draw();
         });
         thumbstrip.appendChild(el);
@@ -511,12 +531,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       draw();
       return;
     }
-    if (activeTab === "tiles") {
-      painting = true;
-      grid[by][bx] = selectedTile;
-      updateCounter();
-      draw();
-    } else {
+    if (activeTab !== "tiles") {
       let found = -1;
       for (let i = objects.length - 1; i >= 0; i--) {
         const o = objects[i];
@@ -550,24 +565,43 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       return;
     }
     const { bx, by, px, py } = canvasToWorld(e);
+    canvasMouseX = e.clientX;
+    canvasMouseY = e.clientY;
+    if (paletteDrag && inGrid(bx, by)) {
+      hoverBx = bx;
+      hoverBy = by;
+      mouseOverCanvas = true;
+    } else if (!paletteDrag) {
+      hoverBx = -1;
+      hoverBy = -1;
+      mouseOverCanvas = false;
+    }
     if (dragObj && selectedObjIdx >= 0) {
       dragObj.x = snap8(px - dragOffX);
       dragObj.y = snap8(py - dragOffY);
       updateCounter();
-      draw();
-      return;
     }
-    if ((painting || erasing) && inGrid(bx, by)) {
-      if (activeTab === "tiles") grid[by][bx] = erasing ? 0 : selectedTile;
-      draw();
-    }
+    draw();
   }
-  function onMouseUp() {
+  function onMouseUp(_e) {
     painting = false;
     erasing = false;
     panning = false;
     dragObj = null;
     canvas.style.cursor = spaceHeld ? "grab" : "crosshair";
+    draw();
+  }
+  function onMouseLeave() {
+    paletteDrag = false;
+    painting = false;
+    erasing = false;
+    panning = false;
+    dragObj = null;
+    hoverBx = -1;
+    hoverBy = -1;
+    mouseOverCanvas = false;
+    canvas.style.cursor = spaceHeld ? "grab" : "crosshair";
+    draw();
   }
   function onContextMenu(e) {
     e.preventDefault();
@@ -679,6 +713,57 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     resizeCanvas();
     syncScrollbars();
   }
+  function updateGhost(e) {
+    if (!paletteDrag) {
+      ghostEl.classList.remove("visible");
+      return;
+    }
+    ghostEl.classList.add("visible");
+    ghostEl.style.left = e.clientX - 32 + "px";
+    ghostEl.style.top = e.clientY - 32 + "px";
+    if (activeTab === "tiles" && spritesheetImg.complete) {
+      const { x: sx, y: sy } = blockSheetXY(paletteDragTile);
+      ghostEl.style.backgroundImage = `url(${spritesheetImg.src})`;
+      ghostEl.style.backgroundPosition = `-${sx}px -${sy}px`;
+      ghostEl.style.backgroundSize = `${SHEET_SIZE}px ${SHEET_SIZE}px`;
+    } else {
+      ghostEl.style.backgroundImage = "none";
+      ghostEl.style.backgroundColor = "rgba(255,200,0,0.5)";
+    }
+  }
+  function onDocMouseMove(e) {
+    updateGhost(e);
+    if (!paletteDrag) return;
+    const rect = canvas.getBoundingClientRect();
+    const cs = cellSize();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const wx = mx + scrollX, wy = my + scrollY;
+    const bx = Math.floor(wx / cs), by = Math.floor(wy / cs);
+    if (bx >= 0 && bx < grid[0].length && by >= 0 && by < grid.length) {
+      hoverBx = bx;
+      hoverBy = by;
+      mouseOverCanvas = true;
+    } else {
+      hoverBx = -1;
+      hoverBy = -1;
+      mouseOverCanvas = false;
+    }
+    draw();
+  }
+  function onDocMouseUp(e) {
+    ghostEl.classList.remove("visible");
+    if (!paletteDrag) return;
+    if (mouseOverCanvas && hoverBx >= 0 && hoverBy >= 0) {
+      grid[hoverBy][hoverBx] = paletteDragTile;
+      setStatus(`Placed block ${paletteDragTile} at (${hoverBx},${hoverBy})`);
+      updateCounter();
+    }
+    paletteDrag = false;
+    hoverBx = -1;
+    hoverBy = -1;
+    mouseOverCanvas = false;
+    draw();
+  }
   function boot() {
     var _a;
     const host = document.getElementById("gamecontainer");
@@ -688,6 +773,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     style.textContent = EDITOR_CSS;
     shadow.appendChild(style);
     const wrapper = document.createElement("div");
+    wrapper.style.cssText = "height:100%;display:flex;flex-direction:column;";
     wrapper.innerHTML = EDITOR_HTML;
     shadow.appendChild(wrapper);
     canvas = shadow.querySelector("canvas.display");
@@ -697,6 +783,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     descEl = shadow.querySelector(".desc");
     statusEl = shadow.querySelector(".status");
     counterEl = shadow.querySelector(".counter");
+    ghostEl = shadow.querySelector(".ghost");
     initGrid();
     spritesheetImg = new Image();
     spritesheetImg.onload = () => {
@@ -707,9 +794,11 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     canvas.addEventListener("mousedown", onMouseDown);
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("mouseup", onMouseUp);
-    canvas.addEventListener("mouseleave", onMouseUp);
+    canvas.addEventListener("mouseleave", onMouseLeave);
     canvas.addEventListener("contextmenu", onContextMenu);
     canvas.addEventListener("wheel", onWheel, { passive: false });
+    document.addEventListener("mousemove", onDocMouseMove);
+    document.addEventListener("mouseup", onDocMouseUp);
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("keyup", onKeyUp);
     const hBar = shadow.querySelector(".hscroll");

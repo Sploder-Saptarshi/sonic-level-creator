@@ -27,8 +27,8 @@ const EDITOR_CSS = `
 .btn-clear { background: #633; border-color: #a44; }
 .btn-clear:hover { background: #944; }
 
-/* ── main split: canvas left, nothing right (canvas fills top 75%) ── */
-.main { display: flex; flex: 1; min-height: 0; }
+/* ── main split: canvas on top, tabs+options below ── */
+.main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
 /* ── canvas area ── */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -47,12 +47,13 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
 .tab:hover { background: #ddd; }
 .tab-active { background: #fff; font-weight: bold; }
 .thumbstrip { flex: 1; display: flex; gap: 3px; padding: 4px;
-  overflow-x: auto; overflow-y: hidden; align-items: flex-start; }
-.thumb { width: 36px; height: 36px; border: 1px solid #888; cursor: pointer;
+  overflow-x: auto; overflow-y: hidden; align-items: stretch; }
+.thumb { height: 100%; aspect-ratio: 1; border: 1px solid #888; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
 .thumb:hover { border-color: #f00; }
-.thumb canvas { display: block; width: 32px; height: 32px; }
+.thumb canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated;
+  image-rendering: crisp-edges; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 .desc { height: 20px; padding: 2px 6px; background: #f0f0f0; border-top: 1px solid #ccc;
@@ -76,6 +77,13 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
 .btm-btn { padding: 3px 10px; border: 1px solid #666; background: #555; color: #fff;
   cursor: pointer; font-size: 11px; font-family: inherit; }
 .btm-btn:hover { background: #777; }
+
+/* ── floating ghost ── */
+.ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
+  width: 64px; height: 64px; opacity: 0.7;
+  border: 2px dashed #fff; background-size: cover; background-color: rgba(0,0,0,0.3);
+  image-rendering: pixelated; }
+.ghost.visible { display: block; }
 `;
 
 // ── Editor HTML template ──
@@ -84,9 +92,9 @@ const EDITOR_HTML = `
   <div class="topbar">
     <div class="topbar-l">
       <label>Zoom:</label>
-      <button class="btn btn-active" data-zoom="1">100%</button>
-      <button class="btn" data-zoom="0.5">50%</button>
-      <button class="btn" data-zoom="0.25">25%</button>
+      <button class="btn btn-active" data-zoom="2">100%</button>
+      <button class="btn" data-zoom="1">50%</button>
+      <button class="btn" data-zoom="0.5">25%</button>
     </div>
     <div class="topbar-r">
       <span>Object Counter:</span>
@@ -135,6 +143,8 @@ const EDITOR_HTML = `
     </div>
     <button class="btm-btn" data-action="share">SHARE</button>
   </div>
+
+  <div class="ghost" id="ghost"></div>
 </div>
 `;
 
@@ -144,7 +154,7 @@ let objects: PlacedObject[] = [];
 let activeTab: 'tiles' | 'objects' | 'rings' | 'enemies' | 'essentials' = 'tiles';
 let selectedTile = 1;
 let selectedObj: ObjectDef | null = null;
-let zoom = 1;
+let zoom = 2;
 let scrollX = 0;
 let scrollY = 0;
 let panning = false;
@@ -159,6 +169,13 @@ let selectedObjIdx = -1;
 let dragObj: PlacedObject | null = null;
 let dragOffX = 0;
 let dragOffY = 0;
+let hoverBx = -1;
+let hoverBy = -1;
+let paletteDrag = false;
+let paletteDragTile = 0;
+let canvasMouseX = -1;
+let canvasMouseY = -1;
+let mouseOverCanvas = false;
 
 // ── DOM (all inside shadow) ──
 let shadow: ShadowRoot;
@@ -170,6 +187,7 @@ let descEl: HTMLElement;
 let statusEl: HTMLElement;
 let counterEl: HTMLElement;
 let canvasWrap: HTMLElement;
+let ghostEl: HTMLElement;
 
 // ── Helpers ──
 function cellSize(): number { return Math.round(64 * zoom); }
@@ -276,17 +294,19 @@ function buildThumbnails() {
       el.className = 'thumb';
       el.title = `Block ${i}`;
       const cvs = document.createElement('canvas');
-      cvs.width = 32; cvs.height = 32;
+      cvs.width = BLOCK_PX; cvs.height = BLOCK_PX;
       const c = cvs.getContext('2d')!;
       if (spritesheetImg.complete) {
         const { x: sx, y: sy } = blockSheetXY(i);
-        c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, 32, 32);
+        c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
       }
       el.appendChild(cvs);
-      el.addEventListener('click', () => {
+      el.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
         selectedTile = i; selectedObj = null; selectedObjIdx = -1;
-        activeTab = 'tiles';
-        updateDesc(`Block ${i} — click/drag to paint, right-click to erase`);
+        paletteDrag = true;
+        paletteDragTile = i;
+        updateDesc(`Block ${i} — drag onto grid to place`);
         draw();
       });
       thumbstrip.appendChild(el);
@@ -367,7 +387,7 @@ function onMouseDown(e: MouseEvent) {
     updateCounter(); draw(); return;
   }
 
-  // object placement
+  // object placement (click grid to place selected object)
   if (selectedObj && activeTab !== 'tiles') {
     if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
       setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`); return;
@@ -377,13 +397,9 @@ function onMouseDown(e: MouseEvent) {
     updateCounter(); draw(); return;
   }
 
-  // tile paint
-  if (activeTab === 'tiles') {
-    painting = true;
-    grid[by][bx] = selectedTile;
-    updateCounter(); draw();
-  } else {
-    // select / drag object
+  // tile: drag-from-palette only — no click-to-paint on canvas
+  // objects: select/drag existing
+  if (activeTab !== 'tiles') {
     let found = -1;
     for (let i = objects.length - 1; i >= 0; i--) {
       const o = objects[i];
@@ -411,22 +427,39 @@ function onMouseMove(e: MouseEvent) {
   }
 
   const { bx, by, px, py } = canvasToWorld(e);
+  canvasMouseX = e.clientX;
+  canvasMouseY = e.clientY;
 
+  // hover for grid snap — only during palette drag
+  if (paletteDrag && inGrid(bx, by)) {
+    hoverBx = bx; hoverBy = by; mouseOverCanvas = true;
+  } else if (!paletteDrag) {
+    hoverBx = -1; hoverBy = -1; mouseOverCanvas = false;
+  }
+
+  // drag existing object
   if (dragObj && selectedObjIdx >= 0) {
     dragObj.x = snap8(px - dragOffX);
     dragObj.y = snap8(py - dragOffY);
-    updateCounter(); draw(); return;
+    updateCounter();
   }
 
-  if ((painting || erasing) && inGrid(bx, by)) {
-    if (activeTab === 'tiles') grid[by][bx] = erasing ? 0 : selectedTile;
-    draw();
-  }
+  draw();
 }
 
-function onMouseUp() {
+function onMouseUp(_e: MouseEvent) {
   painting = false; erasing = false; panning = false; dragObj = null;
   canvas.style.cursor = spaceHeld ? 'grab' : 'crosshair';
+  draw();
+}
+
+function onMouseLeave() {
+  paletteDrag = false;
+  painting = false; erasing = false; panning = false; dragObj = null;
+  hoverBx = -1; hoverBy = -1;
+  mouseOverCanvas = false;
+  canvas.style.cursor = spaceHeld ? 'grab' : 'crosshair';
+  draw();
 }
 
 function onContextMenu(e: MouseEvent) { e.preventDefault(); }
@@ -513,6 +546,55 @@ function setZoom(z: number) {
   syncScrollbars();
 }
 
+// ── Document-level handlers for palette drag ──
+function updateGhost(e: MouseEvent) {
+  if (!paletteDrag) { ghostEl.classList.remove('visible'); return; }
+  ghostEl.classList.add('visible');
+  ghostEl.style.left = (e.clientX - 32) + 'px';
+  ghostEl.style.top = (e.clientY - 32) + 'px';
+  // set background image from spritesheet
+  if (activeTab === 'tiles' && spritesheetImg.complete) {
+    const { x: sx, y: sy } = blockSheetXY(paletteDragTile);
+    ghostEl.style.backgroundImage = `url(${spritesheetImg.src})`;
+    ghostEl.style.backgroundPosition = `-${sx}px -${sy}px`;
+    ghostEl.style.backgroundSize = `${SHEET_SIZE}px ${SHEET_SIZE}px`;
+  } else {
+    ghostEl.style.backgroundImage = 'none';
+    ghostEl.style.backgroundColor = 'rgba(255,200,0,0.5)';
+  }
+}
+
+function onDocMouseMove(e: MouseEvent) {
+  updateGhost(e);
+  if (!paletteDrag) return;
+  // Convert to canvas-relative coords for grid snap
+  const rect = canvas.getBoundingClientRect();
+  const cs = cellSize();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const wx = mx + scrollX, wy = my + scrollY;
+  const bx = Math.floor(wx / cs), by = Math.floor(wy / cs);
+  if (bx >= 0 && bx < grid[0].length && by >= 0 && by < grid.length) {
+    hoverBx = bx; hoverBy = by; mouseOverCanvas = true;
+  } else {
+    hoverBx = -1; hoverBy = -1; mouseOverCanvas = false;
+  }
+  draw();
+}
+
+function onDocMouseUp(e: MouseEvent) {
+  ghostEl.classList.remove('visible');
+  if (!paletteDrag) return;
+  if (mouseOverCanvas && hoverBx >= 0 && hoverBy >= 0) {
+    grid[hoverBy][hoverBx] = paletteDragTile;
+    setStatus(`Placed block ${paletteDragTile} at (${hoverBx},${hoverBy})`);
+    updateCounter();
+  }
+  paletteDrag = false;
+  hoverBx = -1; hoverBy = -1;
+  mouseOverCanvas = false;
+  draw();
+}
+
 // ── Boot ──
 function boot() {
   const host = document.getElementById('gamecontainer');
@@ -527,6 +609,7 @@ function boot() {
 
   // inject HTML
   const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'height:100%;display:flex;flex-direction:column;';
   wrapper.innerHTML = EDITOR_HTML;
   shadow.appendChild(wrapper);
 
@@ -538,6 +621,7 @@ function boot() {
   descEl = shadow.querySelector('.desc')!;
   statusEl = shadow.querySelector('.status')!;
   counterEl = shadow.querySelector('.counter')!;
+  ghostEl = shadow.querySelector('.ghost')!;
 
   initGrid();
 
@@ -550,9 +634,13 @@ function boot() {
   canvas.addEventListener('mousedown', onMouseDown);
   canvas.addEventListener('mousemove', onMouseMove);
   canvas.addEventListener('mouseup', onMouseUp);
-  canvas.addEventListener('mouseleave', onMouseUp);
+  canvas.addEventListener('mouseleave', onMouseLeave);
   canvas.addEventListener('contextmenu', onContextMenu);
   canvas.addEventListener('wheel', onWheel, { passive: false });
+
+  // document-level handlers for palette drag that starts on thumbnails
+  document.addEventListener('mousemove', onDocMouseMove);
+  document.addEventListener('mouseup', onDocMouseUp);
 
   // keyboard
   document.addEventListener('keydown', onKeyDown);
