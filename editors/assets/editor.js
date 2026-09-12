@@ -215,8 +215,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
 
 /* \u2500\u2500 floating ghost \u2500\u2500 */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
-  width: 64px; height: 64px; opacity: 0.7;
-  border: 2px dashed #fff; background-size: cover; background-color: rgba(0,0,0,0.3);
+  opacity: 0.7; border: 2px dashed #fff; background-color: rgba(0,0,0,0.3);
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
 `;
@@ -713,19 +712,33 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     resizeCanvas();
     syncScrollbars();
   }
+  var ghostCanvas;
+  var ghostCtx;
+  var GHOST_PX = 256;
+  function initGhostCanvas() {
+    ghostCanvas = document.createElement("canvas");
+    ghostCanvas.width = GHOST_PX;
+    ghostCanvas.height = GHOST_PX;
+    ghostCtx = ghostCanvas.getContext("2d");
+  }
   function updateGhost(e) {
     if (!paletteDrag) {
       ghostEl.classList.remove("visible");
       return;
     }
+    const cs = cellSize();
     ghostEl.classList.add("visible");
-    ghostEl.style.left = e.clientX - 32 + "px";
-    ghostEl.style.top = e.clientY - 32 + "px";
+    ghostEl.style.width = cs + "px";
+    ghostEl.style.height = cs + "px";
+    ghostEl.style.left = e.clientX - cs / 2 + "px";
+    ghostEl.style.top = e.clientY - cs / 2 + "px";
     if (activeTab === "tiles" && spritesheetImg.complete) {
+      ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
       const { x: sx, y: sy } = blockSheetXY(paletteDragTile);
-      ghostEl.style.backgroundImage = `url(${spritesheetImg.src})`;
-      ghostEl.style.backgroundPosition = `-${sx}px -${sy}px`;
-      ghostEl.style.backgroundSize = `${SHEET_SIZE}px ${SHEET_SIZE}px`;
+      ghostCtx.imageSmoothingEnabled = false;
+      ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
+      ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
+      ghostEl.style.backgroundSize = "100% 100%";
     } else {
       ghostEl.style.backgroundImage = "none";
       ghostEl.style.backgroundColor = "rgba(255,200,0,0.5)";
@@ -785,6 +798,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     counterEl = shadow.querySelector(".counter");
     ghostEl = shadow.querySelector(".ghost");
     initGrid();
+    initGhostCanvas();
     spritesheetImg = new Image();
     spritesheetImg.onload = () => {
       buildThumbnails();
