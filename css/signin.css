@@ -1,0 +1,229 @@
+.si-segapass-image-cnt {float: left; width: 120px}
+.si-segapass-text-cnt {float: left; width: 250px; padding-left :10px; line-height: 13pt}
+.si-segapass-text-cnt p {padding:0; margin:0}
+.si-segapass-text-color {color: #333333}
+
+.si-login-form-cnt {float: left; width:435px; margin:0 0 10px 10px; text-align: left}
+.si-login-form-item-cnt, .si-step2-item-cnt {float: left; width: 100%; padding-top: 5px}
+.si-login-form-item-left {float: left; width: 140px; font-weight: bold; font-size: 11px; padding-top: 7px; text-align: right}
+.si-login-form-item-right {float: right; width: 295px; padding-left :0px}
+.si-login-form-textfield {width: 245px; height: 18px; margin-left: 4px; margin-top: 5px; border: 0px; background-image: url(../images/spacer.jpg); background-repeat: repeat}
+.si-login-form-textfield-cnt {background-image: url(../images/tb-bg.jpg); background-repeat: no-repeat; width: 255px; height: 27px}
+.si-login-form-rememberme-cb {float: left; width: 20px}
+.si-login-form-rememberme-text {float: left; width: 200px; padding-top: 3px; color: #333333}
+
+.si-login-form-cnt-short {float: left; width:235px; margin:0;text-align: left}
+.si-login-form-item-cnt-short, .si-step2-item-cnt-short {float: left; width: 300px; padding-top: 5px}
+.si-login-form-item-left-short {float: left; width: 70px; font-size: 11px; padding-top: 7px; text-align: right}
+.si-login-form-item-right-short {float: right; width: 195px; padding-left :0px}
+.si-login-form-textfield-short {width: 145px; height: 18px; margin-left: 4px; margin-top: 5px; border: 0px; background-image: url(../images/spacer.jpg); background-repeat: repeat}
+.si-login-form-textfield-cnt-short {background-image: url(../images/tb-bg-short.jpg); background-repeat: no-repeat; width: 195px; height: 27px}
+.si-login-form-rememberme-cb-short {float: left; width: 20px}
+.si-login-form-rememberme-text-short {float: left; width: 200px; padding: 3px 0 0 3px; color: #333333}
+
+.si-login-form-errors {padding-top: 10px; padding-bottom: 10px}
+
+#error_text {
+	padding-left:10px;
+    color: #eb7d02;
+    font-weight:bold;
+}
+.si-login-form-error-item
+{
+    color: #eb7d02;
+    font-weight:bold;
+}
+
+.si-why-register
+{
+    padding-top: 15px;
+    font-weight: bold;
+    padding-bottom: 8px;
+    /*float: left;*/
+}
+
+.si-why-register-desc-cnt
+{
+    float: left;
+    width: 400px;
+}
+
+.si-why-register-desc-left-cnt
+{
+    float: left;
+    width: 200px;
+}
+
+.si-why-register-desc-right-cnt
+{
+    float: right;
+    width: 200px;
+}
+
+.si-why-register-desc-item-left-cnt
+{
+    float: left;
+    width: 50px;
+}
+
+.si-why-register-desc-item-right-cnt
+{
+    float: left;
+    width: 150px;
+    padding-top: 15px;
+    font-size: 11px;
+    color: #333333;
+}
+
+.si-why-register-form2-cnt
+{
+    width: 430px;
+    text-align: left;
+    margin:0 5px;
+}
+
+.si-why-register-form2
+{
+    margin: 0 10px;
+}
+
+.markfix
+{
+    width: 100%;
+}
+
+.si-why-register-form2-step-cnt
+{
+    float: right;
+}
+
+.si-why-register-form2-form-cnt
+{
+    float: left;
+}
+
+.si-why-register-form2-form-left-cnt
+{
+    float: left;
+    width: 135px;
+    text-align: right;
+    font-weight: bold;
+    /*font-size: 11px;*/
+}
+
+.si-why-register-form2-form-right-cnt
+{
+    float: right;
+    width: 275px;
+}
+
+.si-segapass-box-height
+{
+    min-height: 360px;
+}
+
+
+/* -------------- STEP 2 REGISTRATION ---------------- */
+
+
+.si-step2-header-width
+{
+    width: 980px;
+}
+
+.si-step2-main-cnt, .si-confirm-main-cnt
+{
+    /*float: left;*/
+    text-align: left;
+    width: 610px;
+    padding-bottom: 10px;
+    background:transparent;
+    /*color: #656565;
+    position: relative;
+    top: -40px;*/
+}
+
+.si-confirm-main-cnt
+{
+    top: 0px;
+    padding-top: 10px;
+}
+
+.si-step2-item-left
+{
+    width: 180px;
+    float: left;
+    text-align: right;
+    font-weight: bold;
+    padding-top: 3px;
+}
+
+.si-step2-item-right
+{
+    width: 420px;
+    float: right;
+}
+
+.si-step2-textfield
+{
+    width: 200px;
+    border: 1px solid #c3c4b6;
+    background-image: url(../images/spacer.jpg);
+    background-repeat: repeat;
+    height: 18px;
+    padding-top: 4px;
+}
+
+
+.si-step2-main-step
+{
+    padding-top: 5px;
+    padding-left: 8px;
+}
+
+.si-step2-item-right select
+{
+    border: 1px solid #c3c4b6;
+    color: #333333;
+    background-image: url(../images/spacer.gif);
+    background-repeat: repeat;
+    background-color: white;
+}
+
+.si-step2-item-right option
+{
+    background-image: url(../images/spacer.gif);
+    background-repeat: repeat;
+    background-color: white;
+}
+
+.si-step2-small-item-left
+{
+    width: 250px;
+    float: left;
+    text-align: right;
+    font-weight: bold;
+    padding-top: 6px;
+}
+
+.si-step2-small-item-right
+{
+    width: 475px;
+    float: right;
+}
+
+.si-confirm-item-container
+{
+    float: left;
+    width: 100%;
+}
+
+.si-error-general
+{
+    float: right;
+    background: Red;
+    width: 180px;
+    padding-top: 6px;
+    padding-left: 6px;
+ 	background:url('../images/reg-error.gif') no-repeat left center;
+}

@@ -1,0 +1,120 @@
+/* SLIMBOX */
+
+#lbOverlay {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	background-color: #FFF;
+	cursor: pointer;
+	z-index: 11;
+}
+
+#lbCenter {
+	position: absolute;
+	left: 50%;
+	overflow: hidden;
+	background-color: #fff;
+	z-index: 12;
+	border: 1px solid #CCCCCC;
+	border-bottom: 0px;
+	padding: 15px 50px 0px 50px;
+	margin: 100px 0px 0px 0px;
+}
+
+#lbBottomContainer {
+	position: absolute;
+	left: 50%;
+	overflow: hidden;
+	background-color: #fff;
+	z-index: 12;
+	border: 1px solid #CCCCCC;
+	border-top: 0px;
+	padding: 0px 50px 0px 50px;
+	margin: 100px 0px 0px 0px;
+}
+
+.lbLoading {
+	background: #fff url(../images/lightbox/loading.gif) no-repeat center;
+	z-index: 12
+}
+
+#lbImage {
+
+	left: 20;
+	top: 20;
+	border: 10px solid #fff;
+	background-repeat: no-repeat;
+	z-index: 12;
+}
+
+#lbPrevLink, #lbNextLink {
+	display: block;
+	position: absolute;
+	top: 25px;
+	width: 50%;
+	outline: none;
+	z-index: 12;
+}
+
+#lbPrevLink {
+	left: 0;
+	background: transparent url(../images/lightbox/lightbox-prev-nor.gif) no-repeat 0% 45%;
+	z-index: 12
+}
+
+#lbPrevLink:hover {
+	background: transparent url(../images/lightbox/lightbox-prev-ro.gif) no-repeat 0% 45%;
+	z-index: 12
+}
+
+#lbNextLink {
+	right: 0;
+	background: transparent url(../images/lightbox/lightbox-next-nor.gif) no-repeat 100% 45%;
+	z-index: 12
+}
+
+#lbNextLink:hover {
+	background: transparent url(../images/lightbox/lightbox-next-ro.gif) no-repeat 100% 45%;
+	z-index: 12
+}
+
+
+#lbBottom {
+	font-family: Verdana, Arial, Geneva, Helvetica, sans-serif;
+	font-size: 10px;
+	color: #666;
+	line-height: 1.4em;
+	text-align: left;
+	border: 10px solid #fff;
+	border-top-style: none;
+	z-index: 12
+}
+
+#lbCloseLink {
+	display: block;
+	position: absolute;
+	top: 5px;
+	width: 27px;
+	outline: none;
+	right: 5px;
+	height: 27px;
+	background: transparent url(../images/lightbox/lightbox-close-nor.gif) no-repeat 92% 55%;
+	z-index: 14;
+}
+
+#lbCloseLink:hover {
+	background: transparent url(../images/lightbox/lightbox-close-ro.gif) no-repeat 92% 55%;
+	z-index: 12;
+}
+
+#lbCaption, #lbNumber {
+	margin-right: 71px;
+	z-index: 12
+}
+
+
+#lbCaption {
+	font-weight: bold;
+	z-index: 12
+}
+

@@ -1,0 +1,2874 @@
+
+@import url("escape.css");
+@import url("signin.css");
+@import url("round-button.css");
+@import url("playsegavip.css");
+@import url("upsell.css");
+
+body {
+margin: 0;
+font: 0.7em Arial,Helvetica,sans-serif;
+text-align:center;
+background-color: #fff;
+}
+
+p, td, body, div {
+color:#666666;
+}
+
+a:link { font-weight: normal; color: #444444; text-decoration: none;}
+a:active { font-weight: normal; color: #444444; text-decoration: none;}
+a:visited { font-weight: normal; color: #444444; text-decoration: none;}
+a:hover { font-weight: normal; color: #444444; text-decoration: underline;}
+
+p {
+margin: 1em 0;
+}
+
+form {
+padding:0;
+margin:0;
+display:inline;
+}
+
+img {
+border:0;
+}
+
+table {
+width:100%;
+border:0;
+}
+
+div.clear {
+overflow: hidden;
+clear: both;
+height: 1px;
+margin: -1px 0 0 0;
+font-size: 1px;
+}
+
+#popupbackground {
+position: absolute;
+z-index:50;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-image: url(../images/macFFBgHack.png);
+display:none;
+}
+
+#content1 {
+padding: 7px 4px 12px 4px;
+margin:0 auto;
+width:990px;
+text-align:left;
+}
+
+#content1 h3 {
+margin:0;
+border-bottom:1px solid #5387c2;
+height:27px;
+}
+
+#content1 h1 {
+margin:0;
+border-bottom:1px solid #5387c2;
+height:27px;
+}
+
+#content1 h4 {
+margin:0;
+border-bottom:1px solid #5387c2;
+height:27px;
+}
+
+#content1 h5 {
+margin:0;
+border-bottom:1px solid #5387c2;
+height:27px;
+}
+
+#content1, #content1 .sb-inner { background:#fff url('../images/content1-bg.gif') repeat-x; background-position: top center}
+#content1 .sb-shadow { background:#444444; }
+#content1 .sb-border { background:#fff; }
+
+div#logo {
+float:left;
+width:222px;
+height:98px;
+position:relative;
+top:-1px;
+left:3px;
+background:url('../images/beta-banner.gif') no-repeat;
+text-align:center;
+}
+div#logo2 p {
+margin:0;
+}
+div#logo a {
+outline: none; /* hide dotted outline in Firefox */
+}
+
+div#languagebar {
+float:right;
+width:200px;
+height:31px;
+margin:8px 0 0 10px;
+text-align:right;
+z-index: 1;
+}
+div#languagebar.loggedin {
+/*width:135px;*/
+width:100px;
+}
+
+div#languagebar img {
+margin-top:3px;
+}
+
+div#languagebarLonger {
+float:right;
+width:340px;
+height:31px;
+margin:8px 0 0 10px;
+text-align:right;
+z-index: 1;
+}
+div#languagebarLonger.loggedin {
+width:240px;
+}
+
+div#languagebarLonger img {
+margin-top:3px;
+}
+
+#content1 #languagebarLonger h1 {
+	border:none;
+	font-size: 8pt; 
+	float: left;	
+	background:none;
+	padding-top:4px;
+	padding-right:16px;
+	height:22px;
+}
+
+
+#topnav_out {
+padding:0;
+margin:0 0 2px 13px;
+height:57px;
+float:left;
+width:750px;
+background:url('../images/mainmenu-loggedout.png') no-repeat top left;
+}
+
+#topnav_out li {
+float:left;
+color:#000;
+list-style:none;
+padding:0;
+height:54px;
+overflow: hidden;
+
+}
+* html #topnav_out li { display:inline-block; }
+
+#topnav_out li a {
+display:block;
+background:url('../images/mainmenu-loggedout.png') no-repeat top left;
+border-bottom:1px solid green;
+padding-top:54px;
+}
+
+#topnav_out.loggedin li a {
+background-image:url('../images/mainmenu-loggedin.png');
+}
+
+#topnav_out li.one a {width:126px;background-position:0 0}
+#topnav_out li.two a {width:110px;background-position:-126px 0}
+#topnav_out li.three a {width:105px;background-position:-236px 0}
+#topnav_out li.four a {width:95px;background-position: -341px 0}
+#topnav_out li.five a {width:86px;background-position: -436px 0}
+#topnav_out li.six a {width:152px;background-position: -522px 0}
+#topnav_out li.seven a {width:76px;background-position: -674px 0}
+
+#topnav_out li.one a:hover {background-position:0 -58px}
+#topnav_out li.two a:hover {background-position:-126px -58px}
+#topnav_out li.three a:hover {background-position:-236px -58px}
+#topnav_out li.four a:hover {background-position:-341px -58px}
+#topnav_out li.five a:hover {background-position:-436px -58px}
+#topnav_out li.six a:hover {background-position:-522px -58px}
+#topnav_out li.seven a:hover {background-position:-674px -58px}
+
+#topnav_out li.one a:active {background-position:0 -116px}
+#topnav_out li.two a:active {background-position:-126px -116px}
+#topnav_out li.three a:active {background-position:-236px -116px}
+#topnav_out li.four a:active {background-position:-341px -116px}
+#topnav_out li.five a:active {background-position:-436px -116px}
+#topnav_out li.six a:active {background-position:-522px -116px}
+#topnav_out li.seven a:active {background-position:-674px -116px}
+
+#topnav_out li.one a.on {background-position:0 -116px}
+#topnav_out li.two a.on {background-position:-126px -116px}
+#topnav_out li.three a.on {background-position:-236px -116px}
+#topnav_out li.three a.loggedouton {background-position:-236px -174px}
+#topnav_out li.four a.on {background-position:-341px -116px}
+#topnav_out li.five a.on {background-position:-436px -116px}
+#topnav_out li.six a.on {background-position:-522px -116px}
+#topnav_out li.six a.loggedouton {background-position:-522px -174px}
+#topnav_out li.seven a.on {background-position:-674px -116px}
+
+#topnav_in {
+padding:0;
+margin:0 0 2px 13px;
+height:57px;
+float:left;
+width:750px;
+background:url('../images/mainmenu-loggedout.png') no-repeat top left;
+}
+
+#topnav_in li {
+float:left;
+color:#000;
+list-style:none;
+padding:0;
+height:54px;
+overflow: hidden;
+
+}
+* html #topnav_in li { display:inline-block; }
+
+#topnav_in li a {
+display:block;
+background:url('../images/mainmenu-loggedout.png') no-repeat top left;
+border-bottom:1px solid green;
+padding-top:54px;
+}
+
+#topnav_in.loggedin li a {
+background-image:url('../images/mainmenu-loggedin.png');
+}
+
+#topnav_in li.one a {width:112px;background-position:0 0}
+#topnav_in li.two a {width:106px;background-position:-112px 0;}
+#topnav_in li.three a {width:97px;background-position:-218px 0; }
+#topnav_in li.four a {width:91px;background-position: -315px 0;}
+#topnav_in li.five a {width:115px;background-position: -406px 0;}
+#topnav_in li.six a {width:152px;background-position: -521px 0;}
+#topnav_in li.seven a {width:77px;background-position: -673px 0;}
+
+#topnav_in li.one a:hover {background-position:0 -58px}
+#topnav_in li.two a:hover {background-position:-112px -58px}
+#topnav_in li.three a:hover {background-position:-218px -58px}
+#topnav_in li.four a:hover {background-position:-315px -58px}
+#topnav_in li.five a:hover {background-position:-406px -58px}
+#topnav_in li.six a:hover {background-position:-521px -58px}
+#topnav_in li.seven a:hover {background-position:-673px -58px}
+
+#topnav_in li.one a:active {background-position:0 -116px}
+#topnav_in li.two a:active {background-position:-112px -116px}
+#topnav_in li.three a:active {background-position:-218px -116px}
+#topnav_in li.four a:active {background-position:-315px -116px}
+#topnav_in li.five a:active {background-position:-406px -116px}
+#topnav_in li.six a:active {background-position:-521px -116px}
+#topnav_in li.seven a:active {background-position:-673px -116px}
+
+#topnav_in li.one a.on {background-position:0 -116px}
+#topnav_in li.two a.on {background-position:-112px -116px}
+#topnav_in li.two a.loggedouton {background-position:-112px -174px}
+#topnav_in li.three a.on {background-position:-218px -116px}
+#topnav_in li.four a.on {background-position:-315px -116px}
+#topnav_in li.five a.on {background-position:-406px -116px}
+#topnav_in li.six a.on {background-position:-521px -116px}
+#topnav_in li.six a.loggedouton {background-position:-521px -174px}
+#topnav_in li.seven  a.on {background-position:-673px -116px}
+
+/* ============================= */
+#subnav1 {
+padding:0;
+margin:0px;
+height:45px;
+float:left;
+width:750px;
+background:url('../images/submenu.png') no-repeat top left;
+}
+
+#subnav1 li {
+float:left;
+color:#000;
+list-style:none;
+padding:0;
+height:45px;
+overflow: hidden;
+
+}
+
+#subnav1 li a {
+display:block;
+background:url('../images/submenu.png') no-repeat top left;
+padding-top:45px;
+}
+
+.subnav-escape-width { width:173px }
+.subnav-avards-width { width:127px }
+.subnav-scores-width { width:130px }
+.subnav-prizedraws-width { width:113px }
+.subnav-rings-width { width:76px }
+.subnav-membernews-width { width:131px }
+
+#subnav1 li.subnav-escape a {background-position:0 0}
+#subnav1 li.subnav-avards a {background-position: -173px 0}
+#subnav1 li.subnav-scores a {background-position: -300px 0}
+#subnav1 li.subnav-prizedraws a {background-position: -430px 0}
+#subnav1 li.subnav-rings a {background-position: -543px 0}
+#subnav1 li.subnav-membernews a {background-position: -619px 0}
+
+#subnav1 li.subnav-escape a:hover {background-position:0 -45px}
+#subnav1 li.subnav-avards a:hover {background-position:-173px -45px}
+#subnav1 li.subnav-scores a:hover {background-position:-300px -45px}
+#subnav1 li.subnav-prizedraws a:hover {background-position:-430px -45px}
+#subnav1 li.subnav-rings a:hover {background-position:-543px -45px}
+#subnav1 li.subnav-membernews a:hover {background-position:-619px -45px}
+
+
+#subnav1 li.subnav-escape a:active, #subnav1 li.subnav-escape-selected a {background-position:0 -90px}
+#subnav1 li.subnav-avards a:active, #subnav1 li.subnav-avards-selected a {background-position:-173px -90px}
+#subnav1 li.subnav-scores a:active, #subnav1 li.subnav-scores-selected a {background-position:-300px -90px}
+#subnav1 li.subnav-prizedraws a:active, #subnav1 li.subnav-prizedraws-selected a {background-position:-430px -90px}
+#subnav1 li.subnav-rings a:active, #subnav1 li.subnav-rings-selected a {background-position:-543px -90px}
+#subnav1 li.subnav-membernews a:active, #subnav1 li.subnav-membernews-selected a {background-position:-619px -90px}
+/* ============================= */
+
+div#sidenav {
+float:left;
+width:220px;
+padding:0 5px;
+}
+
+div#sidenav1 ul {
+padding:0;
+margin:0;
+}
+
+div#sidenav1 li {
+list-style:none;
+margin:0;
+height:34px;
+background-repeat: no-repeat;
+overflow: hidden;
+}
+
+div#sidenav1 li a {
+background-repeat: no-repeat;
+display:block;
+/*height:100%;*/
+background-position:65px 0;
+padding-top: 41px;
+overflow: hidden;
+}
+
+div#sidenav1 li a:hover {
+text-decoration:none;
+background-position: 65px -36px;
+overflow: hidden;
+}
+div#sidenav1 li a:active {
+background-position: 65px -72px
+}
+
+div#sidenav1 li.arcade {height:36px}
+div#sidenav1 li.arcade a:hover {background-position: 65px -38px}
+div#sidenav1 li.arcade a:active {background-position: 65px -76px}
+div#sidenav1 li.word {height:36px}
+div#sidenav1 li.word a:hover {background-position: 65px -39px}
+div#sidenav1 li.word a:active {background-position: 65px -78px}
+
+div#sidenav1 li.megadrive {background-image: url('../images/sidenav/megadrive-icon.gif')}
+div#sidenav1 li.genesis {background-image: url('../images/sidenav/megadrive-icon.gif')}
+div#sidenav1 li.arcade {background-image: url('../images/sidenav/arcade-icon.gif')}
+div#sidenav1 li.card {background-image: url('../images/sidenav/card-icon.gif')}
+div#sidenav1 li.editors {background-image: url('../images/sidenav/editors-icon.gif')}
+div#sidenav1 li.puzzle {background-image: url('../images/sidenav/puzzle-icon.gif')}
+div#sidenav1 li.quiz {background-image: url('../images/sidenav/quiz-icon.gif')}
+div#sidenav1 li.sonic {background-image: url('../images/sidenav/sonic-icon.gif')}
+div#sidenav1 li.sports {background-image: url('../images/sidenav/sport-icon.gif')}
+div#sidenav1 li.word {background-image: url('../images/sidenav/word-icon.gif')}
+
+div#sidenav1 li.megadrive a {background-image: url('../images/sidenav/megadrive-bg.gif')}
+div#sidenav1 li.genesis a {background-image: url('../images/sidenav/genesis-bg.gif')}
+div#sidenav1 li.arcade a {background-image: url('../images/sidenav/arcade-bg.gif')}
+div#sidenav1 li.card a {background-image: url('../images/sidenav/card-bg.gif')}
+div#sidenav1 li.editors a {background-image: url('../images/sidenav/editors-bg.gif')}
+div#sidenav1 li.puzzle a {background-image: url('../images/sidenav/puzzle-bg.gif')}
+div#sidenav1 li.quiz a {background-image: url('../images/sidenav/quiz-bg.gif')}
+div#sidenav1 li.sonic a {background-image: url('../images/sidenav/sonic-bg.gif')}
+div#sidenav1 li.sports a {background-image: url('../images/sidenav/sport-bg.gif')}
+div#sidenav1 li.word a {background-image: url('../images/sidenav/word-bg.gif')}
+
+div#sidenav2 {
+margin-top:3px;
+padding:13px 42px 0 15px;
+/*height:76px;*/
+background:url('../images/gamemenu-search-bg.gif') no-repeat;
+}
+div#sidenav2 p {
+padding:2px 0 15px 0;
+margin:0;
+}
+div#sidenav2.loggedin {
+background:url('../images/gamemenu-about-bg.gif') no-repeat;
+}
+
+#sidenav2 a:link,
+#sidenav2 a:active,
+#sidenav2 a:visited,
+#sidenav2 a:hover {
+	background: url('../images/link-arrow.gif') center right no-repeat;
+	padding-right: 13px;
+	font-weight:bold;
+	color:#444444;
+	text-decoration:none;
+	font-size: 12px;
+}
+#sidenav2 a:hover {
+	text-decoration:underline;
+}
+
+#sidenav2 p {
+margin:4px 0;
+padding-bottom:12px;
+}
+
+#sidenav3 {width: 220px; height: 36px; margin: 4px 0 0 0}
+#sidenav3 a.quickstart {width: 107px; height: 36px; margin: 0; float: left;
+                          background:url('../images/gamemenu-quickstart.gif') no-repeat;
+                          background-position: top right;
+}
+#sidenav3 a.quickstart:hover {background-position: bottom right; cursor: pointer}
+
+#sidenav3 a.allgames {width: 113px; height: 36px; margin: 0; float: left;
+                          background:url('../images/gamemenu-allgames.gif') no-repeat;
+                          background-position: top right;
+}
+#sidenav3 a.allgames:hover {background-position: bottom right; cursor: pointer}
+
+#fullpagecontent {
+float:left;
+width:750px;
+margin-left:5px;
+}
+
+#pagecontent {
+float:left;
+width:750px;
+margin-left:5px;
+}
+
+.box1 {
+width:420px;
+float:left;
+}
+.box2 {
+width:320px;
+float:left;
+margin-left:10px;
+}
+
+.box-left {
+width:220px;
+float:left;
+}
+
+/** Orange, rounded box that takes up 100% of the space */
+#box3 {}
+/** Orange, rounded box that takes up 100% of the space -with nav on the left */
+#box4 {
+width:350px;
+float:left;
+}
+/** Orange, rounded box that takes up 100% of the space - without nav on the left */
+.box5 {margin: 0 5px 0 5px}
+/** Orange, rounded box that takes up 50% of the space - without nav on the left */
+.box6{
+padding:0 5px;
+width:485px;
+float:left;
+}
+
+#welcomeslot {
+height:322px;
+}
+
+/*h3s are always styled orange, .content always grey, colours for rounded border will be applied automatically*/
+#content1 h3, #content1 h3 .sb-inner { background:#5387c2 url('../images/split-h5-bg.gif') repeat-x; }
+#content1 h3 .sb-border { background:#5387c2; }
+
+#content1 h1, #content1 h1 .sb-inner { background:#5387c2 url('../images/split-h5-bg.gif') repeat-x; }
+#content1 h1 .sb-border { background:#5387c2; }
+
+#content1 h4, #content1 h4 .sb-inner { background:#5387c2 url('../images/split-h5-bg.gif') repeat-x; }
+#content1 h4 .sb-border { background:#5387c2; }
+
+#content1 h5, #content1 h5 .sb-inner { background:#5387c2 url('../images/split-h5-bg.gif') repeat-x}
+#content1 h5 .sb-border { background:#5387c2; }
+
+#content1 .content {
+padding:4px 10px 9px 10px;
+color:#444;
+text-align:center
+
+}
+#content1 .content, #content1 .content .sb-inner { background:#fff;} /* WAS #F9F9F9 */
+#content1 .content .sb-border { background:#DDD; }
+
+/*define some styles for the default rounded box*/
+#content1 .border2 { padding:10px;width:300px;float:left;margin:0 0 10px 10px;}
+#content1 .border2, #content1 .border2 .sb-inner { background:#fff url('../images/border2-bg.gif') repeat-x }
+#content1 .border2 .sb-border { background:#DDD; }
+
+/*this box is used on the register page - bit wider than the above box*/
+#content1 .border3 { padding:10px;width:415px;float:left;margin:0 0 10px 10px;}
+#content1 .border3, #content1 .border3 .sb-inner { background:#fff url('../images/border2-bg.gif') repeat-x }
+#content1 .border3 .sb-border { background:#DDD; }
+
+#content1 .border4 { padding:1px; padding-top: 2px; padding-bottom: 2px; width:730px;float:left;margin:0px;}
+#content1 .border4, #content1 .border4 .sb-inner { background:#fff url('../images/myescape-initial-bg.gif') repeat; }
+#content1 .border4 .sb-border { background:#DDD; }
+
+/* this box is used for error messages */
+#content1 .border5 { padding:10px; width:415px; float:left; margin:0 0 0 10px; color: #000}
+#content1 .border5, #content1 .border5 .sb-inner { background:#ffe9c9; }
+#content1 .border5 .sb-border { background:#facd94; }
+
+#content1 #pagecontent .border5 { padding:10px; width:415px; float:left; margin:0 0 0 10px; color: #000}
+#content1 #pagecontent .border5, #content1 #pagecontent .border5 .sb-inner { background:#ffe9c9; }
+#content1 #pagecontent .border5 .sb-border { background:#facd94; }
+/* //this box is used for error messages */
+
+/* grey information boxes */
+#content1 .border6 { padding:10px; width:300px; float:left; margin:0 0 0 10px; color: #000}
+#content1 .border6, #content1 .border6 .sb-inner { background:#F6F3F5; }
+#content1 .border6 .sb-border { background:#dddddd; }
+
+/* MARK: Made for guest stuff on left hand side of page */
+#content1 .border7 { padding:10px; width:200px; float:left; margin:10px 0 0 0; color: #000}
+#content1 .border7, #content1 .border7 .sb-inner { background:#FFF; }
+#content1 .border7 .sb-border { background:#dddddd; }
+
+#content1 #pagecontent .border6 { padding:10px; width:300px; float:left; margin:0 0 0 10px; color: #000}
+#content1 #pagecontent .border6, #content1 #pagecontent .border6 .sb-inner { background:#F6F3F5; }
+#content1 #pagecontent .border6 .sb-border { background:#dddddd; }
+/* //grey information boxes */
+
+.border2 a.lozenge2 {
+float:left;
+}
+
+
+.boldify {font-weight: bold; color: #EC7E00}
+
+ul.gameslist {
+padding:0 5px 1px 5px;
+margin:0;
+text-align:left;
+}
+
+ul.gameslist li {
+list-style:none;
+margin:0;
+border-top:1px solid #DADADC;
+padding:6px 0 0 0;
+clear: both;
+width:100%;
+}
+
+ul.gameslist li p {
+padding:0;
+margin:5px 0 0 5px;
+}
+
+ul.gameslist > li:first-child {
+border-top:none;
+}
+
+ul.gameslist li .userThumb,
+ul.gameslist li .playsegaplusHolder,
+ul.gameslist li img  {
+float:left;
+margin:0 10px 0 5px;
+}
+
+
+ul.scoreslist {
+padding:0 5px;
+margin:0;
+text-align:left;
+}
+
+ul.scoreslist li {
+list-style:none;
+margin:0;
+border-top:1px solid #DADADC;
+padding:6px 0 6px 0;
+clear: both;
+width:100%;
+}
+
+ul.scoreslist li p {
+padding:0;
+margin:5px 0 0 0;
+}
+
+ul.scoreslist > li:first-child {
+border-top:none;
+}
+
+ul.scoreslist li .userThumb, ul.scoreslist li img  {
+float:left;
+margin:0 10px 0 0;
+}
+
+#content1 a.playnow {
+padding-right:11px;
+background: url('../images/link-arrow.gif') no-repeat top right;
+color:#ea7f00;
+}
+
+a.playnow,
+a.playnow:link,
+a.playnow:active,
+a.playnow:visited,
+a.playnow:hover {
+	font-weight:bold;
+}
+
+h3 span.fancy {
+display:block;
+padding:6px 0 0 12px;
+}
+
+h1 span.fancy {
+display:block;
+padding:6px 0 0 12px;
+}
+
+h4 span.fancy {
+float: left;
+padding:6px 0 0 12px;
+}
+
+h5 span.fancyblue {
+float: left;
+padding:6px 0 0 12px;
+width: 100%
+}
+
+h4 span.fancy2 {
+font-size: 8pt;
+background: url('../images/popup-btn.gif') no-repeat right 1px;
+margin: 0 8px 0 0;
+padding:7px 18px 0 0;
+float: right;
+height: 20px;
+}
+
+h4 span.fancy2 a:link,h4 span.fancy2 a:active,h4 span.fancy2 a:visited,h4 span.fancy2 a:hover {
+color: #FFF
+}
+
+h4 span.fancy3 {
+font-size: 8pt;
+background: url('../images/popup-btn.gif') no-repeat right 1px;
+margin: 0 8px 0 0;
+padding:7px 28px 0 0;
+float: right;
+height: 20px;
+}
+
+span.fancy4 {color: #555555; background-color: transparent; letter-spacing: 0.2; font-size: 12px}
+
+
+.pusherMainParent {width: 885px; height: 192px; overflow: hidden; margin-top: 3px; text-align: left; float: left}
+
+span.left,
+span.right {
+display:block;
+width:45px;
+height:190px;
+float:left;
+margin-top:3px;
+}
+span.right {
+margin-left:5px;
+}
+
+span.left a, span.right a {height:100%; display: block; background-repeat: no-repeat; background-repeat:no-repeat;background-position:top center;text-decoration:none}
+span.left a {background-image:url('../images/pusher-left.gif')}
+span.right a {background-image:url('../images/pusher-right.gif')}
+span.left a:hover {background-position:0 -191px;cursor: pointer}
+span.right a:hover {background-position:0 -191px;cursor: pointer}
+
+
+#pusher {margin: 0}
+#pusher li {color:#000; list-style:none; position: absolute; width: 177px; height: 190px; margin: 0; float: left; background: url('../images/gamepanel-bg-pusher.gif') no-repeat}
+#pusher li .imageHolder {text-align: center; padding: 0 0 0 0; width: 140px; margin: 8px 0 0 16px}
+#pusher li .imageHolder .playsegaplusHolder {}
+#pusher li .textHolder {text-align: center; width: 100%; margin: 0}
+
+#footer {text-align:center; color:#999;
+margin:0 auto;
+width:990px;
+}
+#footer a, #footer a:active, #footer a:visited {color:#999; text-decoration: none}
+#footer a:hover {color:#999; text-decoration: underline}
+
+
+/*BUTTONS*/
+/*orange lozenge*/
+a.lozenge1 {
+    background: transparent url('../images/bg_button_a.gif') no-repeat scroll top right;
+    color: #4c4c4c;
+    display: block;
+    float: left;
+    font-weight:bold;
+    height: 22px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.lozenge1 span {
+    background: transparent url('../images/bg_button_span.gif') no-repeat;
+    display: block;
+    line-height: 11px;/*button height is 23*/
+    padding: 5px 0 6px 16px;
+}
+
+a.lozenge1:link,
+a.lozenge1:active,
+a.lozenge1:visited {
+color: #4c4c4c;
+text-decoration: none;
+font-weight:bold;
+}
+
+a.lozenge1:hover {
+    background-position: bottom right;
+    color: #4c4c4c;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.lozenge1:hover span {
+    background-position: bottom left;
+}
+
+/*blue lozenge*/
+a.bluelozenge {background: transparent url('../images/bg_button_blue_a.gif') no-repeat scroll top right;
+               color: #FFF; display: block; float: left; font-weight:bold; height: 22px;
+               margin-right: 6px; padding-right: 18px; text-decoration: none}
+a.bluelozenge span {background: transparent url('../images/bg_button_blue_span.gif') no-repeat; 
+                    display: block; line-height: 11px; padding: 5px 0 6px 16px}
+a.bluelozenge:link, a.bluelozenge:active, a.bluelozenge:visited {color: #FFF;
+                                                                 text-decoration: none;
+                                                                 font-weight:bold}
+a.bluelozenge:hover {background-position: bottom right; color: #FFF; outline: none}
+a.bluelozenge:hover span {background-position: bottom left}
+
+/*grey lozenge*/
+a.lozenge2 {
+    background: transparent url('../images/bg_button_grey_end.gif') no-repeat scroll top right;
+    color: #fff;
+    display:inline-block;
+    font-weight:bold;
+    height: 22px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.lozenge2:link,
+a.lozenge2:active,
+a.lozenge2:visited {
+color: #fff;
+text-decoration: none;
+font-weight:bold;
+}
+
+a.lozenge2 span {
+    background: transparent url('../images/bg_button_grey_span.gif') no-repeat;
+    display: block;
+    line-height: 11px;/*button height is 22*/
+    padding: 5px 0 6px 16px;
+}
+a.lozenge2:hover {
+    background-position: bottom right;
+    color: #fff;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.lozenge2:hover span {
+    background-position: bottom left;
+}
+/*grey lozenge (larger)*/
+a.lozenge3 {
+    background: transparent url('../images/bg_button_grey_2_end.gif') no-repeat scroll top right;
+    color: #fff;
+    display:inline-block;
+    font-weight:bold;
+    font-size: 10pt;
+    height: 28px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+a.lozenge3:link,
+a.lozenge3:active,
+a.lozenge3:visited {
+color: #fff;
+}
+
+a.lozenge3 span {
+    background: transparent url('../images/bg_button_grey_2_span.gif') no-repeat;
+    display: block;
+    line-height: 15px;/*button height is 28*/
+    padding: 5px 5px 8px 16px;
+}
+a.lozenge3:hover {
+    background-position: bottom right;
+    color: #fff;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.lozenge3:hover span {
+    background-position: bottom left;
+}
+/*orange lozenge (larger)*/
+a.lozenge4 {
+    background: transparent url('../images/bg_button_orange_end.gif') no-repeat scroll top right;
+    color: #fff;
+    display:inline-block;
+    font-weight:bold;
+    font-size: 10pt;
+    height: 28px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.lozenge4 span {
+    background: transparent url('../images/bg_button_orange_span.gif') no-repeat;
+    display: block;
+    line-height: 15px;/*button height is 28*/
+    padding: 5px 5px 8px 16px;
+}
+a.lozenge4:hover {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.lozenge4:hover span {
+    background-position: bottom left;
+}
+
+/* START: Orange lozenge (largest) */
+a.sifrButton1 {background: transparent url('../images/buttons/bg_button_orange_end_big.gif') no-repeat scroll top right;
+               color: #fff; display:inline-block; font-weight:bold; font-size: 10pt; height: 34px; 
+               padding-right: 30px; text-decoration: none}
+a.sifrButton1 .text {background: transparent url('../images/buttons/bg_button_orange_span_big.gif') no-repeat;
+                     display: block; line-height: 17px; padding: 9px 5px 8px 16px}
+a.sifrButton1:hover {background-position: bottom right; color: #000; outline: none}
+a.sifrButton1:hover .text {background-position: bottom left}
+a.sifrButton1 span.fancybutton {display: block; clear: none; height: 17px}
+/* END: Orange lozenge (largest) */
+
+/* downloads buton */
+a.lozenge-downloads {
+    background: transparent url('../images/bg_button_a.gif') no-repeat scroll top right;
+    color: #4c4c4c;
+    display: inline-block;
+    font-weight:bold;
+    height: 22px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.lozenge-downloads span {
+    background: transparent url('../images/bg_button_span.gif') no-repeat;
+    display: block;
+    line-height: 11px;/*button height is 23*/
+    padding: 5px 0 6px 16px;
+}
+
+a.lozenge-downloads:link,
+a.lozenge-downloads:active,
+a.lozenge-downloads:visited {
+color: #4c4c4c;
+text-decoration: none;
+font-weight:bold;
+}
+
+a.lozenge-downloads:hover {
+    background-position: bottom right;
+    color: #4c4c4c;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.lozenge-downloads:hover span {
+    background-position: bottom left;
+}
+
+
+#avatarSummary {
+width:304px;
+float:left;
+margin-left:10px;
+padding:8px;
+font-weight:bold;
+}
+#avatarSummary, #avatarSummary .sb-inner { background: #f8f8f8 url('../images/avatar-summary-bg.gif') repeat-x top left }
+#avatarSummary .sb-border { background:#dcdddc; }
+
+#avatarSummary .userThumb {
+float:right;
+}
+#avatarSummary p {
+margin: 0;
+font-size:1.2em;
+}
+#avatarSummary p.first {
+padding: 10px 0 0 8px;
+}
+#avatarSummary p.last {
+margin-top: 25px;
+margin-bottom: 0;
+background:url('../images/avatar-summary-ring-icon.gif') no-repeat top left;
+padding: 2px 0 4px 30px;
+}
+#avatarSummary span {
+color:#EA7F00;
+}
+
+.selected-member
+{
+    background-color: #FFF;
+    border: 1px solid #DDDDDD;
+    margin-top: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+.selected-member-nick
+{
+    text-align: center;
+    font-weight: bold;
+    color: #E98000;
+    font-size: 12px;
+    background: #FFF;
+    margin: 2px auto 10px auto;
+    border-left: 1px solid #DDDDDD;
+    border-right: 1px solid #DDDDDD;
+}
+
+.selected-member-info-block-container
+{
+    border: 1px solid #DDDDDD;
+    border-top: 0;
+    float: left;
+    height: 36px;
+    background-color: #EEEEEE;
+}
+
+.selected-member-info-block-left
+{
+    float: left;
+    width: 108px;
+}
+
+.selected-member-info-left-text
+{
+    color: #444444;
+    padding-left: 5px;
+    padding-top: 13px;
+    font-weight: bold;
+}
+
+.selected-member-info-ring
+{
+    float: left;
+    width: 30px;
+    padding-top: 8px;
+}
+
+.selected-member-info-ring-text
+{
+    float: left;
+    width: 80px;
+    padding-top: 13px;
+    font-weight: bold;
+    color: #E98000;
+}
+
+.selected-member-info-text
+{
+    float: left;
+    width: 108px;
+    padding-top: 13px;
+    color: #444444;
+}
+
+.selected-member-info-block-right
+{
+    float: right;
+    width: 110px;
+}
+
+/** table with silver header **/
+
+table#silverheader {
+margin:16px 0 20px 0;
+}
+table#silverheader th {
+background:#D1D1D1 url('../images/silverheader-bg.gif') repeat-x;
+text-align:left;
+height:25px;
+padding-left:10px;
+border:1px solid #D0D0D0;
+color:#444444;
+}
+table#silverheader td {
+padding:15px;
+background-color:#fff;
+border-right:1px solid #D0D0D0;
+border-bottom:1px solid #D0D0D0;
+text-align:left;
+}
+table#silverheader tr > td:last-child {
+border-right:none;
+}
+table#silverheader .highlight {
+background:url('../images/silverheader-highlights-bg.jpg') repeat-x bottom left;
+text-align:center;
+}
+table#silverheader td img {vertical-align:middle}
+
+/** end of silver heading styling **/
+
+#memberSubNav {
+border:0px solid gray;
+height:45px;
+}
+
+#avatarNav {
+padding:5px;
+margin-top:10px;
+text-align:center;
+}
+#avatarNav, #avatarNav .sb-inner { background: #FDFDFD }
+#avatarNav .sb-border { background:#dcdddc; }
+
+#userInformationLeft {
+margin-top:10px;
+text-align:center;
+}
+#userInformationLeft, #userInformationLeft .sb-inner { background: #FDFDFD }
+#userInformationLeft .sb-border { background:#dcdddc; }
+
+#featuredGamesNav {
+margin-top:10px;
+width: 220px;
+}
+#featuredGamesNav .content .gameslist li p {
+padding-top:10px;
+}
+#featuredGamesNav .content .gameslist li img {
+padding-bottom:10px;
+}
+
+div.featuredgame {
+text-align:left;
+padding-bottom:2px;
+}
+
+div.featuredgame p {
+padding:0;
+margin:7px 0;
+}
+
+div.featuredgame p.description {
+padding: 0 10px;
+}
+
+/* PRIZE DRAWS CSS STARTS */
+.contentPrizeDraw {background: url('../images/prizedraws/contentBg.jpg') no-repeat bottom; width: 420px; height: 390px}
+.contentPrizeDraw .headerImage {width: 395px; height: 120px; margin: 0 0 0 1px}
+.contentPrizeDraw .subcontent {position: absolute; top: 98px; left: 20px; width: 230px; height: 100px; }
+.contentPrizeDraw .subcontent span.fancy { display: block }
+.contentPrizeDraw .entryPanel {position: absolute; top: 244px; left: 24px; width: 213px; height: 90px; background: url('../images/prizedraws/entry_panel.gif') no-repeat}
+.contentPrizeDraw .entryPanel select {color: #444444; margin: 35px 0 0 7px; font-size: 7.5pt}
+.contentPrizeDraw .entryPanel #drawRings {color: #ffa949; position: absolute; top: 30px; left: 120px; font-size: 16pt; font-weight: bold; width: 80px; text-align: center}
+.contentPrizeDraw #button1 {position: absolute; top: 350px; left: 25px}
+.contentPrizeDraw #button2 {position: absolute; top: 350px; left: 180px}
+
+#content1 .contentPrizeDrawLong { width: 100% }
+#content1 .contentPrizeDrawLong .content .sb-inner {background: url('../images/prizedraws/contentBgLong.gif') no-repeat top center;}
+#content1 .contentPrizeDrawLong .content .mainHeader {text-align: left; height: 120px; padding: 20px 0 0 0; margin: 0 0 0 10px}
+#content1 .contentPrizeDrawLong .content .subcontent {position: absolute; top: 85px; left: 3px; width: 230px}
+#content1 .contentPrizeDrawLong .content .entryPanel {position: absolute; top: 214px; left: 24px; width: 213px; height: 90px; background: url('../images/prizedraws/entry_panel.gif') no-repeat}
+#content1 .contentPrizeDrawLong .content .entryPanel select {color: #444444; position: absolute; top: 47px; left: 9px; font-size: 7.5pt}
+#content1 .contentPrizeDrawLong .content .entryPanel #drawRings {color: #ffa949; position: absolute; top: 30px; left: 120px; font-size: 16pt; font-weight: bold; width: 80px; text-align: center}
+#content1 .contentPrizeDrawLong .content #button1 {position: absolute; top: 115px; left: 30px}
+#content1 .contentPrizeDrawLong .content #silverheader {}
+#content1 .contentPrizeDrawLong .content #silverheader td {padding: 5px 10px 5px 10px; width: 50%}
+#content1 .contentPrizeDrawLong .content #silverheader td .drawWinner {border-bottom: 0}
+
+
+#content1 .contentRingsHistory {width: 750px; padding: 0; margin: 0}
+#content1 .contentRingsHistory .content {text-align: center}
+#content1 .contentRingsHistory .content .sb-inner {background: url('../images/rings/contentRingsHistoryBg.jpg') no-repeat top center;}
+#content1 .contentRingsHistory .content .mainHeader {height: 248px}
+#content1 .contentRingsHistory .content .mainHeader #ringsCurrent {top: 60px; left: 215px; position: absolute}
+#content1 .contentRingsHistory .content .mainHeader #ringsLifetime {top: 140px; left: 215px; position: absolute}
+#content1 .contentRingsHistory .content .mainHeader .noFlash {width: 300px; padding: 10px 0 0 0; font-size: 12pt; font-weight: bold}
+
+#content1 .contentRingsHistory .content #silverheader {}
+#content1 .contentRingsHistory .content #silverheader td {padding: 6px 4px 6px 4px; color: #444444}
+#content1 .contentRingsHistory .content #silverheader .debit {font-weight: bold; color: #444444; text-align: right}
+#content1 .contentRingsHistory .content #silverheader .credit {font-weight: bold; color: #EC7E00; text-align: right}
+
+.drawWinner {width: 100%; border-bottom: 1px solid #DADADA; clear: both; padding: 10px 0 10px 0; height: 68px}
+.drawWinner .image {float: left}
+.drawWinner .text {float: left; text-align: left; margin: 26px 0 0 10px; width: 200px; color: #656565}
+/* PRIZE DRAWS CSS ENDS */
+
+/* my achievements styling */
+.awardsGame {}
+.awardsGame .image {float: left}
+.awardsGame .text {float: left; margin: 15px 0 0 5px; text-align: left; color: #949494; }
+.awardsGame .text .gametitle {font-weight: bold;}
+.awardsGame .text .rightarrow {color: #F39F2F;}
+
+.viewAllAchievements {margin: 0 auto; text-align: left; background: #ffffff; padding: 5px 5px 5px 5px;}
+.viewAllAchievements .sb-border {background: #ffffff;}
+.viewAllAchievements .sb-inner {background: #ffffff;}
+
+.achievementmsg {color: #444444; margin: 5px auto 5px auto; text-align: center}
+/* my achievements styling */
+
+/* achievement details styling */
+.achievementDetailsGame { margin: 10px 0 0 0 }
+.achievementDetailsGame .gameimage { margin-left: 20px }
+.achievementDetailsGame .briefgameinfo { float: left; margin: 10px 0 0 10px; text-align: left; color: #444444; }
+.achievementDetailsGame .briefgameinfo .gametitle { font-weight: bold; }
+.achievementDetailsGame .briefgameinfo .gamedescription { margin: 5px 0 5px 0; width: 550px }
+
+.achievementDetailsGame .briefgameinfo .allAchievements { text-align: left; margin: 10px 0 0 0; overflow: hidden; }
+.achievementDetailsGame .briefgameinfo .allAchievements .sb-border {}
+
+#content1 .achievementDetailsGame .briefgameinfo .allAchievements,
+#content1 .achievementDetailsGame .briefgameinfo .allAchievements .sb-inner { background:#fff url('../images/border2-bg.gif') }
+
+.achievementDetailsGame .briefgameinfo .allAchievements .rating {margin: 20px 30px 0 30px; padding-left: 2px;}
+.achievementDetailsGame .briefgameinfo .allAchievements .rating .sb-border {background: #ffffff;}
+
+#content1 .achievementDetailsGame .briefgameinfo .allAchievements .rating,
+#content1 .achievementDetailsGame .briefgameinfo .allAchievements .rating .sb-inner { background:#ffffff }
+
+.achievementDetailsGame .briefgameinfo .allAchievements .rating .ratingimg {margin: 5px 2px 5px 2px}
+
+.achievementDetailsGame .briefgameinfo .allAchievements .ratingtext {color: #444444; font-weight: bold; margin: 5px auto 15px auto; text-align: center;}
+
+.singleAchievement {float: left; margin: 30px 0 0 10px; color: #444444; width: 260px}
+.singleAchievement .title {font-weight: bold}
+
+/* end of achievement details styling */
+
+/*Big fat play button*/
+a.play {
+height:28px;
+width:100px;
+background-image:url('../images/btn-playnow.gif');
+background-position: top right;
+display:block;
+float:right;
+margin:10px 0 0 20px;
+text-decoration:none;
+}
+a.play:hover {
+background-position: bottom right;
+}
+/*end big fat play button*/
+
+/*Big fat sign up button*/
+a.signup {
+height:28px;
+width:87px;
+background-image:url('../images/btn-signup.gif');
+background-position: top right;
+display:block;
+float:right;
+text-decoration:none;
+}
+a.signup:hover {
+background-position: bottom right;
+}
+/*end big fat sign up button*/
+
+/*Big fat upgrade button*/
+a.upgrade {
+height:26px;
+width:199px;
+background-image:url('../images/guests/guestescape-upgrade-btn.gif');
+background-position: top right;
+display:block;
+text-decoration:none;
+}
+a.upgrade:hover {
+background-position: bottom right;
+}
+/*end big fat sign up button*/
+
+#content1 #makelevel,
+#content1 #wincash,
+#content1 #winrings {
+width:295px;
+padding:0 0 20px 25px;
+margin: 10px 0 0 0;
+}
+
+#content1 #wincash p,
+#content1 #winrings p {
+line-height:1.5em;
+}
+
+#content1 #wincash, #content1 #makelevel .sb-inner { background:#fff url('../images/make-level-bg.gif') }
+#content1 #wincash, #content1 #wincash .sb-inner { background:#fff url('../images/win-cash-bg.gif') }
+#content1 #winrings, #content1 #winrings .sb-inner { background:#fff url('../images/win-rings-bg.gif') }
+
+.popupcontainer2
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 1px solid #444444;
+    background-color: white;
+    z-index:5000;
+    display:none;
+    padding: 2px;
+}
+
+#content1 #playsega {
+background-color:#FBFBFB;
+text-align: left;
+}
+#content1 #playsega .sb-inner { background-color:#FBFBFB }
+
+/* Right aligned text - 12px bold*/
+.registerTextRight{
+font-weight:bold;
+font-size:12px;
+text-align:right;
+padding: 5px 5px 7px 0;
+}
+
+/* Left aligned text - small */
+.registerTextLeft{
+font-size:10px;
+text-align:left;
+padding: 5px 5px 7px 0;
+}
+
+.registerTextSmall{
+font-size:10px;
+}
+
+/* PAGINATION STYLES START */
+
+.pagination {width: 164px; height: 22px; margin: 0; padding: 0; float: right}
+.pagination a {text-decoration: none}
+.pagination .previous {width: 23px; height: 22px; margin: 0; padding: 0; float: left; background: url(../images/pagination/pagination-left-nor.gif) no-repeat}
+.pagination .previous div {width: 100%; height: 22px; cursor: pointer}
+.pagination .contents {width: 117px; height: 22px; margin: 0; padding: 0; float: left; background: url(../images/pagination/pagination-middle-bg.gif) no-repeat; text-align: left;}
+.pagination .contents form {margin: 0; padding: 0; width: 115px}
+.pagination .contents .page {float: left; width: 47px; padding: 4px 0 0 0; text-align: center; color: #FFF; font-weight: bold}
+.pagination .contents .input {float: left; width: 25px; padding: 1px 0 0 0}
+.pagination .contents .input input {background: transparent; width: 100%; height: 22px; border: 0; font-size: 8pt; text-align: center; margin: 0; padding: 4px 0 0 0}
+.pagination .contents .of {float: left; width: 42px; padding: 4px 0 0 0; text-align: center; color: #FFF; font-weight: bold;}
+.pagination .next {width: 23px; height: 22px; margin: 0; padding: 0; float: left; background: url(../images/pagination/pagination-right-nor.gif) no-repeat}
+.pagination .next div {width: 100%; height: 22px; cursor: pointer;}
+/* PAGINATION STYLES END */
+
+
+/* ============ SCORES ============= */
+
+.scores-day-container
+{
+    float: left;
+    width: 100%;
+}
+
+.scores-day-float-left
+{
+    float: left;
+    width: 345px;
+    height: 25px;
+}
+
+.scores-day-float-right
+{
+    float: right;
+    width: 379px;
+    height: 25px;
+}
+
+.scores-day-gameselect-left
+{
+    float: left;
+    width: 120px;
+    font-weight: bold;
+    color: #444444;
+    text-align: right;
+    padding-top: 6px;
+}
+
+.scores-day-gameselect-right
+{
+    float: right;
+    width: 220px;
+    text-align: right;
+    padding-top: 4px;
+}
+
+.scores-day-dd
+{
+    width: 210px;
+    color: #444444;
+    font-size: 10px;
+}
+
+.scores-day-headers-container, .scores-day-item-container
+{
+    width: 100%;
+    float: left;
+}
+
+.scores-day-headers
+{
+    margin-left: 5px;
+    margin-right: 3px;
+    height: 24px;
+    background: url('../images/silverheader-bg.gif');
+    border: 1px solid #DADADC;
+}
+
+.scores-day-header1
+{
+    float: left;
+    width: 345px;
+    border: 0 solid red;
+    height: 24px;
+}
+
+.scores-day-header1-text
+{
+    padding-left: 16px;
+    font-weight: bold;
+    padding-top: 6px;
+}
+
+.scores-day-header2
+{
+    float: left;
+    width: 370px;
+    border-left: 1px solid #DADADC;
+    height: 24px;
+}
+
+.scores-day-header2-text
+{
+    padding-left: 16px;
+    font-weight: bold;
+    padding-top: 6px;
+}
+
+.scores-day-item
+{
+    float: left;
+    margin-left: 5px;
+    margin-right: 5px;
+    border-bottom: 1px solid #DADADC;
+}
+
+.scores-day-item-left
+{
+    float: left;
+    width: 345px;
+    border: 0 solid red;
+
+}
+
+.scores-day-item-right
+{
+    float: left;
+    width: 370px;
+    min-height: 160px;
+    border-left: 1px solid #DADADC;
+}
+
+.scores-day-item-left-content
+{
+    margin-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    float: left;
+    width: 100%;
+}
+
+.scores-day-item-right-content
+{
+    margin-right: 10px;
+    padding-top: 10px;
+    float: left;
+    width: 100%;
+}
+
+.scores-day-item-first-right-content
+{
+    margin-right: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    float: left;
+    width: 100%;
+}
+
+.scores-day-item-right-other-content
+{
+    margin-right: 10px;
+    padding-top: 7px;
+    float: left;
+    width: 100%;
+    padding-bottom: 7px;
+}
+
+.scores-day-item-first-rank-h
+{
+    height: 70px;
+}
+
+.scores-day-item-game-image
+{
+    float: left;
+    width: 150px;
+}
+
+.scores-day-item-game-text
+{
+    float: left;
+    width: 175px;
+    margin-left: 5px;
+}
+
+.scores-day-item-game-playnow-link
+{
+    padding-top: 10px;
+}
+
+.scores-day-first-rank
+{
+    float: left;
+    width: 40px;
+}
+
+.scores-day-first-rank-text
+{
+    padding-left: 5px;
+    padding-top: 20px;
+}
+
+.scores-day-first-avatar
+{
+    float: left;
+    width: 100px;
+}
+
+.scores-day-first-avatar-text
+{
+    text-align: center;
+}
+
+.scores-day-first-nick
+{
+    float: left;
+    width: 110px;
+}
+
+.scores-day-first-nick-text
+{
+    font-weight: bold;
+    padding-top: 27px;
+}
+
+.scores-day-first-points
+{
+    float: left;
+    width: 120px;
+}
+
+.scores-day-first-points-text
+{
+    font-size: 10px;
+    padding-top: 27px;
+    text-align: right;
+}
+
+.scores-day-item-border
+{
+    border-bottom: 1px solid #DADADC;
+}
+
+.scores-day-other-rank
+{
+    float: left;
+    width: 40px;
+}
+
+.scores-day-other-rank-text
+{
+    padding-left: 15px;
+    font-weight: bold;
+}
+
+.scores-day-other-avatar
+{
+    float: left;
+    width: 100px;
+}
+
+.scores-day-other-avatar-text
+{
+    text-align: center;
+}
+
+.scores-day-other-nick
+{
+    float: left;
+    width: 110px;
+}
+
+.scores-day-other-nick-text, .scores-day-other-nick-text a:link, .scores-day-other-nick-text a:hover, .scores-day-other-nick-text a:visited,
+.scores-day-first-nick-text, .scores-day-first-nick-text a:link, .scores-day-first-nick-text a:hover, .scores-day-first-nick-text a:visited
+{
+    font-weight: bold;
+}
+
+.scores-day-other-points
+{
+    float: left;
+    width: 120px;
+}
+
+.scores-day-other-points-text
+{
+    font-size: 10px;
+    text-align: right;
+}
+
+.scores-day-top-border
+{
+    border-top: 1px solid #DADADC;
+}
+
+.scores-day-notfound-container
+{
+    float: left;
+    height: 150px;
+    width: 100%;
+}
+
+.scores-day-notfound
+{
+    padding-top: 10px;
+    font-weight: bold;
+    padding-left: 5px;
+}
+
+/* ============================= */
+
+#hscoresnav {
+padding:0;
+margin:0px;
+height:25px;
+float:left;
+width:376px;
+background:url('../images/highscoretable-tabs.png') no-repeat top left;
+}
+
+#hscoresnav li {
+float:left;
+color:#000;
+list-style:none;
+padding:0;
+height:25px;
+overflow: hidden;
+
+}
+* html #hscoresnav li { display:inline-block; }
+
+#hscoresnav li a {
+display:block;
+background:url('../images/highscoretable-tabs.png') no-repeat top left;
+padding-top:45px;
+}
+
+.hscoresnav-overal-width { width:125px; }
+.hscoresnav-week-width { width:125px; }
+.hscoresnav-today-width { width:126px; }
+
+
+#hscoresnav li.hscoresnav-overal a {background-position:0 0}
+#hscoresnav li.hscoresnav-week a {background-position:-125px 0}
+#hscoresnav li.hscoresnav-today a {background-position: -250px 0}
+
+
+#hscoresnav li.hscoresnav-overal a:hover {background-position:0 -25px}
+#hscoresnav li.hscoresnav-week a:hover {background-position:-125px -25px}
+#hscoresnav li.hscoresnav-today a:hover {background-position:-250px -25px}
+
+
+#hscoresnav li.hscoresnav-overal a:active, #hscoresnav li.hscoresnav-overal-selected a {background-position:0 -50px}
+#hscoresnav li.hscoresnav-week a:active, #hscoresnav li.hscoresnav-week-selected a {background-position:-125px -50px}
+#hscoresnav li.hscoresnav-today a:active, #hscoresnav li.hscoresnav-today-selected a {background-position:-250px -50px}
+
+/* ============ END SCORES ============= */
+
+.keyfeatures {text-align: left; margin: 0; color: #666; width:398px}
+#gameslotswf {
+width:398px;
+}
+
+/* ADVERT STYLES START */
+.ad_mpu {padding: 12px 0 0 0; background: url('../images/ad_mpu.gif') no-repeat top right; z-index: 2000}
+.ad_lb_center_holder {width: 100%; height: 90px; text-align: center; margin: 10px 0 10px 120px}
+.ad_lb {background: url('../images/ad_lb.jpg') no-repeat top right; width: 750px; height: 90px; margin: 0 0 10px 0; padding: 0; z-index: 2000; text-align: left}
+#preroll_mpu {z-index: 2000; width: 300px; margin: 0 auto;padding-top:85px;font-weight:bold}
+/* ADVERT STYLES END */
+
+
+/* FEEDBACK START */
+.feedbackContainer {width: 310px; height: 360px; position: absolute; left: 48%; text-align: center; }
+.feedback {text-align: center; background: #EAEAEA; width: 320px; height: 360px; border: 1px solid #DDDDDD; font-size: 8pt; color: #444444}
+.feedback .question {width: 300px; clear: both; margin: 0; padding: 5px 0 5px 0; text-align: left}
+.feedback .question .text {width: 95%}
+.feedback .question .input {width: 95%; margin: 3px 0 5px 0}
+.feedback .question .input input {width: 95%; font-size: 8pt; border: 1px solid #DDDDDD; padding: 5px 5px 5px 5px}
+.feedback .question .input textarea {width: 95%; font-size: 8pt; border: 1px solid #DDDDDD; padding: 5px 5px 5px 5px}
+
+.feedback .submit {margin: 0 0 0 0; padding: 0 20px 0 0; text-align: right}
+.feedback .submit p {margin: 0 0 10px 0; padding: 0}
+
+.feedback .closeButton {background: url('../images/popup-close-btn.gif') no-repeat; width: 18px; height: 18px; float: right; margin: 3px 3px 0 0; cursor: pointer}
+
+.feedback .result {float: left; margin: 5px 0 5px 5px; font-weight: bold; width: 120px}
+/* FEEDBACK END */
+
+/* ACHIEVEMENTS POPUP */
+.whatisawardsachivementscontainers {left: 25%;}
+#whatisawardsachivements {left:45%;position:absolute;padding-left:5px;display:none; text-align: left;width: 220px; height: 95px; border: 1px solid #DDDDDD; background: #EAEAEA;}
+/* END WHAT IS SKILLSHOT POPUP */
+
+/* WHAT IS SKILLSHOT POPUP */
+.whatisplaysegavipcontainer {left: 25%;}
+#whatisplaysegavip {position:absolute;padding-left:5px;display:none; text-align: left;width: 220px; height: 110px; border: 1px solid #DDDDDD; background: #EAEAEA;z-index:50;color:#333333}
+/* END WHAT IS SKILLSHOT POPUP */
+
+/* WHAT IS PlaySEGA+ POPUP */
+.whatisskillshotcontainer {left: 25%;}
+#whatisskillshot {position:absolute;padding-left:5px;display:none; text-align: left;width: 220px; height: 110px; border: 1px solid #DDDDDD; background: #EAEAEA;z-index:50;}
+/* END WHAT IS PlaySEGA+ POPUP */
+
+/* SKILLSHOT START */
+.skillshotSummary {clear: both}
+.skillshotSummary .ss_rings {background: url('../images/skillshot-rings.gif') no-repeat; width: 70px; height: 39px; float: left}
+.skillshotSummary .ss_text {height: 39px; float: left; padding: 10px 0 0 10px}
+/* SKILLSHOT END */
+
+/* KEY FEATURES LIST */
+.keyfeatures ol, .keyfeatures ul {list-style-image: url('../images/link-arrow.gif') ; padding: 0; margin: 0 0 0 14px; vertical-align: middle}
+/* //KEY FEATURES LIST */
+
+/* body for the myAchievements section */
+#content1 .allawardsandachievements {width: 100%}
+#content1 .allawardsandachievements .content .sb-inner {}
+#content1 .allawardsandachievements .content .playToWinHeader {height: 150px; background: url('../images/play-to-win-awards.gif') no-repeat top center;}
+/* //body for the myAchievements section */
+
+/* body for the achievementDetails section */
+#content1 .achievementDetailsBody {width: 100%}
+#content1 .achievementDetailsBody .content .sb-inner {background: #fff}
+/* //body for the achievementDetails section */
+
+/* USER THUMBNAIL STYLE START */
+.userThumb {overflow: hidden}
+.userThumb #user_border {float:none;padding:0px 0 10px 0}
+.userThumb a {display: block}
+a.nicknameLink,
+a.nicknameLink:link,
+a.nicknameLink:active,
+a.nicknameLink:visited,
+a.nicknameLink:hover {
+	font-weight:bold;
+	color: #656565;
+}
+/* USER THUMBNAIL STYLE END */
+
+/* SCORES CONTAINER START */
+.scoreContainer {width: 200px; height: 70px; }
+.scoreContainer a {font-weight: bold}
+.scoreContainer .userThumb {float: left; margin: 0 10px 0 0;}
+.scoreContainer .userThumb img #user_border {vertical-align: baseline}
+
+.scoreContainer .theContent {float: left; padding: 20px 0 0 0}
+/* SCORES CONTAINER END */
+
+/* more winners section */
+#content1 .contentMoreWinners {width: 100%}
+#content1 .contentMoreWinners .content .sb-inner {}
+#content1 .contentMoreWinners .content .mainHeader {width: 100%; text-align: left; height: 120px; padding: 20px 0 0 20px}
+#content1 .contentMoreWinners .content .subcontent {position: absolute; top: 82px; left: 14px; width: 230px}
+#content1 .contentMoreWinners .content .entryPanel {position: absolute; top: 214px; left: 24px; width: 213px; height: 90px; background: url('../images/prizedraws/entry_panel.gif') no-repeat}
+#content1 .contentMoreWinners .content .entryPanel select {color: #444444; position: absolute; top: 47px; left: 9px; font-size: 7.5pt}
+#content1 .contentMoreWinners .content .entryPanel #drawRings {color: #ffa949; position: absolute; top: 30px; left: 120px; font-size: 16pt; font-weight: bold; width: 80px; text-align: center}
+#content1 .contentMoreWinners .content #button1 {position: absolute; top: 115px; left: 30px}
+#content1 .contentMoreWinners .content #silverheader {}
+#content1 .contentMoreWinners .content #silverheader td {padding: 5px 10px 5px 10px; width: 50%}
+#content1 .contentMoreWinners .content #silverheader td .drawWinner {border-bottom: 0}
+/* //more winners section */
+
+
+/* js tabs code */
+.tabbedpane {width: 210px; margin: 0 auto;}
+.tabbedpane div.ajaxloader {margin: 50px auto; height: 31px;}
+.tabbedpane .tabsTable {width:100%; margin-top: 10px}
+.tabbedpane .tabsTable .errorItem {width: 100%; color: #999999; font-style: italic; text-align: center}
+
+.tabbedHighScore {border-bottom: 1px solid #DADADC; margin-bottom: 7px; width: 205px }
+.tabbedHighScore .userThumb {float: left;}
+.tabbedHighScore .content {float: left; margin-left: 2px}
+.tabbedHighScore .content .award {float: left;}
+.tabbedHighScore .content .nickname {font-weight: bold; margin: 2px 0 0 0; text-align: left}
+.tabbedHighScore .content .score {margin: 2px 0 0 0; text-align: left}
+
+.tabbedHighScore .allinoneline {font-weight: bold; margin-bottom: 7px;  width: 205px}
+.tabbedHighScore .allinoneline .nickname {float: left; color: #444444}
+.tabbedHighScore .allinoneline .score {float: right; margin-right: 5px}
+/* //js tabs code */
+
+/* registration confirmation page */
+.boldFont { font-weight: bold}
+.welcomeLoz { margin: 10px 0 5px 0 }
+.orangeFont { color: #EA7F00 }
+.orangeBoldFont { color: #EA7F00; font-weight: bold; }
+.welcomewrapper { text-align: left; padding-top: 50px}
+.welcomewrapper .welcomecontent { padding-left: 20px;}
+.welcomewrapper .welcomecontent .welcomeToPlaySEGA { background: url('../images/welcome-title.gif') no-repeat; width: 231px; height: 82px }
+.welcomewrapper .welcomecontent .hiScreenName { width: 400px; margin: 20px 0 30px 0 }
+.welcomewrapper .welcomecontent .hiScreenName .ringsGift { color:#EA7F00; font-weight: bold;}
+.welcomewrapper .welcomecontent .playSEGARings { width: 420px; margin: 20px 0 30px 0; background: url('../images/info/quickstart-ring.gif') no-repeat top left; padding-left: 80px; }
+.welcomewrapper .welcomecontent .playingGames { margin: 0 0 30px 0; background: url('../images/info/quickstart-playgames.gif') no-repeat top left; padding-left: 80px;}
+.welcomewrapper .welcomecontent .settingUpYourAvatar { margin: 0 0 30px 0; background: url('../images/info/quickstart-avatar.gif') no-repeat top left; padding-left: 80px;}
+.welcomewrapper .welcomecontent .settingUpYourEscape { margin: 0 0 30px 0; background: url('../images/info/quickstart-escape.gif') no-repeat top left; padding-left: 80px;}
+.welcomewrapper .welcomecontent .purchasingLuxuryItems { margin: 0 0 30px 0; background: url('../images/info/quickstart-items.gif') no-repeat top left; padding-left: 80px;}
+.welcomewrapper .welcomecontent .prizeDraws { margin: 0 0 30px 0; background: url('../images/info/quickstart-prize.gif') no-repeat top left; padding-left: 80px;}
+.welcomewrapper .welcomecontent .playSEGAHelp { margin: 0 0 30px 0; background: url('../images/info/quickstart-help.gif') no-repeat top left; padding-left: 80px;}
+/* //registration confirmation page */
+
+/* ul styling */
+.unorderedOrangeBullet { padding: 0 0 0 15px; margin: 0 }
+.unorderedOrangeBullet li { list-style-type: disc; color: #FFA949;}
+.unorderedOrangeBullet li span { list-style-type: disc; color: #666666}
+/* //ul styling */
+
+/* error page styling */
+.oopsBox { height: 355px; background: url('../images/error-title.gif') no-repeat center center; overflow: hidden;}
+.oopsBox .oopsContent { height: 100px; margin: 245px 0 0 235px; }
+.oopsBox .oopsContent .oopsMsg { font-weight: bold; color: #444444; font-size: 12px; }
+.oopsBox .oopsContent .oopsGoHome { margin-top: 30px}
+/* //error page styling */
+
+/* agegate styling */
+.tooyoungBox {overflow: hidden;}
+.tooyoungBox .tooyoungContent {margin: 10px 0 0 10px; }
+.tooyoungBox .tooyoungContent .tooyoungMsg { font-weight: bold; color: #444444; font-size: 12px; }
+.tooyoungBox .tooyoungContent .tooyoungGoHome {margin-top: 10px}
+/* //agegate styling */
+
+/* quick start guide page */
+.quickstartwrapper { text-align: left; padding-top: 30px; margin-bottom: 10px }
+.quickstartwrapper .quickstartcontent { padding-left: 20px; background: url('../images/info/quickstart-example-img.jpg') no-repeat top right;}
+.quickstartwrapper .quickstartcontent .quickStartGuide { background: url('../images/info/quickstart-title.gif') no-repeat; width: 376px; height: 40px; margin: 0 0 40px 0 }
+.quickstartwrapper .quickstartcontent .headingIcons { width: 420px; overflow: hidden }
+.quickstartwrapper .quickstartcontent .headingIcons .item { width: 195px; float: left; margin: 0 10px 5px 5px; }
+.quickstartwrapper .quickstartcontent .headingIcons .item .relax { background: url('../images/info/quickstart-playgames-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
+.quickstartwrapper .quickstartcontent .headingIcons .item .collectRings { background: url('../images/info/quickstart-ring-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
+.quickstartwrapper .quickstartcontent .headingIcons .item .makeFriends { background: url('../images/info/quickstart-friends-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
+.quickstartwrapper .quickstartcontent .headingIcons .item .createYourEscape { background: url('../images/info/quickstart-items-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
+.quickstartwrapper .quickstartcontent .introduction { width: 520px; margin: 20px 0 20px 0 }
+.quickstartwrapper .quickstartcontent .registerForFree { margin: 0 0 30px 0 }
+.quickstartwrapper .quickstartcontent .registerForFree .getStarted { float: left; width: 420px }
+
+.quickstartwrapper .quickstartcontent .playSEGARings { margin: 20px 0 30px 0; background: url('../images/info/quickstart-ring.gif') no-repeat top left; padding-left: 80px; }
+.quickstartwrapper .quickstartcontent .playSEGARings .featuresList { float: left; width: 285px; }
+
+.quickstartwrapper .quickstartcontent .playingGames { margin: 0 0 30px 0; background: url('../images/info/quickstart-playgames.gif') no-repeat top left; padding-left: 80px;}
+.quickstartwrapper .quickstartcontent .settingUpYourAvatar { margin: 0 0 30px 0; background: url('../images/info/quickstart-avatar.gif') no-repeat top left; padding-left: 80px; height: 80px;}
+.quickstartwrapper .quickstartcontent .settingUpYourEscape { margin: 0 0 30px 0; background: url('../images/info/quickstart-escape.gif') no-repeat top left; padding-left: 80px;}
+.quickstartwrapper .quickstartcontent .purchasingLuxuryItems { margin: 0 0 30px 0; background: url('../images/info/quickstart-items.gif') no-repeat top left; padding-left: 80px;}
+.quickstartwrapper .quickstartcontent .prizeDraws { margin: 0 0 30px 0; background: url('../images/info/quickstart-prize.gif') no-repeat top left; padding-left: 80px; height: 61px}
+/* //quick start guide page */
+
+/* Coming soon */
+.comingsoonimage {margin-left:30px;margin-top:60px;width:310px;float:left; background: url('../images/info/comingsoon-img.gif') no-repeat; height:300px;}
+.comingsoontitle {margin-top:100px;width:300px;float:left; background: url(../images/info/comingsoon-title.gif) no-repeat; height:100px}
+.comingsoontext {width:400px;float:left;text-align:left;margin-top:5px;}
+.comingsoonbutton {margin-top:20px;width:300px;float:left;}
+
+/* Sign out */
+.signoutimage {margin-left:30px;margin-top:60px;width:310px;float:left; background-image: url(../images/signout-img.gif); background-repeat:no-repeat; height:300px;}
+.signouttitle {margin-top:100px;width:260px;float:left; background-image: url(../images/signout-title.gif); background-repeat:no-repeat; height:100px;}
+.signouttext {width:400px;float:left;text-align:left;margin-top:5px;}
+.signoutbutton {margin-top:20px;width:300px;float:left;}
+
+.gameTitleHeader { font-weight: bold; font-size: 12px; color: #444444}
+
+a.gameTitleHeaderLink:link,
+a.gameTitleHeaderLink:active,
+a.gameTitleHeaderLink:visited,
+a.gameTitleHeaderLink:hover{ font-weight: bold; font-size: 12px }
+
+/* ACHIEVEMENTS IMAGES START */
+.achievement_sml {width: 30px; height: 50px}
+.achievement_med {width: 60px; height: 100px}
+.achievement_lrg {width: 400px; height: 400px}
+/* ACHIEVEMENTS IMAGES END */
+
+#noescapebox {text-align: left; width: 748px; text-align: center}
+#noescapebox img {margin: 120px 0 0 0}
+
+/* This is to make some pages seem longer, so the feedback box is in the correct location */
+.lengthener, #lengthener {height: 770px}
+
+/* Popup options */
+#screenname { float: left; }
+#screenname #screennamediv { position: absolute; width: 200px; margin-top: 25px;  }
+#password { float: left }
+#password #passworddiv { position: absolute; width: 200px; margin-top: 25px}
+
+.infoBoxContainer {padding: 5px 5px 5px 5px; color:#444444; background: #EAEAEA}
+.infoBoxContainer .title {font-weight: bold; width: 150px; color: #333; width: 90%}
+.infoBoxContainer .message {margin-top: 5px; color: #333}
+
+.infoButtonHoverThing {float: right}
+
+a.infoButtonHoverThing {
+height:18px;
+width:18px;
+background-image:url('../images/popup-close-btn.gif');
+background-position: top right;
+display:block;
+float:right;
+margin:0px 0 0 0;
+text-decoration:none;
+}
+a.infoButtonHoverThing:hover {
+background-position: bottom right;
+}
+
+
+/* //Popup options */
+
+/* Style that accompanies the mailclients translations */
+.noticedmailclient { font-weight: bold; }
+ul.mailclientlist { padding: 0 0 0 15px; margin: 0 }
+ul.mailclientlist li { list-style-type: disc; color: #FFA949; }
+ul.mailclientlist li span.clienttext { color: #666666; }
+/* //Style that accompanies the mailclients translations */
+
+/* Styling for the COPPA form */
+.coppaFormBody { margin: 30px 15px 0 15px; text-align: left }
+.coppaFormBody .topInstructions { }
+.coppaFormBody .topInstructions .leftInstructions { width: 330px; float: left }
+.coppaFormBody .topInstructions .rightInstructions { float: right }
+.coppaFormBody .topInstructions .leftInstructions .boldtext { font-weight: bold; color: #4C4B4C; }
+.coppaFormBody .topInstructions .leftInstructions .coppaPrinter { background: url('../images/coppa-printer.gif') no-repeat left center; padding-left: 40px; margin: 15px auto }
+.coppaFormBody a { color: #ea7f00 }
+/* //Styling for the COPPA form */
+
+/* a generic orange link */
+a.clickhere { color: #ea7f00 }
+a.clickhereBold { color: #EA7F00; font-weight: bold; }
+/* //a generic orange link */
+
+
+/* GAME PLAY START */
+#gameswf {margin: 0 auto}
+/* GAME PLAY END */
+/* the no flash / javascript / java messages */
+#gameswf div#js { background: url('../images/error-javascript.gif') no-repeat center; height: 158px; width: 396px; margin: 80px auto 0 auto; z-index: 3000}
+#gameswf div#fl { background: url('../images/error-flash.gif') no-repeat center; height: 123px; width: 447px; margin-top: 80px auto 0 auto; display: none}
+#gameswf div#java { background: url('../images/error-java.gif') no-repeat center; width: 447px; margin: 80px auto 0 auto; padding-top: 150px; display: none}
+/* the no flash / javascript / java messages */
+
+/* EDITOR PLAY START */
+#editorcontainer {z-index: 99}
+#editorswf {margin: 0 auto}
+/* EDITOR PLAY END */
+/* the no flash / javascript / java messages */
+#editorswf div#js { background: url('../images/error-javascript.gif') no-repeat center; height: 158px; width: 396px; margin: 80px auto 0 auto; z-index: 3000}
+#editorswf div#fl { background: url('../images/error-flash.gif') no-repeat center; height: 123px; width: 447px; margin-top: 80px auto 0 auto; display: none}
+/* the no flash / javascript / java messages */
+
+/* STUB PLAY START */
+#stubContainer {position: absolute; display: none; top: 250px}
+#stubContainer #stub {}
+#stubOverlay {position: absolute; left: 0; width: 100%; background-color: #FFF; cursor: pointer;
+              z-index: 11; display: none; opacity: 0.9; top: 0; height: 1000px}
+/* STUB PLAY END */
+
+/* Top Nav Flags */
+.flags-float { float: right; padding-right: 25px; margin-top: 10px; width: 34px; }
+.flags-float .flags-float-inner { width: 34px; position: absolute; }
+.flags { width: 34px; height: 16px; overflow: hidden; z-index: 6000; }
+/*.flags:hover { background: url(../images/flag-top.gif) no-repeat top; }*/
+
+.flags .footer { width: 34px; height: 26px; background: url(../images/flag-footer.gif) no-repeat; cursor: pointer; cursor: hand; text-align: center; padding: 0 0 0 0; }
+.flags .footer img { width: 100%; height: 100%; border: 0; }
+
+.flags .flag_top { width: 34px; height: 22px; cursor: pointer; cursor: hand; text-align: center; padding: 0 0 0 0;  }
+.flag_top img { width: 100%; height: 100%; border: 0}
+.flags .flag { width: 34px; height: 20px; cursor: pointer; cursor: hand; text-align: center; padding: 0 0 0 0; background: url(../images/flag-middle.gif) repeat-y }
+.flags .flag img { width: 100%; height: 100%; border: 0 }
+
+.EnglishUK { height: 20px; background: url(../images/flag-uk.gif) no-repeat; background-position: center top }
+.EnglishUK:hover {}
+.EnglishUSA { height: 20px; background: url(../images/flag-us.gif) no-repeat; background-position: center top }
+.EnglishUSA:hover {}
+
+.flags a:link {text-decoration: none; cursor: pointer; cursor: hand}
+.flags .link :hover {}
+/* //Top Nav Flags */
+
+/* for screenshot thumbnails*/
+
+a.overlay {
+background:url('../images/screenshot-tab-nor.gif') no-repeat bottom right;
+height:100%;
+display:block;
+text-decoration: none;
+}
+
+a.overlay:hover {
+background:url('../images/screenshot-tab-ro.gif') no-repeat bottom right;
+text-decoration: none;
+}
+
+.signup-for-playsega { width: 450px; margin: 10px auto 0 auto; }
+.signup-for-playsega .left { float: left; font-weight: bold; font-size: 11px; width: 90px; padding-top: 5px }
+.signup-for-playsega .right { float: left; }
+.signup-for-playsega .right .start-trial-check { float: left; width: 25px; padding: 0 }
+.signup-for-playsega .right .start-trial-text { float: left; width: 325px; text-align: left }
+
+.arrow-fix { margin-top: 15px; }
+.arrow-fix .arrow-fix-left { float: left }
+.arrow-fix .arrow-fix-right { float: left; background: url(../images/vip/arrow.gif) no-repeat; width: 7px; height: 9px; margin-top: 3px  }
+
+#downloadSubNav {
+border:0px solid gray;
+height:45px;
+}
+
+#downloadsubnav1 {
+padding:0;
+margin:0px;
+height:45px;
+float:left;
+width:750px;
+background:url('../images/downloads_submenu.png') no-repeat top left;
+}
+
+#downloadsubnav1 li {
+float:left;
+color:#000;
+list-style:none;
+padding:0;
+height:45px;
+overflow: hidden;
+
+}
+
+#downloadsubnav1 li a {
+display:block;
+background:url('../images/downloads_submenu.png') no-repeat top left;
+padding-top:45px;
+}
+
+
+.subnavdownload-action-width { width:73px; }
+.subnavdownload-arcade-width { width:68px; }
+.subnavdownload-cards-width { width:60px; }
+.subnavdownload-classics-width { width:71px; }
+.subnavdownload-jigsaw-width { width:67px; }
+.subnavdownload-kids-width { width:51px; }
+.subnavdownload-mahjong-width { width:76px; }
+.subnavdownload-multiplayer-width { width:92px; }
+.subnavdownload-puzzle-width { width:63px; }
+.subnavdownload-sports-width { width:64px; }
+.subnavdownload-word-width { width:65px; }
+
+
+#downloadsubnav1 li.subnavdownload-action a {background-position:0 0}
+#downloadsubnav1 li.subnavdownload-arcade a {background-position:-73px 0}
+#downloadsubnav1 li.subnavdownload-cards a {background-position:-141px 0}
+#downloadsubnav1 li.subnavdownload-classics a {background-position:-201px 0}
+#downloadsubnav1 li.subnavdownload-jigsaw a {background-position:-272px 0}
+#downloadsubnav1 li.subnavdownload-kids a {background-position:-339px 0}
+#downloadsubnav1 li.subnavdownload-mahjong a {background-position:-390px 0}
+#downloadsubnav1 li.subnavdownload-multiplayer a {background-position:-466px 0}
+#downloadsubnav1 li.subnavdownload-puzzle a {background-position:-558px 0}
+#downloadsubnav1 li.subnavdownload-sports a {background-position:-621px 0}
+#downloadsubnav1 li.subnavdownload-word a {background-position:-685px 0}
+
+#downloadsubnav1 li.subnavdownload-action a:hover {background-position:0 -45px;}
+#downloadsubnav1 li.subnavdownload-arcade a:hover {background-position:-73px -45px}
+#downloadsubnav1 li.subnavdownload-cards a:hover {background-position:-141px -45px}
+#downloadsubnav1 li.subnavdownload-classics a:hover {background-position:-201px -45px}
+#downloadsubnav1 li.subnavdownload-jigsaw a:hover {background-position:-272px -45px}
+#downloadsubnav1 li.subnavdownload-kids a:hover {background-position:-339px -45px}
+#downloadsubnav1 li.subnavdownload-mahjong a:hover {background-position:-390px -45px}
+#downloadsubnav1 li.subnavdownload-multiplayer a:hover {background-position:-466px -45px}
+#downloadsubnav1 li.subnavdownload-puzzle a:hover {background-position:-558px -45px}
+#downloadsubnav1 li.subnavdownload-sports a:hover {background-position:-621px -45px}
+#downloadsubnav1 li.subnavdownload-word a:hover {background-position:-685px -45px}
+
+#downloadsubnav1 li.subnavdownload-action a:active, #downloadsubnav1 li.subnavdownload-action-selected a {background-position:0 -90px;}
+#downloadsubnav1 li.subnavdownload-arcade a:active, #downloadsubnav1 li.subnavdownload-arcade-selected a {background-position:-73px -90px}
+#downloadsubnav1 li.subnavdownload-cards a:active, #downloadsubnav1 li.subnavdownload-cards-selected a {background-position:-141px -90px}
+#downloadsubnav1 li.subnavdownload-classics a:active, #downloadsubnav1 li.subnavdownload-classics-selected a {background-position:-201px -90px}
+#downloadsubnav1 li.subnavdownload-jigsaw a:active, #downloadsubnav1 li.subnavdownload-jigsaw-selected a {background-position:-272px -90px}
+#downloadsubnav1 li.subnavdownload-kids a:active, #downloadsubnav1 li.subnavdownload-kids-selected a {background-position:-339px -90px}
+#downloadsubnav1 li.subnavdownload-mahjong a:active, #downloadsubnav1 li.subnavdownload-mahjong-selected a {background-position:-390px -90px}
+#downloadsubnav1 li.subnavdownload-multiplayer a:active, #downloadsubnav1 li.subnavdownload-multiplayer-selected a {background-position:-466px -90px}
+#downloadsubnav1 li.subnavdownload-puzzle a:active, #downloadsubnav1 li.subnavdownload-puzzle-selected a {background-position:-558px -90px}
+#downloadsubnav1 li.subnavdownload-sports a:active, #downloadsubnav1 li.subnavdownload-sports-selected a {background-position:-621px -90px}
+#downloadsubnav1 li.subnavdownload-word a:active, #downloadsubnav1 li.subnavdownload-word-selected a {background-position:-685px -90px}
+
+/* DOWNLOAD CONTAINERS ON DOWNLOAD INDEX PAGE */
+#topgameimagecontainer {
+float:left;
+width:140px;
+text-align:center;
+}
+
+#textlinkcontainer {
+float:left;
+width:245px;
+}
+
+#linkcontainer{
+float:left;
+padding-top:11px;
+}
+
+#newgameimagecontainer{
+float:left;
+width:90px;
+padding-top:7px;
+}
+
+#newgametextlinkcontainer{
+float:left;
+width:196px;
+}
+
+#newgamelinkcontainer{
+float:left;
+width:195px;
+padding-top:3px;
+}
+
+/* SITE TERMS AND CONDITIONS */
+.legalbp li { padding-bottom: 10px; }
+.legalbp li:last-child { padding-bottom: 0; }
+.legalbp2 li:last-child { padding-bottom: 10px; }
+.legalbp2 li:first-child { padding-top: 10px; }
+
+.payment-terms-check { margin: 0 3px 0 5px; padding: 0 }
+
+
+
+/* QUICK SIGNUP ADDITIONS START */
+.quickSignUp {width: 100%; text-align: left; height: 217px}
+.quickSignUp .title {width: 135px; margin: 0 0 2px 0; float: left; padding: 3px 5px 0 0; text-align: right}
+.quickSignUp .input {margin: 0 0 3px 0; float: left}
+.quickSignUp .input .input {width: 125px; height: 19px}
+.quickSignUp .question {float: left}
+.quickSignUp .tooltip {float: left; display: none; position: relative; left: -200px}
+.quickSignUp .boxes {width: 100%; height: 25px; margin: 0 0 0 0}
+.quickSignUp .boxes input {float: left}
+.quickSignUp .checkboxtext {float: left; width: 250px; height: 25px; padding: 2px 0 0 5px}
+.quickSignUp .lozenge1 {margin: 8px 0 0 0; float: right}
+.quickSignUp .result {width: 200px; margin: 0 0 5px 4px; color: #F00; height: 30px; float: left}
+.quickSignUp .orangeFont {margin: 0 0 10px 0; font-weight: bold}
+.quickSignUp #signupsuccess {width: 260px}
+.quickSignUp #emailerror {width: 260px}
+.quickSignUp .border3 ul {margin: 0 0 0 40px; padding: 0 0 0 40px}
+.quickSignUp .border3 ul li {color: #EA7F00; padding: 0 10px 0 0}
+.quickSignUp .border3 ul li span {color: #666666}
+.quickSignUp .border3 div img {margin: 6px 0 0 0}
+.quickSignUp .confirmed {margin: 10px 0 10px 0; font-weight: bold}
+.quickSignUp .checkmail {}
+.quickSignUp #signupResultHolder {display: none}
+.quickSignUp .signup {margin: 10px 0 0 0}
+
+a.btn_signupnow {height: 28px; width: 133px; background:url('../images/quickstart/signup-now-grey.gif') top right;
+                 display: block; text-decoration: none}
+a.btn_signupnow:hover {background-position: bottom right}
+
+.qs_left {float: left; width: 50px; padding: 10px 0 0 0}
+.qs_right {float: left; width: 620px; padding: 10px 0 0 10px}
+.qs_right .qs_heading {font-weight: bold; margin: 10px 0 5px 0}
+.qs_right .qs_content {margin: 0 0 5px 0}
+.qs_right .qs_content ul {list-style-image: url('../images/link-arrow.gif') ; padding: 0; margin: 0 0 0 14px; vertical-align: middle}
+
+/* QUICK SIGNUP ADDITIONS END */
+
+/* USERS ONLINE START */
+.onlineUsers {float: right; width: 218px; height: 40px; margin:-3px 0 0 0; padding: 0}
+/* USERS ONLINE END */
+
+/* QUICK SIGN UP PAGE ADDITIONS START */
+.newformholder {width: 620px}
+.signupnow {background: url('../images/signupnow.gif') no-repeat; width: 257px; height: 64px; margin: 50px 0 15px 400px}
+.alreadymember {background: url('../images/alreadymember.gif') no-repeat; width: 231px; height: 85px; float: right; margin: 10px 10px 0 0}
+.alreadymember .lozenge2 {float: right; margin: 50px 15px 0 0}
+.freejoypad {background: url('../images/signinoruporguest/joypad_panel.gif') no-repeat; width: 232px; height: 276px}
+
+.newformholdersignup {background: transparent url('../images/sonic_side_sml.jpg') no-repeat top left; border: 1px solid #FFF; padding: 0 0 0 200px; height: 440px}
+.welcomeback {background: url('../images/welcomeback.gif') no-repeat; width: 222px; height: 80px; margin: 50px 0 20px 150px}
+.rightBoxes {float: right; width: 240px}
+.notyetmember {background: url('../images/notyetmember.gif') no-repeat; width: 231px; height: 85px; float: left; margin: 10px 10px 0 0}
+.notyetmember .lozenge2 {float: right; margin: 50px 15px 0 0}
+.alreadymember2 {background: url('../images/alreadymember2.gif') no-repeat; width: 231px; height: 85px; float: left; margin: 10px 10px 0 0}
+.alreadymember2 p {float: right; margin: 15px 10px 0 0; width: 120px; height: 65px; text-align: left}
+
+.quickSignUpLarge {width: 350px; text-align: left; height: 217px; float: left}
+.quickSignUpLarge .title {width: 135px; margin: 0 0 2px 0; float: left; padding: 3px 5px 0 0; text-align: right}
+.quickSignUpLarge .input {margin: 0 0 3px 0; float: left}
+.quickSignUpLarge .input .input {width: 125px; height: 19px}
+.quickSignUpLarge .question {float: left}
+.quickSignUpLarge .tooltip {float: left}
+.quickSignUpLarge .boxes {width: 100%; height: 25px; margin: 10px 0 0 0}
+.quickSignUpLarge .boxes input {float: left}
+.quickSignUpLarge .checkboxtext {float: left; width: 250px; height: 25px; padding: 2px 0 0 5px}
+.quickSignUpLarge .lozenge1 {margin: 8px 0 0 0; float: right}
+.quickSignUpLarge .result {width: 200px; margin: 0 0 5px 4px; color: #F00; height: 30px; float: left}
+.quickSignUpLarge .orangeFont {margin: 0 0 10px 0; font-weight: bold}
+.quickSignUpLarge #signupsuccess {width: 330px}
+.quickSignUpLarge #emailerror {width: 330px}
+.quickSignUpLarge .border3 ul {margin: 0 0 0 40px; padding: 0 0 0 40px}
+.quickSignUpLarge .border3 ul li {color: #EA7F00; padding: 0 10px 0 0}
+.quickSignUpLarge .border3 ul li span {color: #666666}
+.quickSignUpLarge .border3 div img {margin: 6px 0 0 0}
+.quickSignUpLarge .confirmed {margin: 20px 0 10px 0; font-weight: bold}
+.quickSignUpLarge .checkmail {}
+
+.thumbsUp {background: url('../images/thumbsup.jpg') no-repeat; width: 160px; height: 334px; float: left; margin: 10px 70px 0 50px; clear: both}
+.almostThere {background: url('../images/almostthere.jpg') no-repeat; width: 353px; height: 54px; margin: 30px 0 0 0; float: left}
+
+.sorryGameInfo {width: 115px; height: 90px; text-align: left; float: left}
+.sorryMessage {}
+.sorryMessage p {margin: 0 0 10px 0; font-size: 18pt; font-family: Arial; font-weight: bold; color: #7a7a7a}
+.sorryMessage p span {color: #fd9929}
+ul.signUpBenefitsUl {list-style-image: url('../images/signinoruporguest/vip-li.gif'); padding: 0; 
+                     margin: 20px 0 0 50px; vertical-align: middle; font-size: 11pt;
+                     font-family: Arial; font-weight: bold; color: #7a7a7a; width: 500px}
+ul.signUpBenefitsUl li {margin: 0 0 15px 0; width: 100%}
+ul.signUpBenefitsUl li sup {margin: 5px 0 0 0}
+
+a.big_signupnow {background: transparent url('../images/signinoruporguest/sign-up-btn.gif') no-repeat scroll top center;
+                  display: block; float: right; width: 264px; height: 52px; text-decoration: none}
+a.big_signupnow:link,a.big_signupnow:active,a.big_signupnow:visited {text-decoration: none; outline: none}
+a.big_signupnow:hover {background-position: bottom center; outline: none}
+
+a.big_vipsignupnow {background: transparent url('../images/signinoruporguest/vip-sign-up-btn.gif') no-repeat scroll top center;
+                  display: block; float: right; width: 264px; height: 55px; text-decoration: none}
+a.big_vipsignupnow:link,a.big_vipsignupnow:active,a.big_vipsignupnow:visited {text-decoration: none; outline: none}
+a.big_vipsignupnow:hover {background-position: bottom center; outline: none}
+
+a.big_playnow {background: transparent url('../images/signinoruporguest/play-free-games-btn.gif') no-repeat scroll top center;
+                  display: block; float: left; width: 165px; height: 34px; text-decoration: none}
+a.big_playnow:link,a.big_playnow:active,a.big_playnow:visited {text-decoration: none; outline: none}
+a.big_playnow:hover {background-position: bottom center; outline: none}
+
+
+
+/* QUICK SIGN UP PAGE ADDITIONS END */
+
+.newslettersignup { margin-top: 10px }
+.newslettersignup .check { float: left }
+.newslettersignup .checklabel { float: left; width: 655px; margin: 2px 0 0 5px; }
+.newslettersignup .click-to-confirm { text-align: center; padding-top: 20px }
+
+/* generic message styling */
+.genericMsgBox { height: 339px; background: url('../images/generic-message-avatar.gif') no-repeat center left; overflow: hidden; margin: 20px 0 0 30px }
+.genericMsgBox .genericMsgContent { height: 100px; margin: 90px 0 0 0; }
+.genericMsgBox .genericMsgContent .genericMsg { font-weight: bold; color: #444444; font-size: 12px; }
+.genericMsgBox .genericMsgContent .genericMsgGoHome { margin-top: 30px}
+/* //generic message styling */
+
+/* email signup */
+.signedup { float: left; background: url('../images/generic-message-avatar-med.gif') no-repeat center left; overflow: hidden; width: 168px; height: 290px; margin: 10px 20px 0 10px; }
+.signedupright { float: left; width: 450px}
+/* //email signup */
+
+/* added for leaderboards stuff - MARK */
+#featuredGamesNavNew {margin-bottom:10px; width: 320px}
+#featuredGamesNavNew .content .gameslist li p {padding-top:10px}
+#featuredGamesNavNew .content .gameslist li img {padding-bottom:10px}
+#featuredGamesNavNew .content {padding: 0; padding-right: 2px}
+
+.leaderboardsTopArea {width: 100%}
+.leaderboardsMainArea {width: 100%}
+
+
+.boxes {width: 100%}
+.box {width: 100%; height: 43px; float: left; margin: 1px 0 0 0}
+.box .top {height: 25px}
+.box .top .left {width: 5px; height: 25px; background: url('../images/leaderboard/box_top_left.gif') no-repeat; float: left}
+.box .top .middle {height: 25px; background: url('../images/leaderboard/box_top_bg.gif') repeat-x; float: left; cursor: pointer}
+.box .top .middle img {float: right; margin: 7px 5px 0 0}
+.box .top .right {width: 5px; height: 25px; background: url('../images/leaderboard/box_top_right.gif') no-repeat; float: left}
+.box .bottom {height: 18px}
+.box .bottom .left {width: 5px; height: 18px; background: url('../images/leaderboard/box_bottom_left.gif') no-repeat; float: left}
+.box .bottom .middle {height: 18px; background: url('../images/leaderboard/box_bottom_bg.gif') repeat-x; float: left}
+.box .bottom .middle .arrow {width: 100%; height: 14px; background: url('../images/leaderboard/arrow.gif') no-repeat center; margin: 2px 0 0 0; cursor: pointer}
+.box .bottom .right {width: 5px; height: 18px; background: url('../images/leaderboard/box_bottom_right.gif') no-repeat; float: left}
+
+.input {padding: 4px 0 0 0; float: right}
+.input .i_left {width: 7px; height: 17px; background: url('../images/leaderboard/input_left.gif') no-repeat; float: left}
+.input .i_middle {height: 17px; background: url('../images/leaderboard/input_bg.gif') repeat-x; float: left; font-family: Arial; font-size: 7pt; padding: 3px 0 0 0}
+.input .i_right {width: 7px; height: 17px; background: url('../images/leaderboard/input_right.gif') no-repeat; float: left}
+
+.middleInactive {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; text-align: left; padding: 0 0 0 5px; overflow-x: hidden; overflow-y: scroll}
+.middleActive {height: 150px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 2px 0 0 5px}
+
+.middleInactiveFour {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; overflow: scroll; overflow-x: hidden; overflow-y: scroll; text-align: left; padding: 0 0 0 5px}
+.middleActiveFour {height: 150px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 2px 0 0 5px}
+
+.middleActiveFive {height: 50px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 2px 0 0 5px}
+.middleInactiveFive {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; text-align: left; padding: 0 0 0 5px}
+
+.middleActiveSix {height: 150px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 7px 0 0 5px}
+.middleInactiveSix {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; text-align: left; padding: 0 0 0 5px}
+
+.modebutton {color: #555; height: 14px; width: 100%}
+.modebutton:link {color: #555; width: 100%; height: 14px}
+.modebutton:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+.modebutton a:link {color: #555; width: 100%; height: 14px}
+.modebutton a:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+
+.difficultybutton {color: #555; height: 14px; width: 100%}
+.difficultybutton:link {color: #555; width: 100%; height: 14px}
+.difficultybutton:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+.difficultybutton a:link {color: #555; width: 100%; height: 14px}
+.difficultybutton a:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+
+.levelbutton {color: #555; height: 14px; width: 100%}
+.levelbutton:link {color: #555; width: 100%; height: 14px}
+.levelbutton:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+.levelbutton a:link {color: #555; width: 100%; height: 14px}
+.levelbutton a:hover {color: #555; width: 100%; height: 14px; text-decoration: underline}
+
+.leaderboard {text-align: left; width: 100%; border-top: 1px solid #DADADC}
+
+.leaderboard .scoreIcon {width: 100%; height: 77px; border-bottom: 1px solid #dadadc; margin: 0 0 0 0}
+.leaderboard .scoreIcon .divider {float: left; width: 1px; height: 77px; background: #DADADC}
+.leaderboard .scoreIcon .rank {float: left; width: 40px; text-align: center; padding: 24px 0 0 0}
+.leaderboard .scoreIcon .icon {float: left; width: 85px; text-align: center; padding: 5px 0 0 0}
+.leaderboard .scoreIcon .nickname {float: left; width: 220px; font-weight: bold; padding: 30px 0 0 5px}
+.leaderboard .scoreIcon .value {float: left; width: 93px; text-align: center; padding: 30px 0 0 0}
+.leaderboard .scoreIcon .mode {float: left; width: 93px; text-align: center; padding: 30px 0 0 1px}
+.leaderboard .scoreIcon .difficulty {float: left; width: 93px; text-align: center; padding: 30px 0 0 1px}
+.leaderboard .scoreIcon .level {float: left; width: 93px; text-align: center; padding: 30px 0 0 1px}
+.leaderboard .scoreIcon .nickname a:link {font-weight: bold}
+
+.leaderboard .scoreText {width: 100%; height: 28px; border-bottom: 1px solid #dadadc; margin: 0 0 0 0}
+.leaderboard .scoreText .divider {float: left; width: 1px; height: 28px; background: #DADADC}
+.leaderboard .scoreText .rank {float: left; width: 40px; text-align: center; padding: 6px 0 0 0}
+.leaderboard .scoreText .nickname {float: left; width: 305px; font-weight: bold; padding: 6px 0 0 5px}
+.leaderboard .scoreText .value {float: left; width: 93px; text-align: center; padding: 6px 0 0 0}
+.leaderboard .scoreText .mode {float: left; width: 93px; text-align: center; padding: 6px 0 0 1px}
+.leaderboard .scoreText .difficulty {float: left; width: 93px; text-align: center; padding: 6px 0 0 1px}
+.leaderboard .scoreText .level {float: left; width: 93px; text-align: center; padding: 6px 0 0 1px}
+.leaderboard .scoreText .nickname a:link {font-weight: bold}
+
+.leaderboardSimple .scoreIcon {width: 100%; height: 77px; border-bottom: 1px solid #dadadc; margin: 0 0 0 0}
+.leaderboardSimple .scoreIcon .rank {float: left; width: 40px; text-align: center; padding: 24px 0 0 0}
+.leaderboardSimple .scoreIcon .icon {float: left; width: 85px; text-align: center; padding: 5px 0 0 0}
+.leaderboardSimple .scoreIcon .nickname {float: left; width: 100px; font-weight: bold; padding: 30px 0 0 5px}
+.leaderboardSimple .scoreIcon .value {float: left; width: 53px; text-align: center; padding: 30px 0 0 0}
+.leaderboardSimple .scoreIcon .nickname a:link {font-weight: bold}
+
+.leaderboardSimple .scoreText {width: 100%; height: 28px; border-bottom: 1px solid #dadadc; margin: 0 0 0 0}
+.leaderboardSimple .scoreText .divider {float: left; width: 1px; height: 28px; background: #DADADC}
+.leaderboardSimple .scoreText .rank {float: left; width: 40px; text-align: center; padding: 6px 0 0 0}
+.leaderboardSimple .scoreText .nickname {float: left; width: 185px; font-weight: bold; padding: 6px 0 0 5px; text-align: left}
+.leaderboardSimple .scoreText .value {float: left; width: 53px; text-align: center; padding: 6px 0 0 0}
+.leaderboardSimple .scoreText .nickname a:link {font-weight: bold}
+
+/*
+.leaderboard .score .text {margin: 30px 0 0 0}
+*/
+
+/* history (ticker) styles */
+.smallTicker {width: 200px; padding: 5px 0 5px 0}
+.smallTicker .tickerItem {float: left; width: 100%; border-bottom: 1px solid #EDEEED; margin: 0 0 5px 0; padding: 0 0 5px 0}
+.smallTicker .tickerItem .tickerThumb {width: 50px; float: left; text-align: left}
+.smallTicker .tickerItem .tickerUserThumbTiny {width: 60px; float: left; text-align: left}
+.smallTicker .tickerItem .tickerText {width: 135px; float: left; text-align: left; padding: 0 0 0 2px; color: #666666}
+.smallTicker .tickerItem .tickerText .tickerWhen {color: #999}
+.smallTicker .tickerItem a:link, .tickerItem a:active, .tickerItem a:visited {font-weight: bold; color: #666666}
+.smallTicker .tickerItem a:hover {font-weight: bold; text-decoration: underline; color: #666666}
+
+.mediumTicker {width: 300px}
+.mediumTicker .tickerItem {float: left; width: 100%; height: 50px; border-bottom: 1px solid #EDEEED; margin: 0 0 5px 0}
+.mediumTicker .tickerItem .tickerThumb {width: 50px; height: 50px; float: left; text-align: left}
+.mediumTicker .tickerItem .tickerUserThumbTiny {width: 60px; height: 50px; float: left; text-align: left}
+.mediumTicker .tickerItem .tickerText {width: 230px; height: 50px; float: left; text-align: left; padding: 0 0 0 2px; color: #666666}
+.mediumTicker .tickerItem .tickerText .tickerWhen {color: #999}
+.mediumTicker .tickerItem a:link, .tickerItem a:active, .tickerItem a:visited {font-weight: bold; color: #666666}
+.mediumTicker .tickerItem a:hover {font-weight: bold; text-decoration: underline; color: #666666}
+
+.largeTicker {width: 400px}
+.largeTicker .tickerItem {float: left; width: 100%; height: 75px; border-bottom: 1px solid #EDEEED; margin: 0 0 5px 0}
+.largeTicker .tickerItem .tickerUserThumb {width: 90px; height: 75px; float: left; text-align: left}
+.largeTicker .tickerItem .tickerArrow {width: 5px; height: 20px; background: url('../images/membernews/arrow.gif') no-repeat center; float: left; text-align: left}
+.largeTicker .tickerItem .tickerThumb {width: 50px; height: 50px; float: left; text-align: left}
+.largeTicker .tickerItem .tickerText {width: 245px; height: 50px; float: left; text-align: left; padding: 0 0 0 2px; color: #666666}
+.largeTicker .tickerItem .tickerText .tickerWhen {color: #999}
+.largeTicker .tickerItem a:link, .tickerItem a:active, .tickerItem a:visited {font-weight: bold; color: #666666}
+.largeTicker .tickerItem a:hover {font-weight: bold; text-decoration: underline; color: #666666}
+
+.listTickerTypes {padding: 5px 0 0 0}
+.listTickerTypes .tickerType {width: 50%; float: left}
+.listTickerTypes .tickerType .tickerTypeIcon {width: 35px; height: 35px; float: left; margin: 0 0 0 5px}
+.listTickerTypes .tickerType .tickerTypeText {width: 140px; float: left; padding: 6px 0 0 0; text-align: left}
+
+.middleInactiveTwo {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; text-align: left; padding: 2px 0 0 5px}
+.middleActiveTwo {height: 150px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 2px 0 0 5px}
+
+.middleInactiveThree {height: 0; border-left: 1px solid #D0D0D0; border-right: 1px solid #D0D0D0; overflow: hidden; background: #FFF; text-align: left; padding: 2px 0 0 5px}
+.middleActiveThree {height: 120px; overflow: hidden; background: #f9f9f9; text-align: left; padding: 2px 0 0 5px}
+
+#memberNewsNav {margin-top:10px; width: 220px}
+#memberNewsNav .content {text-align: center}
+#memberNewsNav .content #ticker {width: 100%}
+
+#guestNav {}
+#guestNav .content {text-align: left; padding: 0; width: 100%}
+.joinBenefits {padding: 0; margin: 0 0 0 20px}
+.joinBenefits li {margin: 0 0 5px 0}
+.joinFromGuestButton {background: url('../images/guests/guestpanel-btn.gif') no-repeat top right; text-decoration: none; width: 201px; height: 28px}
+.joinFromGuestButton {float: left}
+.joinFromGuestButton:link, a.joinFromGuestButton:active, a.joinFromGuestButton:visited {}
+.joinFromGuestButton:hover {background-position: bottom right; color: #4c4c4c; outline: none; /* hide dotted outline in Firefox */}
+
+
+/* START: MARK: SIGN IN OR SIGN UP OR GUEST PAGE */
+.comparisonTable {width: 967px; margin-top: 10px}
+
+.comparisonTable .top_text {width: 370px; height: 162px; padding: 0; margin: 0; background: url('../images/signinoruporguest/newtext.gif') no-repeat center; vertical-align: top}
+
+.comparisonTable .top_vip {width: 196px; height: 162px; padding: 0; margin: 0; background: url('../images/signinoruporguest/top_vip.gif') no-repeat; vertical-align: top}
+.comparisonTable .top_vip .text_area {width: 100px; height: 55px; float: right; clear: both; margin: 55px 5px 13px 0; text-align: left}
+.comparisonTable .top_vip .btn_area {width: 100%; height: 30px; float: right; margin: 0 0 0 0}
+
+.comparisonTable .top_member {width: 198px; height: 162px; padding: 0; margin: 0; background: url('../images/signinoruporguest/top_member.gif') no-repeat; vertical-align: top}
+.comparisonTable .top_member .text_area {width: 80px; height: 55px; float: right; clear: both; margin: 55px 5px 13px 0; text-align: left}
+.comparisonTable .top_member .btn_area {width: 100%; height: 30px; float: right; margin: 0 0 0 0}
+
+.comparisonTable .top_guest {width: 203px; height: 162px; padding: 0; margin: 0; background: url('../images/signinoruporguest/top_guest.gif') no-repeat; vertical-align: top}
+.comparisonTable .top_guest .text_area {width: 100px; height: 55px; float: right; clear: both; margin: 55px 12px 13px 0; text-align: left}
+.comparisonTable .top_guest .btn_area {width: 100%; height: 30px; float: right; margin: 0 0 0 0}
+
+.comparisonTable .td_left {width: 249px; padding: 0 0 7px 0; margin: 0; vertical-align: bottom}
+.comparisonTable .td_text {width: 121px; padding: 0; margin: 0; background: url('../images/signinoruporguest/td_text.gif') no-repeat top; vertical-align: top; text-align: left}
+.comparisonTable .td_vip {width: 196px; padding: 0; margin: 0; background: url('../images/signinoruporguest/td_vip.gif') no-repeat; vertical-align: top}
+.comparisonTable .td_member {width: 198px; padding: 0; margin: 0; background: url('../images/signinoruporguest/td_member.gif') no-repeat; vertical-align: top}
+.comparisonTable .td_guest {width: 203px; padding: 0; margin: 0; background: url('../images/signinoruporguest/td_guest.gif') no-repeat; vertical-align: top}
+
+.comparisonTable .bottom_left {width: 249px; height: 85px; padding: 0; margin: 0; vertical-align: top}
+.comparisonTable .bottom_text {width: 121px; height: 85px; padding: 10px 0 0 0; margin: 0; background: #f6f6f6 url('../images/signinoruporguest/bottom_text.gif') no-repeat top; vertical-align: top}
+.comparisonTable .bottom_vip {width: 196px; height: 85px; padding: 10px 0 0 0; margin: 0; background: #f6f6f6 url('../images/signinoruporguest/bottom_vip.gif') no-repeat; vertical-align: top}
+.comparisonTable .bottom_member {width: 198px; height: 85px; padding: 10px 0 0 0; margin: 0; background: #f6f6f6 url('../images/signinoruporguest/bottom_member.gif') no-repeat; vertical-align: top}
+.comparisonTable .bottom_guest {width: 203px; height: 85px; padding: 10px 0 0 0; margin: 0; background: #f6f6f6 url('../images/signinoruporguest/bottom_guest.gif') no-repeat; vertical-align: top}
+
+.comparisonTable .td_text .text_item_first {height: 35px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 15px}
+.comparisonTable .td_text .text_item_first img {margin: 12px 0 0 0}
+.comparisonTable .td_text .text_item {height: 31px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 15px}
+.comparisonTable .td_text .text_item img {margin: 7px 0 0 0}
+
+.comparisonTable .td_vip .text_item_first {height: 35px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 0}
+.comparisonTable .td_vip .text_item_first img {margin: 12px 0 0 0}
+.comparisonTable .td_vip .text_item {height: 31px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 0}
+.comparisonTable .td_vip .text_item img {margin: 7px 0 0 0}
+.comparisonTable .td_vip .tick {width: 100%; height: 31px; background: url('../images/signinoruporguest/tick_vip.gif') no-repeat center}
+.comparisonTable .td_vip .cross {width: 100%; height: 31px; background: url('../images/signinoruporguest/cross.gif') no-repeat center}
+
+.comparisonTable .td_member .text_item_first {height: 35px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 0}
+.comparisonTable .td_member .text_item_first img {margin: 12px 0 0 0}
+.comparisonTable .td_member .text_item {height: 31px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 0 0 0}
+.comparisonTable .td_member .text_item img {margin: 7px 0 0 0}
+.comparisonTable .td_member .tick {width: 100%; height: 31px; background: url('../images/signinoruporguest/tick_member.gif') no-repeat center}
+.comparisonTable .td_member .cross {width: 100%; height: 31px; background: url('../images/signinoruporguest/cross.gif') no-repeat center}
+
+.comparisonTable .td_guest .text_item_first {height: 35px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 13px 0 0}
+.comparisonTable .td_guest .text_item_first img {margin: 12px 0 0 0}
+.comparisonTable .td_guest .text_item {height: 31px; background: url('../images/signinoruporguest/item_repeat.gif') repeat-x bottom; margin: 0 13px 0 0}
+.comparisonTable .td_guest .text_item img {margin: 7px 0 0 0}
+.comparisonTable .td_guest .tick {width: 100%; height: 31px; background: url('../images/signinoruporguest/tick_guest.gif') no-repeat center}
+.comparisonTable .td_guest .cross {width: 100%; height: 31px; background: url('../images/signinoruporguest/cross.gif') no-repeat center}
+
+.comparisonTable .popupBlock {position: absolute; width: 200px; height: 50px; background: #FFF; border: 1px solid #CCC; padding: 10px; display: none}
+.comparisonTable .item_image {cursor: pointer}
+
+.comparisonTable .footer_text {text-align: left; color: #858585; padding: 5px 0 0 3px}
+
+a.btn_vip {height: 28px; width: 151px; background:url('../images/signinoruporguest/btn_vip.gif') top right; display: block; text-decoration: none; margin: 0 0 0 23px}
+a.btn_vip:hover {background-position: bottom right}
+a.btn_member {height: 28px; width: 152px; background:url('../images/signinoruporguest/btn_member.gif') top right; display: block; text-decoration: none; margin: 0 0 0 23px}
+a.btn_member:hover {background-position: bottom right}
+a.btn_guest {height: 28px; width: 147px; background:url('../images/signinoruporguest/btn_guest.gif') top right; display: block; text-decoration: none; margin: 0 0 0 23px}
+a.btn_guest:hover {background-position: bottom right}
+
+/* END: MARK: SIGN IN OR SIGN UP OR GUEST PAGE */
+
+/* START: MARK: LEVEL EDITOR STUFF */
+.levelThumb {background: #FFF; border-bottom: 1px solid #DADADC; width: 395px; padding: 4px 0 4px 0}
+.levelThumb .levelThumbUser {float: left; width: 95px}
+.levelThumb .levelThumbDescription {float: left; width: 210px; text-align: left}
+.levelThumb .levelThumbDescription span {font-weight: bold}
+.levelThumb .levelThumbDescriptionLonger {float: left; width: 305px; text-align: left}
+.levelThumb .levelThumbDescriptionLonger span {font-weight: bold}
+.levelThumb .levelThumbStatus {float: left; width: 90px; text-align: left; padding: 20px 0 0 0}
+.levelThumb .deleteLevel {float: left; padding: 3px 0 0 0}
+.levelThumb .levelStatus {float: left}
+
+div.levelThumbClear {width: 100%; overflow: hidden; clear: both; height: 1px; margin: 2px 0 2px 0}
+
+.levelThumbDeleted {background: #EEE; height: 15px; border: 0; color: #F00}
+
+a.create-level {height: 28px; width: 179px; display: block; margin: 10px 0 0 0;
+                background-image:url('../images/editors/leveledit-create-btn.gif');
+                background-position: top right; text-decoration: none;
+}
+a.create-level:hover {background-position: bottom right}
+a.play-level {height: 28px; width: 146px; display: block; margin: 10px 0 0 0;
+                background-image:url('../images/editors/leveledit-playlevels-btn.gif');
+                background-position: top right; text-decoration: none;
+}
+a.play-level:hover {background-position: bottom right}
+
+.failReason {text-align: left; border: 1px solid #FACD94}
+.failReason .failHeading {font-weight: bold; text-decoration: underline; margin: 0 0 8px 0}
+.failReason .failDescription {margin: 0 0 8px 0}
+.failReason .failAction {font-style: italic}
+/* END: MARK: LEVEL EDITOR STUFF */
+
+object { outline:none; }
+
+
+#controlswrap {
+margin:0 auto;
+width:710px;
+font-weight:bold;
+text-align:left;
+}
+/*styles for control panel on play game page
+We go to this length to identify it so styles for #content1 #pagecontent .border6 are overidden
+*/
+#content1 #pagecontent #controlswrap .border6 {
+padding: 3px;
+margin:0 auto 10px auto;
+width:710px;
+float:none;
+}
+#content1 #pagecontent #controlswrap img {
+	vertical-align:middle;
+}
+
+/*how to play*/
+#howtoplay {
+margin:0 auto;
+width:710px;
+font-weight:bold;
+text-align:left;
+}
+#content1 #pagecontent #howtoplay .border6 {
+padding: 3px;
+margin:0 auto 10px auto;
+width:710px;
+float:none;
+}
+
+/* START: MARK: RATINGS */
+.stars {float: left; height: 12px; margin: 0 0 0 5px}
+.stars .star_left_off {float: left; width: 6px; height: 12px; margin: 0 0 0 0;
+                       background: url('../images/ratings/star_left_off.gif') no-repeat}
+.stars .star_right_off {float: left; width: 6px; height: 12px; margin: 0 2px 0 0;
+                       background: url('../images/ratings/star_right_off.gif') no-repeat}
+.stars .star_left_on {float: left; width: 6px; height: 12px; margin: 0 0 0 0;
+                      background: url('../images/ratings/star_left_on.gif') no-repeat}
+.stars .star_right_on {float: left; width: 6px; height: 12px; margin: 0 2px 0 0;
+                      background: url('../images/ratings/star_right_on.gif') no-repeat}
+/* END: MARK: RATINGS */
+
+/* START: MARK: ALL GAMES */
+.categoryItem {float: left; width: 150px; height: 28px}
+.categoryItem .categoryIcon {float: left; width: 40px; height: 28px}
+.categoryItem .categoryText { float: left; width: 105px; height: 28px; padding: 0 0 0 5px}
+
+.allGames {width: 730px}
+.allGames .gameArea {width: 730px; text-align: left; height: 27px; border-bottom: 1px solid #DADADC}
+.allGames .gameAreaLast {width: 730px; text-align: left; height: 27px; margin: 0 0 10px 0;
+                         border-bottom: 1px solid #DADADC}
+.allGames .leftBlock {float: left; width: 400px; height: 27px}
+.allGames .gameName {float: left; width: 330px; padding: 7px 0 0 5px; font-weight: bold}
+.allGames .gameName a:link {font-weight: bold}
+.allGames .gameName a:active {font-weight: bold}
+.allGames .gameName a:visited {font-weight: bold}
+.allGames .gameName a:hover {font-weight: bold}
+.allGames .gameRings {float: left; width: 20px; padding: 0 0 0 0; text-align: right}
+.allGames .gameVIP {float: right; width: 35px; padding: 7px 0 0 0; text-align: center}
+.allGames .popupBlock {position: absolute; width: 396px; height: 82px; background: #FFF;
+                       border: 1px solid #CCC; border-top: 0; border-left: 0;
+                       margin: 27px 0 0 0; display: none; padding: 2px; padding-top: 0}
+.allGames .popupBlock .thumbnail {float: left; margin: 0 5px 0 0}
+.allGames .popupBlock .description {margin: 5px 0 0 0; width: 395px}
+.allGames .middleBlock {float: left; width: 1px; height: 27px; background: #DADADC}
+.allGames .rightBlock {float: left; width: 329px; height: 27px}
+.allGames .rightBlock .genreName {float: left; width: 220px; padding: 7px 0 0 5px}
+.allGames .rightBlock .genreIcons {float: right; width: 100px; padding: 0 4px 5px 0;
+                                   text-align: right}
+/* END: MARK: ALL GAMES */
+
+/* START: MARK: REPORT */
+.report {float: left; text-align: left; margin: 8px 0 10px 0; width: 600px}
+.report .reportButton {float: left}
+.report .reportReportHidden {width: 0; height: 0; overflow: hidden}
+.report .reportReportShown {background: #FFF; width: 280px; height: 170px; position: absolute;
+                            left: 80px; border: 1px solid #E5E5E5; overflow: hidden; padding: 0}
+.report .reportHeading {background: #F3F3F3; color: #666666; width: 100%; height: 15px;
+                        padding: 2px 0 2px 5px; border-bottom: #E5E5E5}
+.report .reportHeading .headingText {float: left}
+.report .reportHeading .closeButton {float: right; width: 9px; height: 9px;
+                                     background: url('../images/close.gif') no-repeat 1px 1px;
+                                     border: 1px solid #666666; margin: 2px 8px 0 0; padding: 0;
+                                     cursor: pointer}
+.report .reportContent {background: #FFF; color: #000; width: 100%; padding: 10px 0 5px 10px}
+.report .reportContent .clear {height: 10px}
+.report .reportContent .reportResult {float: left}
+.report .reportContent .lozenge1 {float: right; margin: 0 20px 0 0}
+.report .reportTextArea {width: 257px; height: 71px; font-family: Verdana; color: #777;
+                         font-size: 8pt; border: 1px solid #C0C1BC}
+/* END: MARK: REPORT */
+
+/* START: MARK: WHAT IS PLAYSEGA VIP */
+.whatIsVIP {width: 980px}
+.whatIsVIP .theLeft {width: 11px; height: 1075px; float: left;
+                     background: url('../images/vip/border-left-back.jpg') repeat-y}
+.whatIsVIP .theLeft .topImage {width: 100%; height: 643px;
+                               background: url('../images/vip/border-left.jpg') no-repeat}
+
+.whatIsVIP .theMiddle {width: 958px; float: left}
+.whatIsVIP .theMiddle .topFlash {width: 958px; height: 440px}
+.whatIsVIP .theMiddle .freeTrialText {width: 958px; height: 90px; text-align: center}
+.whatIsVIP .theMiddle .leftContent {width: 487px; height: 540px; float: left;
+                                    border-right: 1px solid #DFDFDF}
+.whatIsVIP .theMiddle .leftContent .controller {width: 487px; height: 280px;
+                                                background: url('../images/vip/controller.jpg') no-repeat;
+                                                margin: 20px 0 0 0}
+.whatIsVIP .theMiddle .leftContent .controllerText {width: 422px; height: 109px;
+                                                    background: url('../images/vip/free-playsega-joypad.gif') no-repeat top center;
+                                                    padding: 40px 0 0 50px; margin: 20px 0 0 0}
+.whatIsVIP .theMiddle .leftContent .controllerText p {width: 380px; text-align: center;
+                                                      color: #5C5C5C; font-size: 12pt;
+                                                      font-weight: bold}
+.whatIsVIP .theMiddle .leftContent .controllerText p span {color: #000}
+.whatIsVIP .theMiddle .rightContent {width: 458px; height: 540px; float: left}
+.whatIsVIP .theMiddle .rightContent .infoArea {width: 458px; height: 85px}
+.whatIsVIP .theMiddle .rightContent .infoArea .leftPart {width: 188px; height: 85px; float: left}
+.whatIsVIP .theMiddle .rightContent .infoArea .rightPart {width: 270px; height: 85px; float: left}
+.whatIsVIP .theMiddle .rightContent .infoArea .rightPart img {margin: 20px 0 0 0}
+.whatIsVIP .theMiddle .rightContent .infoArea .rightPart p {text-align: left; color: #5C5C5C;
+                                                            font-size: 10pt}
+.whatIsVIP .theMiddle .rightContent .infoArea .rightPart p span {color: #E6830B; font-weight: bold}
+
+.whatIsVIP .theRight {width: 11px; height: 1075px; float: left;
+                      background: url('../images/vip/border-right-back.jpg') repeat-y}
+.whatIsVIP .theRight .topImage {width: 100%; height: 643px;
+                                background: url('../images/vip/border-right.jpg') no-repeat}
+
+.whatIsVIP .theBottomLeft {width: 29px; height: 31px; float: left;
+                           background: url('../images/vip/border-left-corner.jpg') no-repeat}
+.whatIsVIP .theBottomMiddle {width: 926px; height: 31px; float: left;
+                             background: url('../images/vip/border-bottom.jpg') repeat-x bottom}
+.whatIsVIP .theBottomRight {width: 25px; height: 31px; float: left;
+                            background: url('../images/vip/border-right-corner.jpg') no-repeat}
+
+.whatIsVIP a.view-all-btn {background: url('../images/vip/view-all-vip.gif') no-repeat top right;
+                           text-decoration: none; width: 158px; height: 28px; float: left}
+.whatIsVIP a.view-all-btn:link, a.view-all-btn:active, a.view-all-btn:visited {}
+.whatIsVIP a.view-all-btn:hover {background-position: bottom right; outline: none}
+
+#vipgamespopupholder {position: absolute; width: 592px; height: 487px; display: none; top: 280px; left: 200px}
+/* END: MARK: WHAT IS PLAYSEGA VIP */
+
+/* THREE UNIQUE BUTTONS START (WHAT IS VIP PAGE) */
+.whatIsVIP .pre-heading-1 {background: url(../images/vip/vip_phase2_txt1.gif) no-repeat;
+                           width: 503px; height: 39px; margin: 0}
+.whatIsVIP .pre-heading-2 {background: url(../images/vip/vip_phase2_txt2.gif) no-repeat;
+                           width: 522px; height: 39px; margin: 0}
+.whatIsVIP .pre-heading-3 {background: url(../images/vip/vip_phase2_txt3.gif) no-repeat;
+                           width: 545px; height: 39px; margin: 0}
+
+.whatIsVIP a.joinbutton1 {background: url('../images/vip/vip_phase2_txt1_btn.gif') no-repeat top right;
+                          text-decoration: none; width: 243px; height: 43px; float: left}
+.whatIsVIP a.joinbutton1:link, a.joinbutton1:active, a.joinbutton1:visited {}
+.whatIsVIP a.joinbutton1:hover {background-position: bottom right; outline: none}
+
+.whatIsVIP a.joinbutton2 {background: url('../images/vip/vip_phase2_txt2_3_btn.gif') no-repeat top right;
+                          text-decoration: none; width: 213px; height: 43px; float: left}
+                          
+.whatIsVIP a.joinbutton2:link, 
+.whatIsVIP a.joinbutton2:active, 
+.whatIsVIP a.joinbutton2:visited {float: left}
+.whatIsVIP a.joinbutton2:hover {background-position: bottom right; outline: none;float: left}
+
+
+/* THREE UNIQUE BUTTONS END (WHAT IS VIP PAGE) */
+
+.closeGeneric {float: left; background: url('../images/popup-close-btn.gif') no-repeat top right;
+               width: 18px; height: 18px; margin: 0; cursor: pointer;
+               outline: none; font-size: 0pt; float: right}
+a.closeGeneric:hover {background-position: bottom right; outline: none}
+
+.ajax-loader {width: 100%; height: 31px; margin: 5px; background: url('../images/ajax-loader.gif') no-repeat center; margin: 5px; float: none}
+
+/* START: MARK: HOMEPAGE */
+.homegames {padding: 0; margin: 0; height: 100px}
+.homegames li {background: url('../images/homepage/arrow.gif') no-repeat 0 2px;
+			   list-style:none;
+			   height: 15px;overflow:hidden;white-space:nowrap;display:block;padding-left:13px}
+.homegames li .gameLink {float:left;}
+.homegames li a {padding: 0;margin:0}
+
+.homelevels {height: 100px}
+.homelevels .homelevel .levelIcon {float: left; width: 35px; height: 20px}
+.homelevels .homelevel .levelLink {float: left; width: 125px; height: 20px; padding: 4px 0 0 0}
+
+.vipTinyIcon {width: 18px; height: 10px; float: left; background: url('../images/games/vip.gif') no-repeat; margin: 2px 0 0 5px}
+.viewAllGames {width: 140px; height: 19px; float: left; background: url('../images/homepage/viewallgames-arrow.gif') no-repeat; padding: 2px 0 0 25px; overflow: hidden}
+.viewAllGames a:link, .viewAllGames a:active, .viewAllGames a:visited {font-weight: bold; text-decoration: none}
+.viewAllGames a:hover {font-weight: bold; text-decoration: underline}
+
+.videoslotSWF {width: 100%}
+
+.featuredGame {width: 100%}
+.featuredGame .featuredSWF {width: 100%; height: 240px}
+.featuredGame .featuredDescription {width: 100%; height: 45px; text-align: left; overflow: hidden}
+.featuredGame .featuredButtons {width: 100%; height: 35px}
+.featuredGame .featuredButtons .featuredLeft {width: 133px; height: 35px; float: left; background: url('../images/homepage/featured/left-gradient.gif') no-repeat}
+.featuredGame .featuredButtons .featuredMiddle {width: 140px; height: 35px; float: left}
+.featuredGame .featuredButtons .featuredMiddle a.fg_prev {width: 53px; height: 35px;
+                                                          background: url('../images/homepage/featured/controls-prev.gif') no-repeat scroll top right}
+.featuredGame .featuredButtons .featuredMiddle a.fg_next {width: 52px; height: 35px;
+                                                          background: url('../images/homepage/featured/controls-next.gif') no-repeat scroll top right}
+.featuredGame .featuredButtons .featuredMiddle a.fg_play {width: 35px; height: 35px;
+                                                          background: url('../images/homepage/featured/controls-play.gif') no-repeat scroll top right}
+.featuredGame .featuredButtons .featuredMiddle a.fg_pause {width: 35px; height: 35px;
+                                                          background: url('../images/homepage/featured/controls-pause.gif') no-repeat scroll top right}
+.featuredGame .featuredButtons .featuredMiddle a:hover {background-position: bottom right; outline: none}
+
+.featuredGame .featuredButtons .featuredMiddle a:link,
+.featuredGame .featuredButtons .featuredMiddle a:active,
+.featuredGame .featuredButtons .featuredMiddle a:visited {text-decoration: none; outline: none;
+                                                          display: block; text-decoration: none;
+                                                          float: left}
+.featuredGame .featuredButtons .featuredMiddle  a:hover {background-position: bottom right; outline: none}
+
+.featuredGame .featuredButtons .featuredRight {width: 125px; height: 35px; float: left; background: url('../images/homepage/featured/right-gradient.gif') no-repeat}
+
+.dashboard {width: 320px; height: 265px; float: left; margin: 7px 0 0 10px; cursor: pointer}
+.dashboard a.one {background: transparent url('../images/dashboard/myescape.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 162px; height: 88px; text-decoration: none}
+.dashboard a.two {background: transparent url('../images/dashboard/myavatar.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 158px; height: 88px; text-decoration: none}
+.dashboard a.three {background: transparent url('../images/dashboard/myachievements.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 162px; height: 88px; text-decoration: none}
+.dashboard a.four {background: transparent url('../images/dashboard/membernews.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 158px; height: 88px; text-decoration: none}
+.dashboard a.five {background: transparent url('../images/dashboard/gameleaderboards.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 162px; height: 89px; text-decoration: none}
+.dashboard a.six {background: transparent url('../images/dashboard/becomevip.gif') no-repeat scroll top right;
+                  display: block; float: left; width: 158px; height: 89px; text-decoration: none}
+.dashboard a.sixVIP {background: transparent url('../images/dashboard/myvip.gif') no-repeat scroll top right;
+                     display: block; float: left; width: 158px; height: 89px; text-decoration: none}
+.dashboard a:link,.dashboard a:active,.dashboard a:visited {text-decoration: none; outline: none}
+.dashboard a:hover {background-position: bottom right; outline: none}
+/* END: MARK: HOMEPAGE */
+
+
+/* START: MARK: MEGADRIVE GAMES */
+.mdgame {width: 349px; height: 100px; float: left; border-bottom: 1px solid #DCDCDC; padding: 5px}
+.mdgame .mdthumb {width: 110px; float: left}
+.mdgame .mdcontent {width: 239px; float: left; text-align: left}
+.mdgame .mdcontent .mdtitle {font-weight: bold; height: 25px}
+.mdgame .mdcontent .mddesc {height: 55px; overflow: hidden}
+.mdgame .mdcontent .mdlinks {height: 20px; padding: 0 10px 0 0}
+.mddivider {width: 1px; height: 112px; float: left; background: #DCDCDC; margin: 0 5px 0 5px}
+/* END: MARK: MEGADRIVE GAMES */
+
+.manualInputEmpty {border: 1px solid #CCC; width: 50px; padding: 2px; color: #CCC}
+.manualInputActive {border: 1px solid #000; width: 50px; padding: 2px; color: #000}
+.manualInputBad {border: 1px solid #C00; width: 50px; padding: 2px; color: #000}
+.manualInputGood {border: 1px solid #0C0; width: 50px; padding: 2px; color: #000}
+
+/* START: MARK: UPSELL */
+#upsellOne {}
+#upsellOne .content {text-align: center; padding: 0; margin: 0}
+#upsellOne .content .upsellHeading {margin: 0 0 10px 0; clear: both}
+#upsellOne .content .upsellUl {text-align: left; list-style: none; padding: 0; margin: 0 0 0 10px; vertical-align: middle}
+/* END: MARK: UPSELL */
+
+/* GAMES DETAIL STYLEZ */
+#linkandcopycontainer{
+padding:5px 0 5px 0;
+float:left;
+width: 398px;
+height:30px;
+}
+#copycontainer{
+float:left;
+width:274px;
+text-align:left;
+}
+#buytriallinkcontainer{
+float: left;
+width: 118px;
+text-align: right;
+}
+#systemrequirementscontainer{
+border-top: 1px solid rgb(204, 204, 204); 
+float: left; 
+width: 100%; 
+padding-top: 3px; 
+padding-bottom: 3px; 
+margin-top: 10px;
+}
+/* DOWNLOAD PAGE */
+#maincontentcontainer{
+padding-bottom: 15px; width:390px;
+}
+#downcopyandlinkcontainer{
+padding:5px 0 5px 0;
+float:left;
+height:30px;
+}
+#downcopycontainer{
+float:left;
+width:250px;
+text-align:left;
+}
+#downlinkcontainer{
+float:right;
+width:140px;
+text-align:right;
+}
+
+/* START: MARK: PlaySEGA Welcome / VIP pages */
+ul.featuresList {padding: 0 5px 1px 5px; margin: 0; text-align: left}
+ul.featuresList li {height: 50px; list-style: none; margin: 0; border-top: 1px solid #DADADC;
+                    padding: 6px 0 0 60px; clear: both; width: 130px}
+ul.featuresList li p {padding: 0; margin: 5px 0 0 5px}
+ul.featuresList > li:first-child {border-top: none}
+
+span.fancylarge {color: #7B7A7A; background-color: transparent; letter-spacing: 0.2;
+                 font-size: 20px}
+
+.pricePlans {width: 470px; margin: 0 0 20px 0}
+.pricePlans th {height: 28px; background: url('../images/vip/pp_bg.gif') repeat-x;
+                text-align: center; border-left: 1px solid #a9c4e2; vertical-align: top; padding: 0;
+                margin: 0}
+.pricePlans tr:first-child th:first-child {border-left: 0; height: 28px}
+.pricePlans tr td {border-right: 1px solid #ECECEC; border-bottom: 1px solid #ECECEC; 
+                   text-align: center; height: 50px}
+.pricePlans tr:first-child td:first-child {border: 0}
+.pricePlans tr td:first-child {border-left: 1px solid #ECECEC}
+.pricePlans .ppDuration {width: 105px}
+.pricePlans .ppPrice {width: 105px; font-weight: bold}
+.pricePlans .ppJoypad {width: 260px}
+.pricePlans span {color: #f18f20}
+.pricePlans .ppHeading {padding: 6px 0 0 0; color: #FFF; font-weight: bold; height: 22px; 
+                        float: left; text-align: center; width: 90%}
+.pricePlans .ppLeft {width: 7px; height: 28px; color: #f18f20; 
+                     background: url('../images/vip/pp_left.gif') no-repeat; float: left}
+.pricePlans .ppRight {width: 7px; height: 28px; color: #f18f20; 
+                      background: url('../images/vip/pp_right.gif') no-repeat; float: right}
+.pricePlans tr:last-child td, .pricePlans .ppDisclaimer {border: 0; padding: 10px 0 0 0}
+
+.ppJoypadImage {width: 250px; height: 207px; float: right; text-align: center; 
+                background: url('../images/vip/joypad-mid.jpg') no-repeat top left}
+.ppJoypadImage .jiText {width: 250px; color: #ababab; text-align: center; padding: 170px 0 0 0}
+
+.vipBenefits {}
+.vipBenefits .vipBenefit {width: 600px; height: 40px}
+.vipBenefits .vipBenefit .vbIcon {float: left; width: 60px}
+.vipBenefits .vipBenefit .vbText {float: left; width: 540px; padding: 7px 0 0 0}
+
+.levelthumbs {height: 162px}
+.levelthumbs .levelthumb {float: left; width: 140px; height: 162px; margin: 0 3px 0 0}
+.levelthumbs .levelthumb .levelIcon {width: 140px; height: 122px}
+.levelthumbs .levelthumb .levelLink {width: 140px; height: 40px; padding: 4px 0 0 0; font-weight: bold}
+
+.escapethumbs {height: 150px}
+.escapethumbs .escapethumb {float: left; width: 178px; height: 150px; margin: 0 3px 0 0}
+.escapethumbs .escapethumb .escapeIcon {width: 178px; height: 129px}
+.escapethumbs .escapethumb .escapeLink {width: 178px; height: 21px; padding: 4px 0 0 0; font-weight: bold}
+/* END: MARK: PlaySEGA Welcome / VIP pages */
+
+/* START: MARK: RANDOM ICONS */
+.pdf {width: 20px; height: 16px; float: left; background: url('../images/icons/pdf.gif') no-repeat}
+/* END: MARK: RANDOM ICONS */
+
+/* NICE LITTLE IFRAME HACK FOR OBERON GAMES - THANKS GOOGLE, ILL TAKE ALL THE CREDIT */
+#outeriframediv
+{
+width:636px;
+height:491px;
+overflow:hidden;
+position:relative;
+border:1px solid white;
+margin:0 auto;
+}
+
+#inneriframe
+{
+top:-130px;
+left:-25px;
+width:660px;
+height:621px;
+border:1px solid white;
+}

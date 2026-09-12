@@ -1,0 +1,40 @@
+
+span.button {
+    background: transparent url('../images/bg_button_grey_end.gif') no-repeat scroll top right;
+    display:inline-block;
+    height: 22px;
+    margin-right: 6px;
+    padding-right: 16px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+span.button:link,
+span.button:active,
+span.button:visited {
+color: #fff;
+text-decoration: none;
+font-weight:bold;
+}
+
+span.button button {
+    background: transparent url('../images/bg_button_grey_span.gif') no-repeat ;
+    display: block;
+    height: 22px;
+    border:none;
+    font-weight:bold;
+    color: #fff;
+    padding: 0 0 1px 16px;
+    overflow:visible;
+    font-size: 1em;
+}
+
+span.button:hover {
+    background-position: bottom right;
+    color: #fff;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+span.button:hover button {
+    background-position: bottom left;
+}
+

@@ -1,0 +1,9 @@
+.playsegavip {width: 100%; text-align: right; z-index: 1000}
+.playsegavip .playsegaviplogo_tny {margin: -1px 2px 0px 0px; float: right}
+.playsegavip .playsegaviplogo_sml {margin: -1px -4px 0px 0px; float: right}
+.playsegavip .playsegaviplogo_med {margin: -1px -7px 0px 0px; float: right}
+.playsegavip .playsegaviplogo_lrg {margin: -2px -5px 0px 0px; float: right}
+
+/* USED FOR LARGE AVATAR IMAGE ON USER'S PAGE */
+.playsegavip2 {text-align: right; float: right; height: 1px}
+.playsegavip2 .playsegaviplogo_lrg {margin: -6px 0px 0px 0px}

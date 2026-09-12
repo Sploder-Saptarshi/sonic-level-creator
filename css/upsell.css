@@ -1,0 +1,84 @@
+.upsellOne {width: 220px; margin: 10px 0 0 0}
+
+.upsellOne .upsell_trial_0 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-0.jpg') no-repeat}
+.upsellOne .upsell_trial_1 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-1.jpg') no-repeat}
+.upsellOne .upsell_trial_2 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-2.jpg') no-repeat}
+.upsellOne .upsell_trial_3 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-3.jpg') no-repeat}
+.upsellOne .upsell_trial_4 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-4.jpg') no-repeat}
+.upsellOne .upsell_trial_5 {width: 220px; height: 280px;
+background: url('../images/upsell/upsell-trial-started-5.jpg') no-repeat}
+.upsellOne .upsell_expired {width: 220px; height: 284px;
+background: url('../images/upsell/upsell-trial-expired-bg.jpg') no-repeat}
+.upsellOne .upsell_free {width: 220px; height: 254px;
+                         background: url('../images/upsell/upsell-start-trial-bg.jpg') no-repeat}
+.upsellOne .upsell_cancelled {width: 220px; height: 253px; 
+                              background: url('../images/upsell/upsell-vip-cancelled-bg.jpg') no-repeat}
+.upsellOne .upsell_vip {width: 220px; height: 183px; 
+                        background: url('../images/upsell/upsell-vip-bg.jpg') no-repeat}
+.upsellOne .upsell_guest {width: 220px; height: 253px; 
+                          background: url('../images/upsell/upsell-guest-bg.jpg') no-repeat}
+
+.upsellOne .upsellOneContent {padding: 110px 0 0 10px}
+
+.upsellOne .upsellOnePerks {width: 200px}
+.upsellOne .upsellOnePerks .upsellOnePerk {width: 200px; height: 30px; margin: 0 0 2px 0}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Text {width: 145px; height: 25px;
+                                                               float: left; color: #666; 
+                                                               padding: 5px 0 0 5px; 
+                                                               font-weight: normal; font-size: 8pt}
+
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Joypad {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-trial-started-controller.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Avatars {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-trial-started-avatars.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Rings {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-trial-started-rings.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Games {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-trial-expired-games.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Megadrive {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-start-trial-games.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Saveload {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-start-trial-saveload.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Levels {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-start-trial-levels.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Newgames {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/upsell-vip-cancelled-games.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Escapes {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/rings-info-escapes.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Avatars2 {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/rings-info-avatars.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Prizes {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/rings-info-prize.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Scores {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/bens-scores-icon.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Rings2 {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/bens-rings-icon.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Prizes2 {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/bens-prizes-icon.gif') no-repeat center}
+.upsellOne .upsellOnePerks .upsellOnePerk .upsellOnePerk_Trial {width: 47px; height: 30px; 
+float: left; background: url('../images/upsell/bens-trial-icon.gif') no-repeat center}
+
+.upsellOne .upsell_trial_0 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_trial_1 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_trial_2 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_trial_3 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_trial_4 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_trial_5 .upsellButton {margin: 20px 0 0 9px}
+.upsellOne .upsell_guest .upsellButton {margin: 17px 0 0 33px}
+.upsellOne .upsell_free .upsellButton {margin: 6px 0 0 10px}
+.upsellOne .upsell_expired .upsellButton {margin: 6px 0 0 10px}
+.upsellOne .upsell_cancelled .upsellButton {margin: 12px 0 0 10px}
+
+/* START: DIFFERENT STYLE FOR THESE BITS, AS THEY START AT DIFFERENT PLACES TO THE OTHERS */
+.upsellOne .upsell_cancelled .upsellOneContent {padding: 130px 0 0 10px}
+.upsellOne .upsell_vip .upsellOneContent {padding: 15px 0 0 15px; font-weight: bold; font-size: 10pt}
+.upsellOne .upsell_vip .upsellOneContent .upsellOnePerks {margin-top: 40px}
+.upsellOne .upsell_vip .upsellOnePerk .upsellOnePerk_Text {color: #666}
+.upsellOne .upsell_guest .upsellOnePerk .upsellOnePerk_Text {color: #666}
+.upsellOne .upsell_guest .upsellOneContent {padding: 60px 0 0 10px}
+/* END: DIFFERENT STYLE FOR THESE BITS, AS THEY START AT DIFFERENT PLACES TO THE OTHERS */
