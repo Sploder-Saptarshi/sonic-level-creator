@@ -73,10 +73,9 @@ RUZEE.Events.add(window,'domload',function() {
     	(function (mainFlag) {
     		mainFlag.style.transition = 'height 0.1s';
     		mainFlag.addEventListener ("mouseenter", function (event) {
-    			mainFlag.style.backgroundImage = 'url(http://' + document.domain + HTML_TOP + '/images/flag-top.gif)'; // Set Background Image for element
-    			mainFlag.style.backgroundPosition = 'top';                                                             // Set Background position for the element
-    			mainFlag.style.backgroundRepeat = 'no-repeat';                                                         // State that we dont want the image to repeat
-
+    			mainFlag.style.backgroundImage = 'url(http://' + document.domain + HTML_TOP + '/images/flag-top.gif)';
+    			mainFlag.style.backgroundPosition = 'top';
+    			mainFlag.style.backgroundRepeat = 'no-repeat';
     			mainFlag.style.height = flagsFullHeight + 'px';
     		});
     		mainFlag.addEventListener ("mouseleave", function (event) {
@@ -89,15 +88,11 @@ RUZEE.Events.add(window,'domload',function() {
 
         //round all h3s
     splitBorderTop.render($('content1').getElementsByTagName('h3'));
-    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderBottom.render('playGame');splitBorderTop.render($('content1').getElementsByTagName('h4'));reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEventListener('click', function(e) {
-e.preventDefault();
-e.stopPropagation();
-expandReport();
-});getTicker ('tickerAll', 10, 3, '', '', 'true');
+    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderBottom.render('playGame');splitBorderTop.render($('content1').getElementsByTagName('h4'));
 
 });
 
-addTextToHeadings('/'); //adds text to the fancy headings
+addTextToHeadings('/');
 </script>
 <script src="../js/slimbox/slimbox.js" type="text/javascript"></script>
 <script src="../js/leaderboard.js" type="text/javascript"></script>
@@ -156,75 +151,18 @@ addTextToHeadings('/'); //adds text to the fancy headings
 
 <!-- play game section -->
 <div id="box3" style="margin-bottom:10px; z-index: 1000">
-  <h3><span class="fancy" style="color:#ffffff">Sonic The Hedgehog Level Creator</span></h3>
+  <h3><span class="fancy" style="color:#ffffff">Sonic The Hedgehog Level Creator</span>
+    <a href="/editors/swf/1/guide.pdf" target="_blank" style="float:right;color:#fff;font-size:12px;font-weight:normal;margin-right:8px;text-decoration:underline">User Guide</a>
+  </h3>
   <div class="content" id="playGame" style="padding:0">
             <script type="text/javascript">
             var gcat=8;
             var gsku=52;
-        </script>        <div id="gamecontainer" style="height:448px">
-            <div id="gameswf">
-            <div id="preroll_mpu">
-    <script type="text/javascript">
-    if (typeof ord=='undefined') {ord=Math.random()*10000000000000000;}
-    <!-- begin ad tag-->
-            document.write('<'+'script src="http://ad.doubleclick.net/adj/ober.playsegauk/games;sz=300x250;ord=' + ord + '?" type="text/javascript"><\/script>');
-            </script>
-    <script type="text/javascript">
-    document.write('<p><img src="../images/game-loading.gif" height="30" width="160" alt="Your game is loading..." /></p>')
-    </script>
-</div>                <noscript>
-                  <div id="js">&nbsp;</div>
-                </noscript>
-                <div id="fl">&nbsp;</div>
-                <div id="java"><a href="http://www.java.com/" target="_blank">Click here to download</a></div>          </div>
+        </script>        <div id="gamecontainer" style="height:700px">
+            <!-- editor mounts here via shadow DOM -->
         </div>
 
         <div class="clear">&nbsp;</div>
-
-
-
-<script type="text/javascript">border2.render('upsellTwo');</script>
-            
-            <!-- Report & AddThis Button BEGIN -->
-            <div class="clear">&nbsp;</div>
-
-            <div style="width: 720px; z-index: 1000">                <div class="report">
-                    <div class="reportButton">
-                        &nbsp;
-                        
-                        <a class="lozenge2" href="javascript:void(0);"
-                           onclick="javascript:notifyOfLeaving('/editors/?action=myLevels&gamegroupid=52', false);">
-                            <span>My Levels</span>
-                        </a>
-                        <a class="lozenge2" href="javascript:void(0);"
-                           onclick="javascript:notifyOfLeaving('/editors/?action=editorDetail&gamegroupid=52', false);">
-                            <span>All Levels</span>
-                        </a>
-                    </div>
-                    <div class="reportReportHidden" id="reportArea">
-                        <div class="reportHeading">
-                            <div class="headingText">Report This Level</div>
-                            <div class="closeButton" onclick="expandReport()">&nbsp;</div>
-                        </div>
-                        <div class="reportContent" id="reportContent">                            Why is this level inappropriate?
-                            <div class="clear">&nbsp;</div>
-                            <input type="hidden" id="frm_levelid" value="2914" />
-                            <textarea id="frm_reason" class="reportTextArea"></textarea>
-                            <div class="clear">&nbsp;</div>
-                            <div id="reportResult" class="reportResult">&nbsp;</div>
-                            <a class="lozenge1" href="javascript:void(0)" onclick="javascript:postReport()"><span>Submit</span></a>                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="clear">&nbsp;</div>
-            
-                        
-            
-            
-            <!-- Report & AddThis Button END -->
-            <div class="clear">&nbsp;</div>      
-        
-            		   
 
   </div>
 </div>
@@ -237,40 +175,11 @@ addTextToHeadings('/'); //adds text to the fancy headings
   <div class="clear">&nbsp;</div>  
 </div>
 
-
-        <script type="text/javascript">
-            function show_game()
-            {
-                if(swfobject.hasFlashPlayerVersion("6.0.65")) {//they have flash
-
-                    var flashvars = {
-                    id: "9f3210793951251c83ea5addaa24b963",territory: "EnglishUK",enableSkip: 1,levelid: 2914,contentSWF: "/games/swf/52/52.swf"                    };
-                    var params = {
-                        menu: "false"
-                    };
-
-                    swfobject.embedSWF("/swf/preloader/as3/v2/preloader-guest.swf",
-                                       "gameswf",
-                                       "640",
-                                       "448",
-                                       "9.0.0",
-                                       "../swf/expressInstall.swf",
-                                       flashvars,
-                                       params);
-
-                } else {//they dont have flash
-                    swfobject.createCSS("#gameswf div#fl", "display:block;");
-                    swfobject.createCSS("#gameswf div#preroll_mpu", "display:none;");
-                }
-            }
-        </script><script type="text/javascript">
-    //display the game after preroll
-    //show_game()
-    </script>
-<div class="clear">&nbsp;</div>
-</div>
 <div style="clear:both"></div>
 </div>
+
+<script src="/editors/assets/editor.js"></script>
+
 <div id="footer">
     
 
