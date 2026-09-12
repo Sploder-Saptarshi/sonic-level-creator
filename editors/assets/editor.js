@@ -167,10 +167,8 @@
 
 /* \u2500\u2500 canvas area \u2500\u2500 */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #d4e8c0; min-height: 0; }
-canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
-.scrollbar-row { display: flex; flex-shrink: 0; }
-.scrollbar-row input[type=range] { flex: 1; height: 14px; }
+.canvas-wrap { flex: 1; overflow: auto; background: #d4e8c0; min-height: 0; }
+canvas.display { display: block; cursor: crosshair; }
 
 /* \u2500\u2500 bottom: tabs + options (25% height) \u2500\u2500 */
 .bottom { display: flex; height: 25%; min-height: 140px; border-top: 2px solid #555; flex-shrink: 0; }
@@ -240,10 +238,6 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       <div class="canvas-wrap">
         <canvas class="display"></canvas>
       </div>
-      <div class="scrollbar-row">
-        <input type="range" class="hscroll" min="0" max="1000" value="0" />
-        <input type="range" class="vscroll" min="0" max="1000" value="0" />
-      </div>
     </div>
 
     <div class="bottom">
@@ -285,8 +279,6 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   var selectedTile = 1;
   var selectedObj = null;
   var zoom = 2;
-  var scrollX = 0;
-  var scrollY = 0;
   var panning = false;
   var panStartX = 0;
   var panStartY = 0;
@@ -353,6 +345,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   function draw() {
     if (!ctx) return;
     const W = canvas.width, H = canvas.height, cs = cellSize();
+    const scrollX = canvasWrap.scrollLeft, scrollY = canvasWrap.scrollTop;
     ctx.fillStyle = "#d4e8c0";
     ctx.fillRect(0, 0, W, H);
     const c0 = Math.max(0, Math.floor(scrollX / cs));
@@ -477,7 +470,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     const rect = canvas.getBoundingClientRect();
     const cs = cellSize();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const wx = mx + scrollX, wy = my + scrollY;
+    const wx = mx + canvasWrap.scrollLeft, wy = my + canvasWrap.scrollTop;
     return {
       bx: Math.floor(wx / cs),
       by: Math.floor(wy / cs),
@@ -496,8 +489,8 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       panning = true;
       panStartX = e.clientX;
       panStartY = e.clientY;
-      panStartSX = scrollX;
-      panStartSY = scrollY;
+      panStartSX = canvasWrap.scrollLeft;
+      panStartSY = canvasWrap.scrollTop;
       canvas.style.cursor = "grabbing";
       return;
     }
@@ -556,10 +549,8 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
   }
   function onMouseMove(e) {
     if (panning) {
-      scrollX = panStartSX - (e.clientX - panStartX);
-      scrollY = panStartSY - (e.clientY - panStartY);
-      clampScroll();
-      syncScrollbars();
+      canvasWrap.scrollLeft = panStartSX - (e.clientX - panStartX);
+      canvasWrap.scrollTop = panStartSY - (e.clientY - panStartY);
       draw();
       return;
     }
@@ -625,29 +616,10 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       canvas.style.cursor = "crosshair";
     }
   }
-  function clampScroll() {
-    scrollX = Math.max(0, Math.min(scrollX, grid[0].length * cellSize() - canvas.width));
-    scrollY = Math.max(0, Math.min(scrollY, grid.length * cellSize() - canvas.height));
-  }
-  function syncScrollbars() {
-    const h = shadow.querySelector(".hscroll");
-    const v = shadow.querySelector(".vscroll");
-    if (h) {
-      h.max = String(Math.max(0, grid[0].length * cellSize() - canvas.width));
-      h.value = String(scrollX);
-    }
-    if (v) {
-      v.max = String(Math.max(0, grid.length * cellSize() - canvas.height));
-      v.value = String(scrollY);
-    }
-  }
   function onWheel(e) {
     e.preventDefault();
-    if (e.shiftKey) scrollX += e.deltaY;
-    else scrollY += e.deltaY;
-    clampScroll();
-    syncScrollbars();
-    draw();
+    if (e.shiftKey) canvasWrap.scrollLeft += e.deltaY;
+    else canvasWrap.scrollTop += e.deltaY;
   }
   function hasSonic() {
     return objects.some((o) => o.type === 151);
@@ -700,8 +672,8 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     draw();
   }
   function resizeCanvas() {
-    canvas.width = canvasWrap.clientWidth;
-    canvas.height = canvasWrap.clientHeight;
+    canvas.width = grid[0].length * cellSize();
+    canvas.height = grid.length * cellSize();
     draw();
   }
   function setZoom(z) {
@@ -710,7 +682,6 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
       b.classList.toggle("btn-active", parseFloat(b.getAttribute("data-zoom") || "0") === z);
     });
     resizeCanvas();
-    syncScrollbars();
   }
   var ghostCanvas;
   var ghostCtx;
@@ -750,7 +721,7 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     const rect = canvas.getBoundingClientRect();
     const cs = cellSize();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const wx = mx + scrollX, wy = my + scrollY;
+    const wx = mx + canvasWrap.scrollLeft, wy = my + canvasWrap.scrollTop;
     const bx = Math.floor(wx / cs), by = Math.floor(wy / cs);
     if (bx >= 0 && bx < grid[0].length && by >= 0 && by < grid.length) {
       hoverBx = bx;
@@ -815,16 +786,6 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     document.addEventListener("mouseup", onDocMouseUp);
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("keyup", onKeyUp);
-    const hBar = shadow.querySelector(".hscroll");
-    const vBar = shadow.querySelector(".vscroll");
-    hBar == null ? void 0 : hBar.addEventListener("input", () => {
-      scrollX = parseInt(hBar.value, 10);
-      draw();
-    });
-    vBar == null ? void 0 : vBar.addEventListener("input", () => {
-      scrollY = parseInt(vBar.value, 10);
-      draw();
-    });
     shadow.querySelectorAll("[data-zoom]").forEach((b) => {
       b.addEventListener("click", () => setZoom(parseFloat(b.getAttribute("data-zoom") || "1")));
     });
@@ -845,11 +806,9 @@ canvas.display { position: absolute; top: 0; left: 0; cursor: crosshair; }
     (_a = shadow.querySelector(".btn-clear")) == null ? void 0 : _a.addEventListener("click", doClearAll);
     window.addEventListener("resize", () => {
       resizeCanvas();
-      syncScrollbars();
     });
     requestAnimationFrame(() => {
       resizeCanvas();
-      syncScrollbars();
       updateCounter();
       switchTab("tiles");
     });
