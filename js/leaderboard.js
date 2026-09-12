@@ -245,27 +245,27 @@ function collapseLeaderboard (whichOne) {
     switch (whichOne) {
         case 'game' :
             gameExpanded = false;
-            gameOptions.morph('.middleInactiveFour');
+            gameOptions.className = 'middleInactiveFour';
             break;
         case 'timeframe' :
             timeframeExpanded = false;
-            timeframeOptions.morph('.middleInactiveFour');
+            timeframeOptions.className = 'middleInactiveFour';
         break;
         case 'results' :
             resultsExpanded = false;
-            resultsOptions.morph('.middleInactiveFour');
+            resultsOptions.className = 'middleInactiveFour';
             break;
         case 'mode' :
             modeExpanded = false;
-            modeOptions.morph('.middleInactive');
+            modeOptions.className = 'middleInactive';
             break;
         case 'difficulty' :
             difficultyExpanded = false;
-            difficultyOptions.morph('.middleInactive');
+            difficultyOptions.className = 'middleInactive';
         break;
         case 'level' :
             levelExpanded = false;
-            levelOptions.morph('.middleInactive');
+            levelOptions.className = 'middleInactive';
         break;
     }
 }
@@ -274,27 +274,27 @@ function expandLeaderboard (whichOne) {
     switch (whichOne) {
         case 'game' :
             gameExpanded = true;
-            gameOptions.morph('.middleActiveFour');
+            gameOptions.className = 'middleActiveFour';
             break;
         case 'timeframe' :
             timeframeExpanded = true;
-            timeframeOptions.morph('.middleActiveFour');
+            timeframeOptions.className = 'middleActiveFour';
         break;
         case 'results' :
             resultsExpanded = true;
-            resultsOptions.morph('.middleActiveFour');
+            resultsOptions.className = 'middleActiveFour';
             break;
         case 'mode' :
             modeExpanded = true;
-            modeOptions.morph('.middleActive');
+            modeOptions.className = 'middleActive';
             break;
         case 'difficulty' :
             difficultyExpanded = true;
-            difficultyOptions.morph('.middleActive');
+            difficultyOptions.className = 'middleActive';
         break;
         case 'level' :
             levelExpanded = true;
-            levelOptions.morph('.middleActive');
+            levelOptions.className = 'middleActive';
         break;
     }
 }

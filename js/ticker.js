@@ -50,7 +50,7 @@ function collapseTicker (whichOne) {
     switch (whichOne) {
         case 'news' :
             newsExpanded = false;
-            newsOptions.morph('.middleInactiveThree');
+            newsOptions.className = 'middleInactiveThree';
         break;
     }
 }
@@ -59,7 +59,7 @@ function expandTicker (whichOne) {
     switch (whichOne) {
         case 'news' :
             newsExpanded = true;
-            newsOptions.morph('.middleActiveThree');
+            newsOptions.className = 'middleActiveThree';
         break;
     }
 }

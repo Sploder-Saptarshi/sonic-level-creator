@@ -24,7 +24,6 @@
 <script src="/js/sifr.js" type="text/javascript"></script>
 <script src="/js/sifr-config.js" type="text/javascript"></script>
 <script src="/js/swfobject.js" type="text/javascript"></script>
-<script src="/js/mootools.js" type="text/javascript"></script>
 <script src="/js/ajax.js" type="text/javascript"></script>
 <script src="/js/pagination.js" type="text/javascript"></script>
 <script src="/js/feedback.js" type="text/javascript"></script>
@@ -56,36 +55,34 @@ RUZEE.Events.add(window,'domload',function() {
 
     border.render('content1');
 
-    /* Set up flags */
+    /* Set up flags (vanilla; was MooTools Fx.Elements) */
     var flagsSmallHeight = 16, flagsFullHeight = 47;
 
-    var mainFlags = $$("#flags");
-    var fx = new Fx.Elements (mainFlags, {wait: false, duration: 100});
+    var mainFlags = document.querySelectorAll("#flags");
 
-     mainFlags.each (function (mainFlag, i) {
-    	mainFlag.addEvent ("mouseenter", function (event) {
-    		var o = {};
+    for (var fi = 0; fi < mainFlags.length; fi++) {
+    	(function (mainFlag) {
+    		mainFlag.style.transition = 'height 0.1s';
+    		mainFlag.addEventListener ("mouseenter", function (event) {
+    			mainFlag.style.backgroundImage = 'url(http://' + document.domain + HTML_TOP + '/images/flag-top.gif)'; // Set Background Image for element
+    			mainFlag.style.backgroundPosition = 'top';                                                             // Set Background position for the element
+    			mainFlag.style.backgroundRepeat = 'no-repeat';                                                         // State that we dont want the image to repeat
 
-    		mainFlag.setStyle('background-image', 'url(http://' + document.domain + HTML_TOP + '/images/flag-top.gif)'); // Set Background Image for element
-    		mainFlag.setStyle('background-position', 'top');                                                             // Set Background position for the element
-    		mainFlag.setStyle('background-repeat', 'no-repeat');                                                         // State that we dont want the image to repeat
-
-    		o[i] = { height: [mainFlag.getStyle ("height").toInt(), flagsFullHeight] }
-    		fx.start(o);
-    	});
-    });
-	mainFlags.each (function (mainFlag, i) {
-        mainFlag.addEvent ("mouseleave", function (event) {
-            mainFlag.setStyle('height', flagsSmallHeight);
-            mainFlag.setStyle('background-image', 'none');
-    	});
-    })
+    			mainFlag.style.height = flagsFullHeight + 'px';
+    		});
+    		mainFlag.addEventListener ("mouseleave", function (event) {
+                mainFlag.style.height = flagsSmallHeight + 'px';
+                mainFlag.style.backgroundImage = 'none';
+    		});
+    	})(mainFlags[fi]);
+    }
     /* //Set up flags */
 
         //round all h3s
     splitBorderTop.render($('content1').getElementsByTagName('h3'));
-    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderBottom.render('playGame');splitBorderTop.render($('content1').getElementsByTagName('h4'));reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEvent('click', function(e) {
-e.stop();
+    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderBottom.render('playGame');splitBorderTop.render($('content1').getElementsByTagName('h4'));reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEventListener('click', function(e) {
+e.preventDefault();
+e.stopPropagation();
 expandReport();
 });getTicker ('tickerAll', 10, 3, '', '', 'true');
 
