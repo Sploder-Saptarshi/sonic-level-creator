@@ -63,25 +63,27 @@ export function draw() {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
 
-  // objects (absolute coords; cull against viewport)
+  // objects: point markers centered on the exact pixel position
+  // (placements are free pixels, not tile corners)
   for (let i = 0; i < objects.length; i++) {
     const obj = objects[i];
     const dx = (obj.x / BLOCK_PX) * cs;
     const dy = (obj.y / BLOCK_PX) * cs;
-    if (dx + cs < scrollX || dx > scrollX + viewW || dy + cs < scrollY || dy > scrollY + viewH) continue;
+    const m = Math.max(14, Math.min(48, cs * 0.35));
+    if (dx + m < scrollX || dx - m > scrollX + viewW || dy + m < scrollY || dy - m > scrollY + viewH) continue;
     const isSel = i === S.selectedObjIdx;
     const def = findDef(obj.type);
     ctx.fillStyle = isSel ? 'rgba(255,80,80,0.7)' : 'rgba(255,200,0,0.6)';
-    ctx.fillRect(dx + 2, dy + 2, cs - 4, cs - 4);
+    ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
     ctx.strokeStyle = isSel ? '#f00' : '#880';
     ctx.lineWidth = 2;
-    ctx.strokeRect(dx + 2, dy + 2, cs - 4, cs - 4);
+    ctx.strokeRect(dx - m / 2, dy - m / 2, m, m);
     if (cs >= 24) {
       ctx.fillStyle = '#000';
-      ctx.font = `${Math.max(8, Math.round(cs / 5))}px sans-serif`;
+      ctx.font = `${Math.max(8, Math.round(m / 3))}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(def ? def.name.split(' ')[0] : `${obj.type}`, dx + cs / 2, dy + cs / 2);
+      ctx.fillText(def ? def.name.split(' ')[0] : `${obj.type}`, dx, dy);
     }
   }
 }

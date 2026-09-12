@@ -1,6 +1,6 @@
 // ts/events.ts — All DOM event handlers
 
-import { BLOCK_PX, MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
+import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
 import {
   S, cellSize, inGrid, canvasToWorld, objectsInTile, findDef, resetInteraction, setStatus,
 } from './state';
@@ -28,21 +28,24 @@ function onMouseDown(e: MouseEvent) {
 
   if (!inGrid(bx, by)) return;
 
-  // Right-click erase
+  // Right-click erase (any tab): top object first, otherwise the tile itself.
+  // This also guarantees no orphaned floating objects: a tile is only cleared
+  // once its objects are gone.
   if (e.button === 2) {
-    if (S.activeTab === 'tiles') {
-      S.grid[by][bx] = 0;
-    } else {
-      for (let i = S.objects.length - 1; i >= 0; i--) {
-        const o = S.objects[i];
-        if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-          S.objects.splice(i, 1);
-          break;
-        }
+    let removedObject = false;
+    for (let i = S.objects.length - 1; i >= 0; i--) {
+      const o = S.objects[i];
+      if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
+        S.objects.splice(i, 1);
+        removedObject = true;
+        break;
       }
-      S.selectedObjIdx = -1;
-      S.dragObj = null;
     }
+    if (!removedObject) {
+      S.grid[by][bx] = 0;
+    }
+    S.selectedObjIdx = -1;
+    S.dragObj = null;
     updateCounter();
     draw();
     return;
@@ -160,39 +163,30 @@ function onWheel(e: WheelEvent) {
 
 function onDocMouseMove(e: MouseEvent) {
   updateGhost(e);
-  if (!S.paletteDrag) return;
-
-  const { bx, by } = canvasToWorld(e);
-  if (inGrid(bx, by)) {
-    S.hoverBx = bx;
-    S.hoverBy = by;
-    S.mouseOverCanvas = true;
-  } else {
-    S.hoverBx = -1;
-    S.hoverBy = -1;
-    S.mouseOverCanvas = false;
-  }
-  draw();
 }
 
-function onDocMouseUp(_e: MouseEvent) {
+function onDocMouseUp(e: MouseEvent) {
   hideGhost();
   if (!S.paletteDrag) return;
 
-  if (S.mouseOverCanvas && S.hoverBx >= 0 && S.hoverBy >= 0) {
+  // Fresh coords from the release event (hover state can be stale if the
+  // user wheel-scrolled without moving the mouse).
+  const { bx, by, px, py } = canvasToWorld(e);
+  if (inGrid(bx, by)) {
     if (S.activeTab === 'tiles') {
-      S.grid[S.hoverBy][S.hoverBx] = S.paletteDragTile;
-      setStatus(`Placed block ${S.paletteDragTile} at (${S.hoverBx},${S.hoverBy})`);
+      S.grid[by][bx] = S.paletteDragTile;
+      setStatus(`Placed block ${S.paletteDragTile} at (${bx},${by})`);
     } else if (S.paletteDragDef) {
-      if (S.grid[S.hoverBy][S.hoverBx] === 0) {
+      if (S.grid[by][bx] === 0) {
         setStatus('Objects must be placed on a tile!');
-      } else if (objectsInTile(S.hoverBx, S.hoverBy) >= MAX_OBJECTS_PER_TILE) {
+      } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
         setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
       } else {
-        const px = S.hoverBx * BLOCK_PX;
-        const py = S.hoverBy * BLOCK_PX;
-        S.objects.push({ x: snap8(px), y: snap8(py), variant: 0, type: S.paletteDragDef.id, sub: 0 });
-        setStatus(`Placed ${S.paletteDragDef.name} at (${S.hoverBx},${S.hoverBy})`);
+        // Free pixel placement (8px snap), like the stock levels use —
+        // NOT the tile corner.
+        const ox = snap8(px), oy = snap8(py);
+        S.objects.push({ x: ox, y: oy, variant: 0, type: S.paletteDragDef.id, sub: 0 });
+        setStatus(`Placed ${S.paletteDragDef.name} at (${ox},${oy})`);
       }
     }
     updateCounter();
@@ -200,9 +194,6 @@ function onDocMouseUp(_e: MouseEvent) {
 
   S.paletteDrag = false;
   S.paletteDragDef = null;
-  S.hoverBx = -1;
-  S.hoverBy = -1;
-  S.mouseOverCanvas = false;
   draw();
 }
 

@@ -26,11 +26,6 @@ export const S = {
   paletteDragTile: 0,
   paletteDragDef: null as ObjectDef | null,
 
-  // Hover tile under cursor during palette drag
-  hoverBx: -1,
-  hoverBy: -1,
-  mouseOverCanvas: false,
-
   // Pan state
   panning: false,
   panStartX: 0,

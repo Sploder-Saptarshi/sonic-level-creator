@@ -132,6 +132,7 @@ export interface PlacedObject {
 export function encodeAct(objects: PlacedObject[]): number[] {
   const entries: number[] = [];
   for (const obj of objects) {
+    // ACT X/Y are raw world pixels — write through untouched (WYSIWYG).
     entries.push(
       (obj.x >>> 8) & 0xff, obj.x & 0xff,
       (obj.y >>> 8) & 0xff, obj.y & 0xff,

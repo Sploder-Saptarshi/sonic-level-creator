@@ -159,10 +159,6 @@
     paletteDrag: false,
     paletteDragTile: 0,
     paletteDragDef: null,
-    // Hover tile under cursor during palette drag
-    hoverBx: -1,
-    hoverBy: -1,
-    mouseOverCanvas: false,
     // Pan state
     panning: false,
     panStartX: 0,
@@ -428,20 +424,21 @@ canvas.display { display: block; cursor: crosshair; }
       const obj = objects[i];
       const dx = obj.x / BLOCK_PX * cs;
       const dy = obj.y / BLOCK_PX * cs;
-      if (dx + cs < scrollX || dx > scrollX + viewW || dy + cs < scrollY || dy > scrollY + viewH) continue;
+      const m = Math.max(14, Math.min(48, cs * 0.35));
+      if (dx + m < scrollX || dx - m > scrollX + viewW || dy + m < scrollY || dy - m > scrollY + viewH) continue;
       const isSel = i === S.selectedObjIdx;
       const def = findDef(obj.type);
       ctx.fillStyle = isSel ? "rgba(255,80,80,0.7)" : "rgba(255,200,0,0.6)";
-      ctx.fillRect(dx + 2, dy + 2, cs - 4, cs - 4);
+      ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
       ctx.strokeStyle = isSel ? "#f00" : "#880";
       ctx.lineWidth = 2;
-      ctx.strokeRect(dx + 2, dy + 2, cs - 4, cs - 4);
+      ctx.strokeRect(dx - m / 2, dy - m / 2, m, m);
       if (cs >= 24) {
         ctx.fillStyle = "#000";
-        ctx.font = `${Math.max(8, Math.round(cs / 5))}px sans-serif`;
+        ctx.font = `${Math.max(8, Math.round(m / 3))}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(def ? def.name.split(" ")[0] : `${obj.type}`, dx + cs / 2, dy + cs / 2);
+        ctx.fillText(def ? def.name.split(" ")[0] : `${obj.type}`, dx, dy);
       }
     }
   }
@@ -635,19 +632,20 @@ canvas.display { display: block; cursor: crosshair; }
     }
     if (!inGrid(bx, by)) return;
     if (e.button === 2) {
-      if (S.activeTab === "tiles") {
-        S.grid[by][bx] = 0;
-      } else {
-        for (let i = S.objects.length - 1; i >= 0; i--) {
-          const o = S.objects[i];
-          if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-            S.objects.splice(i, 1);
-            break;
-          }
+      let removedObject = false;
+      for (let i = S.objects.length - 1; i >= 0; i--) {
+        const o = S.objects[i];
+        if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
+          S.objects.splice(i, 1);
+          removedObject = true;
+          break;
         }
-        S.selectedObjIdx = -1;
-        S.dragObj = null;
       }
+      if (!removedObject) {
+        S.grid[by][bx] = 0;
+      }
+      S.selectedObjIdx = -1;
+      S.dragObj = null;
       updateCounter();
       draw();
       return;
@@ -737,45 +735,30 @@ canvas.display { display: block; cursor: crosshair; }
   }
   function onDocMouseMove(e) {
     updateGhost(e);
-    if (!S.paletteDrag) return;
-    const { bx, by } = canvasToWorld(e);
-    if (inGrid(bx, by)) {
-      S.hoverBx = bx;
-      S.hoverBy = by;
-      S.mouseOverCanvas = true;
-    } else {
-      S.hoverBx = -1;
-      S.hoverBy = -1;
-      S.mouseOverCanvas = false;
-    }
-    draw();
   }
-  function onDocMouseUp(_e) {
+  function onDocMouseUp(e) {
     hideGhost();
     if (!S.paletteDrag) return;
-    if (S.mouseOverCanvas && S.hoverBx >= 0 && S.hoverBy >= 0) {
+    const { bx, by, px, py } = canvasToWorld(e);
+    if (inGrid(bx, by)) {
       if (S.activeTab === "tiles") {
-        S.grid[S.hoverBy][S.hoverBx] = S.paletteDragTile;
-        setStatus(`Placed block ${S.paletteDragTile} at (${S.hoverBx},${S.hoverBy})`);
+        S.grid[by][bx] = S.paletteDragTile;
+        setStatus(`Placed block ${S.paletteDragTile} at (${bx},${by})`);
       } else if (S.paletteDragDef) {
-        if (S.grid[S.hoverBy][S.hoverBx] === 0) {
+        if (S.grid[by][bx] === 0) {
           setStatus("Objects must be placed on a tile!");
-        } else if (objectsInTile(S.hoverBx, S.hoverBy) >= MAX_OBJECTS_PER_TILE) {
+        } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
           setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
         } else {
-          const px = S.hoverBx * BLOCK_PX;
-          const py = S.hoverBy * BLOCK_PX;
-          S.objects.push({ x: snap8(px), y: snap8(py), variant: 0, type: S.paletteDragDef.id, sub: 0 });
-          setStatus(`Placed ${S.paletteDragDef.name} at (${S.hoverBx},${S.hoverBy})`);
+          const ox = snap8(px), oy = snap8(py);
+          S.objects.push({ x: ox, y: oy, variant: 0, type: S.paletteDragDef.id, sub: 0 });
+          setStatus(`Placed ${S.paletteDragDef.name} at (${ox},${oy})`);
         }
       }
       updateCounter();
     }
     S.paletteDrag = false;
     S.paletteDragDef = null;
-    S.hoverBx = -1;
-    S.hoverBy = -1;
-    S.mouseOverCanvas = false;
     draw();
   }
   function findDefName(typeId) {
