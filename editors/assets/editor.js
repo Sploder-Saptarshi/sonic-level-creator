@@ -235,14 +235,16 @@
   // ts/ui.ts
   var EDITOR_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:host { display: block; width: 100%; height: 100%; }
+:host { display: block; width: 100%; height: 100%; margin: 0; padding: 0; }
 .editor { display: flex; flex-direction: column; width: 100%; height: 100%;
+  margin: 0; padding: 0;
   font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000;
-  background: #2a2a2a; overflow: hidden; user-select: none; }
+  background: #2a2a2a; overflow: hidden; user-select: none;
+  border-radius: 0 0 10px 10px; }
 
 /* \u2500\u2500 top bar \u2500\u2500 */
 .topbar { display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 8px; background: #333; color: #fff; flex-shrink: 0; }
+  margin: 0; padding: 4px 8px; background: #333; color: #fff; flex-shrink: 0; }
 .topbar-l, .topbar-r { display: flex; align-items: center; gap: 6px; }
 .topbar label { font-size: 12px; }
 .btn { padding: 2px 8px; border: 1px solid #666; background: #555; color: #fff;
