@@ -20,7 +20,9 @@ export function buildThumbnails() {
   thumbstrip.innerHTML = '';
 
   if (activeTab === 'tiles') {
-    for (let i = 1; i < USED_BLOCKS; i++) {
+    // Palette: blocks 1–107 only (108+ unused), excluding block 7.
+    for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
+      if (i === 7) continue;
       const el = document.createElement('div');
       el.className = 'thumb';
       el.title = `Block ${i}`;
