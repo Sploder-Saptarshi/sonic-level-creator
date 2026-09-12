@@ -189,62 +189,6 @@ addTextToHeadings('/'); //adds text to the fancy headings
 <div class="clear">&nbsp;</div>
     </div>    <div id="pagecontent">
     
-<div class="ad_lb">
-    <!-- begin ad tag-->
-            <script type="text/javascript">
-        <!--
-        if (typeof ord=='undefined') {ord=Math.random()*10000000000000000;}
-        document.write('<iframe id="leaderboard_ad" src="http://ad.doubleclick.net/adi/ober.playsegauk/games;sz=728x90;ord=' + ord + '?" width="728" height="90" marginwidth="0" marginheight="0" frameborder="0" scrolling="no">');
-        if (navigator.userAgent.indexOf("Gecko")==-1)
-        {document.write('<script language="JavaScript" src="http://ad.doubleclick.net/adj/ober.playsegauk/games;sz=728x90;abr=!ie;ord=' + ord + '?" type="text/javascript"><\/script>');
-        }
-        document.write('</iframe>');
-        -->
-        </script><noscript><a href="http://ad.doubleclick.net/jump/ober.playsegauk/games;sz=728x90;ord=123456789?" target="_blank"><img src="http://ad.doubleclick.net/ad/ober.playsegauk/games;sz=728x90;ord=123456789?" width="728" height="90" border="0" alt=""></a></noscript>
-            <!-- End ad tag -->
-
-<script type="text/javascript"><!--
-// set relaod interval in milliseconds
-var reloadInterval = 30000;
-
-// this reloads the iframe, and triggers the next reload interval
-function reload() {
-	//call the function on the applet that decides whether we need to grab focus back
-	var applets_ar = document.getElementsByTagName("applet");	
-	if(applets_ar.length>0) {
-		applets_ar[0].emuMarkFocus();
-	}
-    var iframe = document.getElementById('leaderboard_ad');
-
-    if (!iframe) {return false};
-
-    iframe.src = iframe.src.substring(0, iframe.src.indexOf('ord='))+'ord='+(Math.random()*10000000000000000)+'?';
-
-    setTimeout('reload()',reloadInterval);
-    //call the function on the applet that grabs focus back if required
-	if(applets_ar.length>0) {
-		applets_ar[0].emuRequestFocus();
-	}
-}
-/*
-function reload() {
-
-  var iframe = document.getElementById('leaderboard_ad');
-
-  if (!iframe) {return false};
-
-  iframe.src = iframe.src.substring(0, iframe.src.indexOf('ord='))+'ord='+(Math.random()*10000000000000000)+'?';
-
-  setTimeout('reload()',reloadInterval);
-  document.getElementsByTagName( "applet" )[0].emuRequestFocus();   
-} 
-*/
- 
-//reload the advert after the interval has elapsed
-setTimeout('reload()',reloadInterval);
---></script>
-
-</div>
 
 <!-- play game section -->
 <div id="box3" style="margin-bottom:10px; z-index: 1000">
@@ -273,15 +217,7 @@ setTimeout('reload()',reloadInterval);
 
         <div class="clear">&nbsp;</div>
 
-<center><div class="border5" id="upsellTwo" style="width: 700px; margin: 10px 0 0 0; float: none">
-    <div style="height: 40px">
-        <div style="float: left; width: 50px; padding: 2px 0 0 0"><img src="../images/info-warning.gif" /></div>
-        <div style="text-align: left; float: left; width: 450px; padding: 12px 0 0 0">
-            You are currently a Guest. Get access to all our games with PlaySEGA VIP.
-        </div>
-        <div style="float: right; width: 180px; padding: 10px 0 0 0"><a class="lozenge2" href="../member/?action=signUp"><span>START FREE TRIAL</span></a></div>
-    </div>
-</div></center>
+
 
 <script type="text/javascript">border2.render('upsellTwo');</script>
             
@@ -318,13 +254,6 @@ setTimeout('reload()',reloadInterval);
                             <a class="lozenge1" href="javascript:void(0)" onclick="javascript:postReport()"><span>Submit</span></a>                        </div>
                     </div>
                 </div>
-
-
-                        
-                <div style="float: right; text-align: right; margin: 8px 0 10px 0; width: 100px">
-                    <script type="text/javascript">var addthis_pub="playsega";</script>
-                    <a href="http://www.addthis.com/bookmark.php?v=20" onmouseover="return addthis_open(this, '', '[URL]', '[TITLE]')" onmouseout="addthis_close()" onclick="return addthis_sendto()"><img src="http://s7.addthis.com/static/btn/sm-share-en.gif" width="83" height="16" alt="Bookmark and Share" style="border:0"/></a><script type="text/javascript" src="http://s7.addthis.com/js/200/addthis_widget.js"></script>
-                </div>
             </div></center>
             <div class="clear">&nbsp;</div>
             
@@ -332,13 +261,6 @@ setTimeout('reload()',reloadInterval);
             
             
             <!-- Report & AddThis Button END -->
-                    <div style="text-align:center;">
-                
-                                
-                    <img src="../images/ratings/PEGI/large/3+.jpg" style="float:center;padding:5px;" alt="PEGI: 3+" title="PEGI: 3+"/>
-                
-                                
-            </div>
             <div class="clear">&nbsp;</div>      
         
             		   
@@ -382,7 +304,7 @@ setTimeout('reload()',reloadInterval);
             }
         </script><script type="text/javascript">
     //display the game after preroll
-    setTimeout("show_game()", 12000);
+    show_game()
     </script>
 <div class="clear">&nbsp;</div>
 </div>
@@ -447,14 +369,6 @@ setTimeout('reload()',reloadInterval);
     /* Hierarchy Variables */
     s.hier1=""
     /************* DO NOT ALTER ANYTHING BELOW THIS LINE ! **************/
-    var s_code=s.t();if(s_code)document.write(s_code)//--></script>
-<script type="text/javascript"><!--
-    if(navigator.appVersion.indexOf('MSIE')>=0)document.write(unescape('%3C')+'\!-'+'-')
-    //--></script><noscript><div><a href="http://www.omniture.com" title="Web Analytics"><img
-                src="http://segaglobal.112.2O7.net/b/ss/segaglobal/1/H.16--NS/0"
-                height="1" width="1" alt="" /></a></div></noscript><!--/DO NOT REMOVE/-->
-<!-- End SiteCatalyst code version: H.16. -->
-
-
+    </script>
 </body>
 </html>
