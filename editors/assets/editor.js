@@ -749,6 +749,8 @@ canvas.display { display: block; cursor: crosshair; }
       } else if (S.paletteDragDef) {
         if (S.grid[by][bx] === 0) {
           setStatus("Objects must be placed on a tile!");
+        } else if (totalObjects() >= countPlacedTiles()) {
+          setStatus("Max object limit reached!");
         } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
           setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
         } else {

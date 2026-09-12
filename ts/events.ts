@@ -2,7 +2,7 @@
 
 import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
 import {
-  S, cellSize, inGrid, canvasToWorld, objectsInTile, findDef, resetInteraction, setStatus,
+  S, inGrid, canvasToWorld, objectsInTile, findDef, totalObjects, countPlacedTiles, setStatus,
 } from './state';
 import { draw, updateGhost, hideGhost } from './render';
 import { updateCounter } from './thumbnails';
@@ -179,6 +179,8 @@ function onDocMouseUp(e: MouseEvent) {
     } else if (S.paletteDragDef) {
       if (S.grid[by][bx] === 0) {
         setStatus('Objects must be placed on a tile!');
+      } else if (totalObjects() >= countPlacedTiles()) {
+        setStatus('Max object limit reached!');
       } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
         setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
       } else {
