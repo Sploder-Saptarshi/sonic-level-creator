@@ -34,7 +34,7 @@
 
 <script type="text/javascript">
 //some path variables
-var PLAYSEGA_PATH = "http://www.playsega.co.uk/";
+var PLAYSEGA_PATH = "/";
 var HTML_TOP = "/";
 </script>
 
@@ -91,7 +91,7 @@ expandReport();
 
 });
 
-addTextToHeadings('http://www.playsega.co.uk/'); //adds text to the fancy headings
+addTextToHeadings('/'); //adds text to the fancy headings
 </script>
 <script src="../js/slimbox/slimbox.js" type="text/javascript"></script>
 <script src="../js/leaderboard.js" type="text/javascript"></script>
