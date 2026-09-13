@@ -365,7 +365,7 @@ canvas.display { display: block; cursor: crosshair; }
   flex-shrink: 0; }
 
 .panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px;
-  background: #eee; gap: 6px; }
+  background: #eee; gap: 6px; max-width: 200px; }
 .panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
 .act-btn { padding: 6px 10px; border: 1px solid #888; background: #ddd;
   cursor: pointer; font-size: 12px; width: 100%; text-align: center;
@@ -428,7 +428,7 @@ canvas.display { display: block; cursor: crosshair; }
         <button class="act-btn" data-action="test">Test Level</button>
         <button class="act-btn" data-action="save">Save</button>
         <button class="act-btn" data-action="fullscreen">Go Fullscreen</button>
-        <div class="status">Ready \u2014 editor build 20260913T1849</div>
+        <div class="status">Ready</div>
       </div>
     </div>
   </div>
@@ -1386,6 +1386,11 @@ canvas.display { display: block; cursor: crosshair; }
       S.canvasWrap.scrollTop += e.deltaY;
     }
   }
+  function onThumbstripWheel(e) {
+    e.preventDefault();
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    S.thumbstrip.scrollLeft += d;
+  }
   function onDocMouseMove(e) {
     updateGhost(e);
   }
@@ -1423,7 +1428,7 @@ canvas.display { display: block; cursor: crosshair; }
     return def ? def.name : `${typeId}`;
   }
   function wireEvents() {
-    const { canvas, canvasWrap, shadow } = S;
+    const { canvas, canvasWrap, shadow, thumbstrip } = S;
     canvas.addEventListener("mousedown", onMouseDown);
     canvas.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("mouseup", onMouseUp);
@@ -1453,6 +1458,7 @@ canvas.display { display: block; cursor: crosshair; }
     });
     shadow.querySelector(".btn-clear")?.addEventListener("click", doClearAll);
     window.addEventListener("resize", resizeCanvas);
+    thumbstrip?.addEventListener("wheel", onThumbstripWheel, { passive: false });
   }
 
   // ts/main.ts

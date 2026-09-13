@@ -159,6 +159,16 @@ function onWheel(e: WheelEvent) {
   }
 }
 
+// ── Wheel (scroll tray horizontally via vertical scroll) ──
+
+function onThumbstripWheel(e: WheelEvent) {
+  e.preventDefault();
+  // Support both mouse-wheel (deltaY) and touchpad swipe (deltaX): the tray
+  // is overflow-x only, so forward whichever delta is dominant.
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  S.thumbstrip!.scrollLeft += d;
+}
+
 // ── Document-level: palette drag ──
 
 function onDocMouseMove(e: MouseEvent) {
@@ -212,7 +222,7 @@ function findDefName(typeId: number, variant = 0, sub = 0): string {
 // ── Wire everything up ──
 
 export function wireEvents() {
-  const { canvas, canvasWrap, shadow } = S;
+  const { canvas, canvasWrap, shadow, thumbstrip } = S;
 
   // Canvas events
   canvas!.addEventListener('mousedown', onMouseDown);
@@ -258,4 +268,7 @@ export function wireEvents() {
 
   // Window resize
   window.addEventListener('resize', resizeCanvas);
+
+  // Thumbstrip: vertical wheel → horizontal scroll (tray is overflow-x only)
+  thumbstrip?.addEventListener('wheel', onThumbstripWheel, { passive: false });
 }

@@ -58,7 +58,7 @@ canvas.display { display: block; cursor: crosshair; }
   flex-shrink: 0; }
 
 .panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px;
-  background: #eee; gap: 6px; }
+  background: #eee; gap: 6px; max-width: 200px; }
 .panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
 .act-btn { padding: 6px 10px; border: 1px solid #888; background: #ddd;
   cursor: pointer; font-size: 12px; width: 100%; text-align: center;
@@ -122,7 +122,7 @@ export const EDITOR_HTML = `
         <button class="act-btn" data-action="test">Test Level</button>
         <button class="act-btn" data-action="save">Save</button>
         <button class="act-btn" data-action="fullscreen">Go Fullscreen</button>
-        <div class="status">Ready — editor build 20260913T1849</div>
+        <div class="status">Ready</div>
       </div>
     </div>
   </div>
