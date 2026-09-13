@@ -88,7 +88,7 @@
     { id: 9, name: "Spikes Ceiling", desc: "Spike trap (ceiling, variant 2)", variant: 2, sub: 0 },
     { id: 9, name: "Spikes Wall L", desc: "Wall spikes (faces left, stock GH)", variant: 0, sub: 16 },
     { id: 9, name: "Spikes Wall R", desc: "Wall spikes (faces right)", variant: 1, sub: 16 },
-    { id: 9, name: "Spikes Wall 18", desc: "Wall spikes, sub 18 (collision unverified)", variant: 0, sub: 18 },
+    { id: 9, name: "Spikes Wall 18", desc: "Sliding wall spikes, sub 18 (extends on a timer)", variant: 0, sub: 18 },
     { id: 9, name: "Spikes Wide", desc: "Six-column spikes (stock GH)", sub: 64 },
     // Switch (type 15): sub = switchflag index it drives. No stock GH usage.
     { id: 15, name: "Switch 0", desc: "Switch driving flag 0", sub: 0 },
@@ -99,7 +99,6 @@
     { id: 45, name: "Button 1", desc: "Button sub 1 (stock GH; shows when touched)", sub: 1 },
     { id: 45, name: "Button 2", desc: "Button sub 2 (stock GH; shows when touched)", sub: 2 },
     { id: 45, name: "Button 3", desc: "Button sub 3 (stock GH; shows when touched)", sub: 3 },
-    { id: 46, name: "Bten Switch", desc: "Button variant (shows in-game only when touched)", sub: 1 },
     // Monitors (type 43 = stock GH flavor): sub = contents
     // (1 dud, 2 1UP, 3 speed, 4 shield, 5 invinc, 6 rings; 0 dead, 7+ invisible).
     { id: 43, name: "Monitor Dud", desc: "Empty monitor (stock art row 0)", sub: 1 },
@@ -108,7 +107,6 @@
     { id: 43, name: "Monitor Shield", desc: "Shield monitor (stock GH)", sub: 4 },
     { id: 43, name: "Monitor Invinc", desc: "Invincibility monitor (stock GH)", sub: 5 },
     { id: 43, name: "Monitor Rings", desc: "10-rings monitor (stock GH)", sub: 6 },
-    { id: 42, name: "Item Pickup", desc: "Monitor power-up placed directly (rings)", sub: 6 },
     // Tall bridge (type 4, stock sub 16) / standard bridge (type 5, stock sub 12)
     { id: 4, name: "Tall Bridge", desc: "Tall bridge / pole (stock GH sub 16)", sub: 16 },
     { id: 5, name: "Bridge", desc: "Standard bridge (stock GH sub 12)", sub: 12 },
@@ -136,11 +134,6 @@
     { id: 16, name: "Shima Crumble", desc: "Crumbling platform (stock GH)", sub: 3 },
     { id: 16, name: "Shima Pillar", desc: "Tall pillar platform (sub 16 art)", sub: 16 },
     { id: 16, name: "Shima Switch", desc: "Switch-rise platform (flag 128)", sub: 7 },
-    // Shima variant (type 90): stock subs 1/2/3/5/16.
-    { id: 90, name: "Shima2 Mover H", desc: "Tall platform moving horizontally (stock GH)", sub: 1 },
-    { id: 90, name: "Shima2 Mover V", desc: "Tall platform moving vertically (stock GH)", sub: 2 },
-    { id: 90, name: "Shima2 Crumble", desc: "Tall crumbling platform (stock GH)", sub: 3 },
-    { id: 90, name: "Shima2 Pillar", desc: "Tall pillar platform (stock GH sub 16 art)", sub: 16 },
     // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
     // All six in stock GH; other subs < 16 fall back to frame 0 art.
     { id: 37, name: "Kageb A", desc: "GH block, solid frame 0 (stock GH)", sub: 0 },
