@@ -603,11 +603,11 @@ canvas.display { display: block; cursor: crosshair; }
     part.badge = { kind, dir, fill };
     return part;
   }
-  function triPair(first, axis, cy = 0) {
+  function triPair(first, axis, cy = 0, scale = 1) {
     const second = axis === "h" ? first === "left" ? "right" : "left" : first === "up" ? "down" : "up";
-    const [w, h] = axis === "h" ? [8, 12] : [12, 8];
+    const [w, h] = axis === "h" ? [8 * scale, 12 * scale] : [12 * scale, 8 * scale];
     const [w2, h2] = [w * 0.75, h * 0.75];
-    const at = (d) => d === "left" ? [-4, cy] : d === "right" ? [4, cy] : d === "up" ? [0, cy - 4] : [0, cy + 4];
+    const at = (d) => d === "left" ? [-4 * scale, cy] : d === "right" ? [4 * scale, cy] : d === "up" ? [0, cy - 4 * scale] : [0, cy + 4 * scale];
     const [fx, fy] = at(first);
     const [sx, sy] = at(second);
     return [
@@ -617,13 +617,14 @@ canvas.display { display: block; cursor: crosshair; }
   }
   function moveBadge(type, sub, cy = 0) {
     if (type !== 16 && type !== 90) return [];
-    const ring = badgePart("ring", void 0, BADGE_WHITE, 24, 24, 0, cy);
-    if (sub === 7) return [ring, badgePart("tri", "up", BADGE_ORANGE, 12, 8, 0, cy)];
-    if (sub === 3) return [ring, badgePart("tri", "down", BADGE_ORANGE, 12, 8, 0, cy)];
+    const scale = sub === 16 ? 32 / 24 : 1;
+    const ring = badgePart("ring", void 0, BADGE_WHITE, 24 * scale, 24 * scale, 0, cy);
+    if (sub === 7) return [ring, badgePart("tri", "up", BADGE_ORANGE, 12 * scale, 8 * scale, 0, cy)];
+    if (sub === 3) return [ring, badgePart("tri", "down", BADGE_ORANGE, 12 * scale, 8 * scale, 0, cy)];
     const h = SHIMA_H_FIRST[sub];
-    if (h !== void 0) return [ring, ...triPair(h, "h", cy)];
+    if (h !== void 0) return [ring, ...triPair(h, "h", cy, scale)];
     const v = SHIMA_V_FIRST[sub];
-    if (v !== void 0) return [ring, ...triPair(v, "v", cy)];
+    if (v !== void 0) return [ring, ...triPair(v, "v", cy, scale)];
     return [];
   }
   var SUBSPRITES = {

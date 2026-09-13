@@ -7,9 +7,11 @@
     "node": ">=16"
   },
   "scripts": {
-    "build": "esbuild ts/main.ts --bundle --format=iife --outfile=editors/assets/editor.js --log-level=info"
+    "build": "esbuild ts/main.ts --bundle --format=iife --outfile=editors/assets/editor.js --log-level=info",
+    "lint": "node --check editors/assets/editor.js"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "typescript": "^7.0.2"
   }
 }

@@ -228,17 +228,18 @@ function badgePart(
   return part;
 }
 
-function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0): SpritePart[] {
+function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0, scale = 1): SpritePart[] {
   const second: BadgeDir =
     axis === 'h' ? (first === 'left' ? 'right' : 'left') : (first === 'up' ? 'down' : 'up');
   // Wide triangles: 1.5x base (12px) with 8px height, hugging the center
   // with a 2px gap between the pair.
   // The return-side triangle is 0.75x and gray; the going triangle keeps
-  // full size in orange.
-  const [w, h] = axis === 'h' ? [8, 12] : [12, 8];
+  // full size in orange. Dimensions and offsets scale with `scale` so the
+  // tall pillar (sub 16, 1.25x) keeps its overlay in proportion.
+  const [w, h] = axis === 'h' ? [8 * scale, 12 * scale] : [12 * scale, 8 * scale];
   const [w2, h2] = [w * 0.75, h * 0.75];
   const at = (d: BadgeDir): [number, number] =>
-    d === 'left' ? [-4, cy] : d === 'right' ? [4, cy] : d === 'up' ? [0, cy - 4] : [0, cy + 4];
+    d === 'left' ? [-4 * scale, cy] : d === 'right' ? [4 * scale, cy] : d === 'up' ? [0, cy - 4 * scale] : [0, cy + 4 * scale];
   const [fx, fy] = at(first);
   const [sx, sy] = at(second);
   return [
@@ -248,16 +249,20 @@ function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0): SpritePart[] {
 }
 
 /** Editor-only movement overlay for linear platform movers.
- *  cy centers the badge on tall art (e.g. the pillar); movers use 0. */
+ *  cy centers the badge on the sprite bbox (mid-platform for tall art like
+ *  the pillar) so it sits at the platform's pivot instead of the object
+ *  origin. The tall pillar (sub 16) uses a 30px ring (1.25x) so the overlay
+ *  reads on its tall art; all other shima variants use the standard 24px. */
 export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
   if (type !== 16 && type !== 90) return [];
-  const ring = badgePart('ring', undefined, BADGE_WHITE, 24, 24, 0, cy);
-  if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12, 8, 0, cy)];
-  if (sub === 3) return [ring, badgePart('tri', 'down', BADGE_ORANGE, 12, 8, 0, cy)];
+  const scale = sub === 16 ? 32 / 24 : 1;
+  const ring = badgePart('ring', undefined, BADGE_WHITE, 24 * scale, 24 * scale, 0, cy);
+  if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12 * scale, 8 * scale, 0, cy)];
+  if (sub === 3) return [ring, badgePart('tri', 'down', BADGE_ORANGE, 12 * scale, 8 * scale, 0, cy)];
   const h = SHIMA_H_FIRST[sub];
-  if (h !== undefined) return [ring, ...triPair(h, 'h', cy)];
+  if (h !== undefined) return [ring, ...triPair(h, 'h', cy, scale)];
   const v = SHIMA_V_FIRST[sub];
-  if (v !== undefined) return [ring, ...triPair(v, 'v', cy)];
+  if (v !== undefined) return [ring, ...triPair(v, 'v', cy, scale)];
   return [];
 }
 
@@ -344,9 +349,9 @@ export function partsFor(type: number, sub = 0, variant = 0): SpritePart[] | nul
   if (type === 16 || type === 90) {
     // Center the badge on the art bbox so it sits mid-pillar on tall art
     // (pillar spans y −16..128) instead of at the origin.
-    const core = sub === 16 ? SUBSPRITES[type][16] : SPRITES[type];
-    const bb = spriteBBox(core);
-    const badge = moveBadge(type, sub, bb.y + bb.h / 2);
+       const core = sub === 16 ? SUBSPRITES[type][16] : SPRITES[type];
+       const bb = spriteBBox(core);
+       const badge = moveBadge(type, sub, bb.y + bb.h / 2);
     return badge.length ? [...core, ...badge] : core; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
   }
   if (type === 37) return SUBSPRITES[37][sub] ?? SPRITES[37]; // gate subs -> frame 0
