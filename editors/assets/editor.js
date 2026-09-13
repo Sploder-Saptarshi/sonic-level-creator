@@ -973,20 +973,39 @@ canvas.display { display: block; cursor: crosshair; }
         }
       }
     }
-    ctx.strokeStyle = "rgba(0,0,0,0.15)";
-    ctx.lineWidth = 1;
-    for (let r = r0; r <= r1; r++) {
-      const y = Math.round(r * cs) + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-      ctx.stroke();
-    }
-    for (let c = c0; c <= c1; c++) {
-      const x = Math.round(c * cs) + 0.5;
+    const tileCs = cs / 16;
+    const tc0 = Math.max(0, Math.floor(scrollX / tileCs) - 1);
+    const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
+    const tr0 = Math.max(0, Math.floor(scrollY / tileCs) - 1);
+    const tr1 = Math.min(grid.length * 16, Math.ceil((scrollY + viewH) / tileCs) + 1);
+    for (let t = tc0; t <= tc1; t++) {
+      const x = Math.round(t * tileCs) + 0.5;
+      if (t % 16 === 0) {
+        ctx.strokeStyle = "rgba(128,128,128,0.6)";
+      } else if (t % 8 === 0) {
+        ctx.strokeStyle = "rgba(128,128,128,0.3)";
+      } else {
+        ctx.strokeStyle = "rgba(128,128,128,0.1)";
+      }
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let t = tr0; t <= tr1; t++) {
+      const y = Math.round(t * tileCs) + 0.5;
+      if (t % 16 === 0) {
+        ctx.strokeStyle = "rgba(128,128,128,0.6)";
+      } else if (t % 8 === 0) {
+        ctx.strokeStyle = "rgba(128,128,128,0.3)";
+      } else {
+        ctx.strokeStyle = "rgba(128,128,128,0.1)";
+      }
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
       ctx.stroke();
     }
     const k = spriteScale(cs);
