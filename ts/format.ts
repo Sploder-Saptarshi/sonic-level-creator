@@ -131,11 +131,11 @@ export const OBJECTS: ObjectDef[] = [
   // Shima platforms (type 16): motion by sub (same idle art except pillar).
   // Stock 16: 0/1/2/3/5/6. Pillar art only for sub 16.
   { id: 16, name: 'Shima Platform', desc: 'GH floating platform, static', sub: 0 },
-  { id: 16, name: 'Shima Mover H', desc: 'Platform moving horizontally (stock GH)', sub: 1 },
-  { id: 16, name: 'Shima Mover V', desc: 'Platform moving vertically (stock GH)', sub: 2 },
-  { id: 16, name: 'Shima Crumble', desc: 'Crumbling platform (stock GH)', sub: 3 },
-  { id: 16, name: 'Shima Pillar', desc: 'Tall pillar platform (sub 16 art)', sub: 16 },
-  { id: 16, name: 'Shima Switch', desc: 'Switch-rise platform (flag 128)', sub: 7 },
+  { id: 16, name: 'Shima Mover H', desc: 'Platform moving horizontally (first LEFT, stock GH)', sub: 1 },
+  { id: 16, name: 'Shima Mover V', desc: 'Platform moving vertically (first UP, stock GH)', sub: 2 },
+  { id: 16, name: 'Shima Crumble', desc: 'Crumbling platform (falls DOWN, stock GH)', sub: 3 },
+  { id: 16, name: 'Shima Pillar', desc: 'Tall pillar platform (bobs vertically, sub 16 art)', sub: 16 },
+  { id: 16, name: 'Shima Switch', desc: 'Switch-rise platform (rises UP, flag 128)', sub: 7 },
   // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
   // All six in stock GH; other subs < 16 fall back to frame 0 art.
   { id: 37, name: 'Kageb A', desc: 'GH block, solid frame 0 (stock GH)', sub: 0 },

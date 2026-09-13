@@ -129,11 +129,11 @@
     // Shima platforms (type 16): motion by sub (same idle art except pillar).
     // Stock 16: 0/1/2/3/5/6. Pillar art only for sub 16.
     { id: 16, name: "Shima Platform", desc: "GH floating platform, static", sub: 0 },
-    { id: 16, name: "Shima Mover H", desc: "Platform moving horizontally (stock GH)", sub: 1 },
-    { id: 16, name: "Shima Mover V", desc: "Platform moving vertically (stock GH)", sub: 2 },
-    { id: 16, name: "Shima Crumble", desc: "Crumbling platform (stock GH)", sub: 3 },
-    { id: 16, name: "Shima Pillar", desc: "Tall pillar platform (sub 16 art)", sub: 16 },
-    { id: 16, name: "Shima Switch", desc: "Switch-rise platform (flag 128)", sub: 7 },
+    { id: 16, name: "Shima Mover H", desc: "Platform moving horizontally (first LEFT, stock GH)", sub: 1 },
+    { id: 16, name: "Shima Mover V", desc: "Platform moving vertically (first UP, stock GH)", sub: 2 },
+    { id: 16, name: "Shima Crumble", desc: "Crumbling platform (falls DOWN, stock GH)", sub: 3 },
+    { id: 16, name: "Shima Pillar", desc: "Tall pillar platform (bobs vertically, sub 16 art)", sub: 16 },
+    { id: 16, name: "Shima Switch", desc: "Switch-rise platform (rises UP, flag 128)", sub: 7 },
     // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
     // All six in stock GH; other subs < 16 fall back to frame 0 art.
     { id: 37, name: "Kageb A", desc: "GH block, solid frame 0 (stock GH)", sub: 0 },
@@ -619,6 +619,46 @@ canvas.display { display: block; cursor: crosshair; }
     }
     return parts;
   }
+  // ── Movement badges (editor-only overlay; the game draws no such marker) ──
+  // Linear shima movers (types 16/90): white ring at the origin plus
+  // direction triangles — one orange triangle for one-way movers
+  // (switch-rise UP, crumble DOWN), two for oscillators with the
+  // FIRST-move side orange and the return side white (sign of the sin
+  // amplitude in shima_nflag_move).
+  var SHIMA_H_FIRST = { 1: "left", 5: "right", 12: "right" };
+  var SHIMA_V_FIRST = { 2: "up", 6: "down", 11: "up", 16: "up" };
+  var BADGE_ORANGE = "#ff8c00";
+  var BADGE_WHITE = "#ffffff";
+  var BADGE_GRAY = "#888888";
+  var BADGE_INK = "#222222";
+  function badgePart(kind, dir, fill, w, h, ox, oy) {
+    const part = p("", 0, 0, w, h, ox, oy, "center");
+    part.badge = { kind, dir, fill };
+    return part;
+  }
+  function triPair(first, axis) {
+    const second = axis === "h" ? (first === "left" ? "right" : "left") : (first === "up" ? "down" : "up");
+    const [w, h] = axis === "h" ? [8, 12] : [12, 8];
+    const [w2, h2] = [w * 0.75, h * 0.75];
+    const at = (d) => d === "left" ? [-4, 0] : d === "right" ? [4, 0] : d === "up" ? [0, -4] : [0, 4];
+    const [fx, fy] = at(first);
+    const [sx, sy] = at(second);
+    return [
+      badgePart("tri", first, BADGE_ORANGE, w, h, fx, fy),
+      badgePart("tri", second, BADGE_GRAY, w2, h2, sx, sy)
+    ];
+  }
+  function moveBadge(type, sub) {
+    if (type !== 16 && type !== 90) return [];
+    const ring = badgePart("ring", void 0, BADGE_WHITE, 24, 24, 0, 0);
+    if (sub === 7) return [ring, badgePart("tri", "up", BADGE_ORANGE, 12, 8, 0, 0)];
+    if (sub === 3) return [ring, badgePart("tri", "down", BADGE_ORANGE, 12, 8, 0, 0)];
+    const h = SHIMA_H_FIRST[sub];
+    if (h !== void 0) return [ring, ...triPair(h, "h")];
+    const v = SHIMA_V_FIRST[sub];
+    if (v !== void 0) return [ring, ...triPair(v, "v")];
+    return [];
+  }
   var SUBSPRITES = {
     // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
     42: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
@@ -701,8 +741,12 @@ canvas.display { display: block; cursor: crosshair; }
       return (_a = table[sub]) != null ? _a : table[2];
     }
     if (type === 16 || type === 90) {
-      if (sub === 16) return SUBSPRITES[type][16];
-      return SPRITES[type];
+      if (sub === 16) {
+        const badge = moveBadge(type, sub);
+        return badge.length ? [...SUBSPRITES[type][16], ...badge] : SUBSPRITES[type][16];
+      }
+      const badge2 = moveBadge(type, sub);
+      return badge2.length ? [...SPRITES[type], ...badge2] : SPRITES[type];
     }
     if (type === 37) return (_b = SUBSPRITES[37][sub]) != null ? _b : SPRITES[37];
     if (type === 18) return breakableParts(sub);
@@ -725,11 +769,11 @@ canvas.display { display: block; cursor: crosshair; }
       D + "sjump2.png"
     ]);
     for (const t of Object.keys(SPRITES)) {
-      for (const part of SPRITES[Number(t)]) urls.add(part.img);
+      for (const part of SPRITES[Number(t)]) if (part.img) urls.add(part.img);
     }
     for (const t of Object.keys(SUBSPRITES)) {
       for (const s of Object.keys(SUBSPRITES[Number(t)])) {
-        for (const part of SUBSPRITES[Number(t)][Number(s)]) urls.add(part.img);
+        for (const part of SUBSPRITES[Number(t)][Number(s)]) if (part.img) urls.add(part.img);
       }
     }
     for (const url of urls) {
@@ -782,6 +826,10 @@ canvas.display { display: block; cursor: crosshair; }
       ctx.scale(-1, 1);
     }
     for (const part of parts) {
+      if (part.badge) {
+        drawBadge(ctx, part, gx, gy, k);
+        continue;
+      }
       const img = spriteImg(part.img);
       if (!img.complete || img.naturalWidth === 0) continue;
       const ax = (gx + part.ox) * k, ay = (gy + part.oy) * k;
@@ -816,11 +864,57 @@ canvas.display { display: block; cursor: crosshair; }
     }
     if (mirror) ctx.restore();
   }
+  function drawBadge(ctx, part, gx, gy, k) {
+    const b = part.badge;
+    const cx = (gx + part.ox) * k, cy = (gy + part.oy) * k;
+    const bw = part.w * k, bh = part.h * k;
+    ctx.save();
+    if (b.kind === "ring") {
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(bw, bh) / 2, 0, Math.PI * 2);
+      ctx.fillStyle = BADGE_WHITE;
+      ctx.fill();
+    } else {
+      // Center on the triangle centroid (not the cell middle), so the arrow
+      // reads as optically centered in the disc.
+      let ox = 0, oy = 0;
+      if (b.dir === "up") oy = -bh / 6;
+      else if (b.dir === "down") oy = bh / 6;
+      else if (b.dir === "left") ox = -bw / 6;
+      else ox = bw / 6;
+      const ccx = cx + ox, ccy = cy + oy;
+      const x0 = ccx - bw / 2, y0 = ccy - bh / 2;
+      const x1 = ccx + bw / 2, y1 = ccy + bh / 2;
+      ctx.beginPath();
+      if (b.dir === "up") {
+        ctx.moveTo(ccx, y0);
+        ctx.lineTo(x1, y1);
+        ctx.lineTo(x0, y1);
+      } else if (b.dir === "down") {
+        ctx.moveTo(ccx, y1);
+        ctx.lineTo(x1, y0);
+        ctx.lineTo(x0, y0);
+      } else if (b.dir === "left") {
+        ctx.moveTo(x0, ccy);
+        ctx.lineTo(x1, y0);
+        ctx.lineTo(x1, y1);
+      } else {
+        ctx.moveTo(x1, ccy);
+        ctx.lineTo(x0, y0);
+        ctx.lineTo(x0, y1);
+      }
+      ctx.closePath();
+      ctx.fillStyle = b.fill || BADGE_ORANGE;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   function spriteScale(cellSize4) {
     return cellSize4 / BLOCK_PX;
   }
   function paintThumb(c, parts, scale = 3, mirror = false) {
     for (const part of parts) {
+      if (part.badge) continue;
       const img = spriteImg(part.img);
       if (!img.complete || img.naturalWidth === 0) return false;
     }

@@ -19,13 +19,16 @@ import { BLOCK_PX } from './format';
 export type Anchor = 'center' | 'topleft' | 'bottomcenter';
 
 export interface SpritePart {
-  img: string; // root-absolute asset URL
+  img: string; // root-absolute asset URL ('' for editor-only badge parts)
   sx: number; sy: number; w: number; h: number; // source cell, native px
   ox: number; oy: number; // anchor-point offset from object origin, game px
   anchor: Anchor;
   rot?: 0 | 90 | 180 | 270; // clockwise transform about the anchor (TRANS_ROT*)
   flip?: boolean; // horizontal mirror about the anchor, applied before rot
+  badge?: { kind: 'ring' | 'tri'; dir?: BadgeDir; fill?: string }; // editor-only movement marker (no image)
 }
+
+type BadgeDir = 'up' | 'down' | 'left' | 'right';
 
 const D = '/games/swf/52/res/images/default/';
 const G = '/games/swf/52/res/images/zone_greenhill/';
@@ -197,6 +200,66 @@ function breakableParts(sub: number): SpritePart[] {
   return parts;
 }
 
+// ── Movement badges (editor-only overlay; the game draws no such marker) ──
+//
+// Linear shima movers (types 16/90) get a white ring at the platform origin
+// plus direction triangles: a single orange triangle for one-way movers
+// (switch-rise goes UP, crumble falls DOWN), two triangles for oscillators
+// (horizontal: LEFT+RIGHT, vertical: UP+DOWN). The triangle on the side the
+// platform moves toward FIRST is orange; the return side is white.
+// First-move sides come from the sign of the sin amplitude in
+// shima_nflag_move: pos = home + sin(t)*amp with sin rising through 0,
+// so a negative amp moves toward the −axis first (sub 1 H → LEFT first,
+// sub 2 V → UP first, sub 16 pillar → UP first).
+const SHIMA_H_FIRST: Record<number, 'left' | 'right'> = { 1: 'left', 5: 'right', 12: 'right' };
+const SHIMA_V_FIRST: Record<number, 'up' | 'down'> = { 2: 'up', 6: 'down', 11: 'up', 16: 'up' };
+
+const BADGE_ORANGE = '#ff8c00';
+const BADGE_WHITE = '#ffffff';
+const BADGE_GRAY = '#888888';
+const BADGE_INK = '#222222';
+
+function badgePart(
+  kind: 'ring' | 'tri', dir: BadgeDir | undefined, fill: string,
+  w: number, h: number, ox: number, oy: number,
+): SpritePart {
+  const part = p('', 0, 0, w, h, ox, oy, 'center');
+  part.badge = { kind, dir, fill };
+  return part;
+}
+
+function triPair(first: BadgeDir, axis: 'h' | 'v'): SpritePart[] {
+  const second: BadgeDir =
+    axis === 'h' ? (first === 'left' ? 'right' : 'left') : (first === 'up' ? 'down' : 'up');
+  // Wide triangles: 1.5x base (12px) with 8px height, hugging the center
+  // with a 2px gap between the pair.
+  // The return-side triangle is 0.75x and gray; the going triangle keeps
+  // full size in orange.
+  const [w, h] = axis === 'h' ? [8, 12] : [12, 8];
+  const [w2, h2] = [w * 0.75, h * 0.75];
+  const at = (d: BadgeDir): [number, number] =>
+    d === 'left' ? [-4, 0] : d === 'right' ? [4, 0] : d === 'up' ? [0, -4] : [0, 4];
+  const [fx, fy] = at(first);
+  const [sx, sy] = at(second);
+  return [
+    badgePart('tri', first, BADGE_ORANGE, w, h, fx, fy),
+    badgePart('tri', second, BADGE_GRAY, w2, h2, sx, sy),
+  ];
+}
+
+/** Editor-only movement overlay for linear platform movers. */
+export function moveBadge(type: number, sub: number): SpritePart[] {
+  if (type !== 16 && type !== 90) return [];
+  const ring = badgePart('ring', undefined, BADGE_WHITE, 24, 24, 0, 0);
+  if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12, 8, 0, 0)];
+  if (sub === 3) return [ring, badgePart('tri', 'down', BADGE_ORANGE, 12, 8, 0, 0)];
+  const h = SHIMA_H_FIRST[sub];
+  if (h !== undefined) return [ring, ...triPair(h, 'h')];
+  const v = SHIMA_V_FIRST[sub];
+  if (v !== undefined) return [ring, ...triPair(v, 'v')];
+  return [];
+}
+
 // Sub-indexed art: type -> sub -> parts (motion-only subs fall back to base).
 const SUBSPRITES: Record<number, Record<number, SpritePart[]>> = {
   // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
@@ -278,8 +341,12 @@ export function partsFor(type: number, sub = 0, variant = 0): SpritePart[] | nul
     return table[sub] ?? table[2]; // unknown subs share the row-24 look
   }
   if (type === 16 || type === 90) {
-    if (sub === 16) return SUBSPRITES[type][16];
-    return SPRITES[type]; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
+    if (sub === 16) {
+      const badge = moveBadge(type, sub);
+      return badge.length ? [...SUBSPRITES[type][16], ...badge] : SUBSPRITES[type][16];
+    }
+    const badge = moveBadge(type, sub);
+    return badge.length ? [...SPRITES[type], ...badge] : SPRITES[type]; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
   }
   if (type === 37) return SUBSPRITES[37][sub] ?? SPRITES[37]; // gate subs -> frame 0
   if (type === 18) return breakableParts(sub);
@@ -308,11 +375,11 @@ export function preloadSprites(onOneReady: () => void) {
     D + 'sjump2.png',
   ]);
   for (const t of Object.keys(SPRITES)) {
-    for (const part of SPRITES[Number(t)]) urls.add(part.img);
+    for (const part of SPRITES[Number(t)]) if (part.img) urls.add(part.img);
   }
   for (const t of Object.keys(SUBSPRITES)) {
     for (const s of Object.keys(SUBSPRITES[Number(t)])) {
-      for (const part of SUBSPRITES[Number(t)][Number(s)]) urls.add(part.img);
+      for (const part of SUBSPRITES[Number(t)][Number(s)]) if (part.img) urls.add(part.img);
     }
   }
   for (const url of urls) {
@@ -366,6 +433,7 @@ export function drawParts(
     ctx.scale(-1, 1);
   }
   for (const part of parts) {
+    if (part.badge) { drawBadge(ctx, part, gx, gy, k); continue; }
     const img = spriteImg(part.img);
     if (!img.complete || img.naturalWidth === 0) continue;
     const ax = (gx + part.ox) * k, ay = (gy + part.oy) * k;
@@ -400,6 +468,44 @@ export function drawParts(
   if (mirror) ctx.restore();
 }
 
+/** Paint one editor badge part (white ring / direction triangle). */
+function drawBadge(
+  ctx: CanvasRenderingContext2D,
+  part: SpritePart,
+  gx: number, gy: number, k: number,
+) {
+  const b = part.badge!;
+  const cx = (gx + part.ox) * k, cy = (gy + part.oy) * k;
+  const bw = part.w * k, bh = part.h * k;
+  ctx.save();
+  if (b.kind === 'ring') {
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.min(bw, bh) / 2, 0, Math.PI * 2);
+    ctx.fillStyle = BADGE_WHITE;
+    ctx.fill();
+  } else {
+    // Center on the triangle centroid (not the cell middle), so the arrow
+    // reads as optically centered in the disc.
+    let ox = 0, oy = 0;
+    if (b.dir === 'up') oy = -bh / 6;
+    else if (b.dir === 'down') oy = bh / 6;
+    else if (b.dir === 'left') ox = -bw / 6;
+    else ox = bw / 6;
+    const ccx = cx + ox, ccy = cy + oy;
+    const x0 = ccx - bw / 2, y0 = ccy - bh / 2;
+    const x1 = ccx + bw / 2, y1 = ccy + bh / 2;
+    ctx.beginPath();
+    if (b.dir === 'up') { ctx.moveTo(ccx, y0); ctx.lineTo(x1, y1); ctx.lineTo(x0, y1); }
+    else if (b.dir === 'down') { ctx.moveTo(ccx, y1); ctx.lineTo(x1, y0); ctx.lineTo(x0, y0); }
+    else if (b.dir === 'left') { ctx.moveTo(x0, ccy); ctx.lineTo(x1, y0); ctx.lineTo(x1, y1); }
+    else { ctx.moveTo(x1, ccy); ctx.lineTo(x0, y0); ctx.lineTo(x0, y1); }
+    ctx.closePath();
+    ctx.fillStyle = b.fill ?? BADGE_ORANGE;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** Game-px → canvas-px factor for the current zoom. */
 export function spriteScale(cellSize: number): number {
   return cellSize / BLOCK_PX;
@@ -416,6 +522,7 @@ export function paintThumb(
   mirror = false,
 ): boolean {
   for (const part of parts) {
+    if (part.badge) continue; // vector overlay, no image to wait for
     const img = spriteImg(part.img);
     if (!img.complete || img.naturalWidth === 0) return false;
   }
