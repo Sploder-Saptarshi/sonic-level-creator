@@ -319,7 +319,7 @@
   margin: 0; padding: 8px; gap: 8px;
   font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000;
   background: linear-gradient(#ffffff, #e8e8e8); overflow: hidden; user-select: none;
-  border-radius: 10px; }
+  border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
 
 /* \u2500\u2500 top bar: flush header band inside the canvas container \u2014 full-bleed,
    top edge flush with the panel top, bottom border doubling as the divider
@@ -336,9 +336,10 @@
   cursor: pointer; font-size: 11px; font-weight: bold; font-family: inherit; }
 .btn-active { background: linear-gradient(#ffb85e, #ff9426); border-color: #d97a1a; color: #fff; }
 .btn-clear { width: 20px; height: 20px; padding: 0; flex-shrink: 0;
-  border-radius: 50%; border: 1px solid #999;
-  background: linear-gradient(#ffffff, #e2e2e2); color: #666;
-  font-size: 11px; font-weight: bold; line-height: 18px; text-align: center; }
+  border-radius: 50%; border: none; position: relative;
+  background: #999999; display: inline-block; }
+.btn-clear svg { display: block; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%); }
 .counter { background: #ffe9c0; border: 1px solid #d99a3d; border-radius: 8px;
   padding: 0 8px; font-weight: bold; color: #6b4a00; }
 .topbar-r > span:first-child { color: #777; }
@@ -359,7 +360,7 @@
 canvas.display { display: block; cursor: crosshair; border: none; }
 
 /* \u2500\u2500 bottom: tabs+strip panel + options box (30% height) \u2500\u2500 */
-.bottom { display: flex; height: 30%; min-height: 170px; gap: 8px; flex-shrink: 0; }
+.bottom { display: flex; height: 25%; min-height: 170px; max-height: 750px; gap: 8px; flex-shrink: 0; }
 .panel-left { flex: 3; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; }
 .tabs { display: flex; gap: 4px; flex-shrink: 0; padding: 0 8px;
@@ -414,13 +415,24 @@ canvas.display { display: block; cursor: crosshair; border: none; }
 .act-btn:hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%);
   color: #333; outline: none; }
 
-/* \u2500\u2500 bottom bar \u2500\u2500 */
+/* \u2500\u2500 bottom bar: uncolored, site lozenge2 sliding doors verbatim \u2500\u2500 */
 .bottombar { display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 8px; background: #333; color: #fff; flex-shrink: 0; }
-.bottombar-l { display: flex; gap: 6px; }
-.btm-btn { padding: 3px 10px; border: 1px solid #666; background: #555; color: #fff;
-  cursor: pointer; font-size: 11px; font-family: inherit; }
-.btm-btn:hover { background: #777; }
+  padding: 4px 2px; background: transparent; color: #555; flex-shrink: 0; }
+.bottombar-l { display: flex; gap: 0; }
+/* Exact replica of a.lozenge2 (css/playsega.css) for the footer buttons:
+   grey sliding doors with the real GIFs. Root-absolute paths since shadow
+   <style> URLs resolve against the document base. Only addition vs site:
+   border:none (these are <button>s, not <a>s). Markup carries the same
+   inner <span>; [data-action] wiring is untouched. */
+.btm-btn { background: transparent url('/images/bg_button_grey_end.gif') no-repeat scroll top right;
+  color: #fff; display: inline-block; font-weight: bold; height: 22px;
+  margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
+  cursor: pointer; font-size: 12px; font-family: inherit; }
+.btm-btn span { background: transparent url('/images/bg_button_grey_span.gif') no-repeat;
+  display: block; line-height: 11px; padding: 5px 0 6px 16px; }
+.btm-btn:link, .btm-btn:active, .btm-btn:visited { color: #fff; text-decoration: none; font-weight: bold; }
+.btm-btn:hover { background-position: bottom right; color: #fff; outline: none; }
+.btm-btn:hover span { background-position: bottom left; }
 
 /* \u2500\u2500 floating ghost \u2500\u2500 */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
@@ -442,7 +454,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         <div class="topbar-r">
           <span>Object Counter:</span>
           <span class="counter">0</span>
-          <button class="btn btn-clear" title="Clear entire level">X</button>
+          <button class="btn btn-clear" title="Clear entire level"><svg viewBox="0 0 12 12" width="12" height="12"><line x1="3" y1="3" x2="9" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="3" x2="3" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg></button>
         </div>
       </div>
       <div class="canvas-wrap">
@@ -472,10 +484,10 @@ canvas.display { display: block; cursor: crosshair; border: none; }
 
   <div class="bottombar">
     <div class="bottombar-l">
-      <button class="btm-btn" data-action="mylevels">My Levels</button>
-      <button class="btm-btn" data-action="alllevels">All Levels</button>
+      <button class="btm-btn" data-action="mylevels"><span>My Levels</span></button>
+      <button class="btm-btn" data-action="alllevels"><span>All Levels</span></button>
     </div>
-    <button class="btm-btn" data-action="share">SHARE</button>
+    <button class="btm-btn" data-action="share"><span>SHARE</span></button>
   </div>
 
   <div class="ghost" id="ghost"></div>
