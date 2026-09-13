@@ -197,29 +197,34 @@ export function spriteScale(cellSize: number): number {
   return cellSize / BLOCK_PX;
 }
 
-/** Paint parts fitted+centered into a square ctx. False if art not loaded yet. */
-export function paintFitted(
+/** Paint parts at integer scale (default 3x), tightly bbox-fitted.
+ *  The canvas is resized to the scaled art; callers display it at
+ *  attribute size for true screen pixels (with pixelated rendering). */
+export function paintThumb(
   c: CanvasRenderingContext2D,
   parts: SpritePart[],
-  size = 256,
-  pad = 8,
+  scale = 3,
 ): boolean {
   for (const part of parts) {
     const img = spriteImg(part.img);
     if (!img.complete || img.naturalWidth === 0) return false;
   }
   const bb = spriteBBox(parts);
-  const k = Math.min((size - pad * 2) / bb.w, (size - pad * 2) / bb.h);
-  const gx0 = size / 2 / k - (bb.x + bb.w / 2);
-  const gy0 = size / 2 / k - (bb.y + bb.h / 2);
-  c.clearRect(0, 0, size, size);
-  drawParts(c, parts, gx0, gy0, k);
+  const w = Math.max(1, Math.round(bb.w * scale));
+  const h = Math.max(1, Math.round(bb.h * scale));
+  if (c.canvas.width !== w || c.canvas.height !== h) {
+    c.canvas.width = w;
+    c.canvas.height = h;
+  }
+  c.clearRect(0, 0, w, h);
+  // Origin rounded in scaled space so output pixels stay crisp.
+  drawParts(c, parts, Math.round(-bb.x * scale) / scale, Math.round(-bb.y * scale) / scale, scale);
   return true;
 }
 
 const thumbURLCache = new Map<number, string>();
 
-/** Cached dataURL of the fitted composite (for the drag ghost). Null until loaded. */
+/** Cached dataURL of the 3x composite (for the drag ghost). Null until loaded. */
 export function spriteThumbURL(typeId: number): string | null {
   const parts = partsFor(typeId, 0);
   if (!parts) return null;
@@ -228,7 +233,7 @@ export function spriteThumbURL(typeId: number): string | null {
   const cvs = document.createElement('canvas');
   cvs.width = 256;
   cvs.height = 256;
-  if (!paintFitted(cvs.getContext('2d')!, parts)) return null;
+  if (!paintThumb(cvs.getContext('2d')!, parts)) return null;
   const url = cvs.toDataURL();
   thumbURLCache.set(typeId, url);
   return url;

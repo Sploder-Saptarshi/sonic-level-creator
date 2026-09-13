@@ -133,10 +133,20 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.backgroundSize = '100% 100%';
     ghostEl.style.display = '';
   } else if (S.paletteDragDef) {
+    const parts = partsFor(S.paletteDragDef.id, 0);
     const url = spriteThumbURL(S.paletteDragDef.id);
-    if (url) {
+    if (url && parts) {
+      // True-scale preview: the ghost div matches exactly what draw() will
+      // paint — bbox-sized at canvas scale, offset by the bbox origin, with
+      // the drop point (cursor) as the object origin. NOT cell-filling.
+      const k = spriteScale(cs);
+      const bb = spriteBBox(parts);
+      ghostEl.style.width = Math.max(1, bb.w * k) + 'px';
+      ghostEl.style.height = Math.max(1, bb.h * k) + 'px';
+      ghostEl.style.left = (e.clientX + bb.x * k) + 'px';
+      ghostEl.style.top = (e.clientY + bb.y * k) + 'px';
       ghostEl.style.backgroundImage = `url(${url})`;
-      ghostEl.style.backgroundSize = 'contain';
+      ghostEl.style.backgroundSize = '100% 100%';
       ghostEl.style.backgroundRepeat = 'no-repeat';
       ghostEl.style.backgroundPosition = 'center';
       ghostEl.style.backgroundColor = 'rgba(0,0,0,0.3)';

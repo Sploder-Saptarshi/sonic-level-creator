@@ -280,6 +280,11 @@ canvas.display { display: block; cursor: crosshair; }
 .thumb:hover { border-color: #f00; }
 .thumb canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated;
   image-rendering: crisp-edges; }
+/* Object thumbs: same forced-square box as tiles, but art inside stays at
+   original 1x pixels (attribute size from paintThumb scale=1), centered,
+   shrinking only if larger than the box. */
+.thumb-obj canvas { width: auto; height: auto; max-width: 100%; max-height: 100%;
+  object-fit: contain; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 .desc { height: 20px; padding: 2px 6px; background: #f0f0f0; border-top: 1px solid #ccc;
@@ -545,17 +550,20 @@ canvas.display { display: block; cursor: crosshair; }
   function spriteScale(cellSize4) {
     return cellSize4 / BLOCK_PX;
   }
-  function paintFitted(c, parts, size = 256, pad = 8) {
+  function paintThumb(c, parts, scale = 3) {
     for (const part of parts) {
       const img = spriteImg(part.img);
       if (!img.complete || img.naturalWidth === 0) return false;
     }
     const bb = spriteBBox(parts);
-    const k = Math.min((size - pad * 2) / bb.w, (size - pad * 2) / bb.h);
-    const gx0 = size / 2 / k - (bb.x + bb.w / 2);
-    const gy0 = size / 2 / k - (bb.y + bb.h / 2);
-    c.clearRect(0, 0, size, size);
-    drawParts(c, parts, gx0, gy0, k);
+    const w = Math.max(1, Math.round(bb.w * scale));
+    const h = Math.max(1, Math.round(bb.h * scale));
+    if (c.canvas.width !== w || c.canvas.height !== h) {
+      c.canvas.width = w;
+      c.canvas.height = h;
+    }
+    c.clearRect(0, 0, w, h);
+    drawParts(c, parts, Math.round(-bb.x * scale) / scale, Math.round(-bb.y * scale) / scale, scale);
     return true;
   }
   var thumbURLCache = /* @__PURE__ */ new Map();
@@ -567,7 +575,7 @@ canvas.display { display: block; cursor: crosshair; }
     const cvs = document.createElement("canvas");
     cvs.width = 256;
     cvs.height = 256;
-    if (!paintFitted(cvs.getContext("2d"), parts)) return null;
+    if (!paintThumb(cvs.getContext("2d"), parts)) return null;
     const url = cvs.toDataURL();
     thumbURLCache.set(typeId, url);
     return url;
@@ -692,10 +700,17 @@ canvas.display { display: block; cursor: crosshair; }
       ghostEl.style.backgroundSize = "100% 100%";
       ghostEl.style.display = "";
     } else if (S.paletteDragDef) {
+      const parts = partsFor(S.paletteDragDef.id, 0);
       const url = spriteThumbURL(S.paletteDragDef.id);
-      if (url) {
+      if (url && parts) {
+        const k = spriteScale(cs);
+        const bb = spriteBBox(parts);
+        ghostEl.style.width = Math.max(1, bb.w * k) + "px";
+        ghostEl.style.height = Math.max(1, bb.h * k) + "px";
+        ghostEl.style.left = e.clientX + bb.x * k + "px";
+        ghostEl.style.top = e.clientY + bb.y * k + "px";
         ghostEl.style.backgroundImage = `url(${url})`;
-        ghostEl.style.backgroundSize = "contain";
+        ghostEl.style.backgroundSize = "100% 100%";
         ghostEl.style.backgroundRepeat = "no-repeat";
         ghostEl.style.backgroundPosition = "center";
         ghostEl.style.backgroundColor = "rgba(0,0,0,0.3)";
@@ -777,11 +792,9 @@ canvas.display { display: block; cursor: crosshair; }
         el.title = def.desc + (noArt ? " (invisible in-game: no art in this zone)" : "");
         const parts = partsFor(def.id, 0);
         if (parts) {
-          el.className = "thumb";
+          el.className = "thumb thumb-obj";
           const cvs = document.createElement("canvas");
-          cvs.width = BLOCK_PX;
-          cvs.height = BLOCK_PX;
-          paintFitted(cvs.getContext("2d"), parts);
+          paintThumb(cvs.getContext("2d"), parts, 1);
           el.appendChild(cvs);
         } else {
           el.className = "thumb thumb-txt";

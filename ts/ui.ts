@@ -46,6 +46,11 @@ canvas.display { display: block; cursor: crosshair; }
 .thumb:hover { border-color: #f00; }
 .thumb canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated;
   image-rendering: crisp-edges; }
+/* Object thumbs: same forced-square box as tiles, but art inside stays at
+   original 1x pixels (attribute size from paintThumb scale=1), centered,
+   shrinking only if larger than the box. */
+.thumb-obj canvas { width: auto; height: auto; max-width: 100%; max-height: 100%;
+  object-fit: contain; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 .desc { height: 20px; padding: 2px 6px; background: #f0f0f0; border-top: 1px solid #ccc;

@@ -6,7 +6,7 @@ import {
   pixelToTile, objectsInTile, setStatus, updateDesc,
 } from './state';
 import { draw } from './render';
-import { partsFor, paintFitted } from './sprites';
+import { partsFor, paintThumb } from './sprites';
 
 export function updateCounter() {
   if (!S.counterEl) return;
@@ -55,12 +55,10 @@ export function buildThumbnails() {
       el.title = def.desc + (noArt ? ' (invisible in-game: no art in this zone)' : '');
       const parts = partsFor(def.id, 0);
       if (parts) {
-        // True-sprite thumbnail (transparent bg, fitted, pixel-crisp)
-        el.className = 'thumb';
+        // True-sprite thumbnail (transparent bg, 3x integer scale, pixel-crisp)
+        el.className = 'thumb thumb-obj';
         const cvs = document.createElement('canvas');
-        cvs.width = BLOCK_PX;
-        cvs.height = BLOCK_PX;
-        paintFitted(cvs.getContext('2d')!, parts);
+        paintThumb(cvs.getContext('2d')!, parts, 1);
         el.appendChild(cvs);
       } else {
         // Game-invisible type (no zone art / no draw routine): labeled box
