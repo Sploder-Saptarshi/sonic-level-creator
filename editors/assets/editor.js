@@ -227,6 +227,10 @@
     paletteDrag: false,
     paletteDragTile: 0,
     paletteDragDef: null,
+    // Hover highlight (tile cell under the cursor, -1 when outside grid)
+    hoverBx: -1,
+    hoverBy: -1,
+    gloweyImg: null,
     // Pan state
     panning: false,
     panStartX: 0,
@@ -1052,6 +1056,39 @@ canvas.display { display: block; cursor: crosshair; }
         ctx.fillText(def ? def.name.split(" ")[0] : `${obj.type}`, dx, dy);
       }
     }
+    const hx = S.hoverBx, hy = S.hoverBy;
+    if (hx >= 0 && hy >= 0 && hy < grid.length && hx < grid[0].length && grid[hy][hx] > 0 && S.gloweyImg?.complete && S.gloweyImg.naturalWidth > 0) {
+      ctx.imageSmoothingEnabled = true;
+      const prevAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = glowAlpha();
+      try {
+        ctx.drawImage(S.gloweyImg, hx * cs, hy * cs, cs, cs);
+      } catch (_) {
+      }
+      ctx.globalAlpha = prevAlpha;
+    }
+  }
+  var GLOW_PERIOD_MS = 1600;
+  function glowAlpha(now = performance.now()) {
+    const phase = now % GLOW_PERIOD_MS / GLOW_PERIOD_MS;
+    return 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
+  }
+  function hoverGlowActive() {
+    const { grid, hoverBx, hoverBy } = S;
+    return hoverBx >= 0 && hoverBy >= 0 && hoverBy < grid.length && hoverBx < grid[0].length && grid[hoverBy][hoverBx] > 0;
+  }
+  var glowRaf = 0;
+  function ensureGlowLoop() {
+    if (glowRaf || !hoverGlowActive()) return;
+    const tick = () => {
+      if (!hoverGlowActive()) {
+        glowRaf = 0;
+        return;
+      }
+      draw();
+      glowRaf = requestAnimationFrame(tick);
+    };
+    glowRaf = requestAnimationFrame(tick);
   }
   function updateGhost(e) {
     const { ghostEl, spritesheetImg, activeTab } = S;
@@ -1347,19 +1384,24 @@ canvas.display { display: block; cursor: crosshair; }
     }
   }
   function onMouseMove(e) {
+    const { bx, by, px, py } = canvasToWorld(e);
+    const hbx = inGrid(bx, by) ? bx : -1;
+    const hby = inGrid(bx, by) ? by : -1;
+    S.hoverBx = hbx;
+    S.hoverBy = hby;
     if (S.panning) {
       S.canvasWrap.scrollLeft = S.panStartSX - (e.clientX - S.panStartX);
       S.canvasWrap.scrollTop = S.panStartSY - (e.clientY - S.panStartY);
       draw();
       return;
     }
-    const { bx, by, px, py } = canvasToWorld(e);
     if (S.dragObj && S.selectedObjIdx >= 0) {
       S.dragObj.x = snap8(px - S.dragOffX);
       S.dragObj.y = snap8(py - S.dragOffY);
       updateCounter();
     }
     draw();
+    ensureGlowLoop();
   }
   function onMouseUp(_e) {
     S.panning = false;
@@ -1370,6 +1412,8 @@ canvas.display { display: block; cursor: crosshair; }
   function onMouseLeave() {
     S.panning = false;
     S.dragObj = null;
+    S.hoverBx = -1;
+    S.hoverBy = -1;
     S.canvas.style.cursor = S.spaceHeld ? "grab" : "crosshair";
     draw();
   }
@@ -1521,6 +1565,11 @@ canvas.display { display: block; cursor: crosshair; }
       draw();
     };
     S.spritesheetImg.src = "/editors/assets/spritesheet.png";
+    S.gloweyImg = new Image();
+    S.gloweyImg.onload = () => {
+      draw();
+    };
+    S.gloweyImg.src = "/editors/assets/glowey.png";
     preloadSprites(() => {
       buildThumbnails();
       draw();

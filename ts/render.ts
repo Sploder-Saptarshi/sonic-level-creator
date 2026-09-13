@@ -143,6 +143,52 @@ export function draw() {
       ctx.fillText(def ? def.name.split(' ')[0] : `${obj.type}`, dx, dy);
     }
   }
+
+  // hover glow: glowey.png on top of the hovered cell when it holds a tile.
+  // Alpha oscillates 0→1→0 so it fades in and out slowly, over and over.
+  const hx = S.hoverBx, hy = S.hoverBy;
+  if (hx >= 0 && hy >= 0 && hy < grid.length && hx < grid[0].length
+    && grid[hy][hx] > 0 && S.gloweyImg?.complete && S.gloweyImg.naturalWidth > 0) {
+    ctx.imageSmoothingEnabled = true;
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = glowAlpha();
+    try { ctx.drawImage(S.gloweyImg, hx * cs, hy * cs, cs, cs); }
+    catch (_) { /* image not ready yet — skip */ }
+    ctx.globalAlpha = prevAlpha;
+  }
+}
+
+// ── Hover-glow pulse ──
+
+const GLOW_PERIOD_MS = 1600; // one full fade in+out cycle
+
+/** 0→1→0 sine pulse: 0 = invisible, 1 = full glow. */
+export function glowAlpha(now = performance.now()): number {
+  const phase = (now % GLOW_PERIOD_MS) / GLOW_PERIOD_MS; // 0..1
+  return 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
+}
+
+/** True while the hovered cell holds a tile (i.e. the glow is visible). */
+function hoverGlowActive(): boolean {
+  const { grid, hoverBx, hoverBy } = S;
+  return hoverBx >= 0 && hoverBy >= 0
+    && hoverBy < grid.length && hoverBx < grid[0].length
+    && grid[hoverBy][hoverBx] > 0;
+}
+
+let glowRaf = 0;
+
+/** Redraw every frame while the glow is visible so the pulse animates.
+ *  Self-terminates when the hover leaves or the tile is emptied; safe to
+ *  call on every mousemove (only one loop ever runs). */
+export function ensureGlowLoop() {
+  if (glowRaf || !hoverGlowActive()) return;
+  const tick = () => {
+    if (!hoverGlowActive()) { glowRaf = 0; return; }
+    draw();
+    glowRaf = requestAnimationFrame(tick);
+  };
+  glowRaf = requestAnimationFrame(tick);
 }
 
 // ── Ghost preview (follows cursor during palette drag) ──

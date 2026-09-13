@@ -46,6 +46,11 @@ function boot() {
   S.spritesheetImg.onload = () => { buildThumbnails(); draw(); };
   S.spritesheetImg.src = '/editors/assets/spritesheet.png';
 
+  // Load hover glow overlay (drawn on top of the hovered filled tile)
+  S.gloweyImg = new Image();
+  S.gloweyImg.onload = () => { draw(); };
+  S.gloweyImg.src = '/editors/assets/glowey.png';
+
   // Load object sprites (redraw thumbnails + canvas as each arrives)
   preloadSprites(() => { buildThumbnails(); draw(); });
 

@@ -26,6 +26,11 @@ export const S = {
   paletteDragTile: 0,
   paletteDragDef: null as ObjectDef | null,
 
+  // Hover highlight (tile cell under the cursor, -1 when outside grid)
+  hoverBx: -1,
+  hoverBy: -1,
+  gloweyImg: null as HTMLImageElement | null,
+
   // Pan state
   panning: false,
   panStartX: 0,

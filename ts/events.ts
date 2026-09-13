@@ -4,7 +4,7 @@ import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
 import {
   S, inGrid, canvasToWorld, objectsInTile, findDef, totalObjects, countPlacedTiles, setStatus,
 } from './state';
-import { draw, updateGhost, hideGhost } from './render';
+import { draw, updateGhost, hideGhost, ensureGlowLoop } from './render';
 import { updateCounter } from './thumbnails';
 import { doSave, doTest, doFullscreen, doClearAll, setZoom, resizeCanvas } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
@@ -80,14 +80,20 @@ function onMouseDown(e: MouseEvent) {
 // ── Canvas: mousemove ──
 
 function onMouseMove(e: MouseEvent) {
+  const { bx, by, px, py } = canvasToWorld(e);
+
+  // Hover highlight: track the cell under the cursor (-1 when outside grid)
+  const hbx = inGrid(bx, by) ? bx : -1;
+  const hby = inGrid(bx, by) ? by : -1;
+  S.hoverBx = hbx;
+  S.hoverBy = hby;
+
   if (S.panning) {
     S.canvasWrap!.scrollLeft = S.panStartSX - (e.clientX - S.panStartX);
     S.canvasWrap!.scrollTop = S.panStartSY - (e.clientY - S.panStartY);
     draw();
     return;
   }
-
-  const { bx, by, px, py } = canvasToWorld(e);
 
   // Drag existing object on canvas
   if (S.dragObj && S.selectedObjIdx >= 0) {
@@ -97,6 +103,7 @@ function onMouseMove(e: MouseEvent) {
   }
 
   draw();
+  ensureGlowLoop();
 }
 
 // ── Canvas: mouseup ──
@@ -113,6 +120,8 @@ function onMouseUp(_e: MouseEvent) {
 function onMouseLeave() {
   S.panning = false;
   S.dragObj = null;
+  S.hoverBx = -1;
+  S.hoverBy = -1;
   S.canvas!.style.cursor = S.spaceHeld ? 'grab' : 'crosshair';
   draw();
 }
