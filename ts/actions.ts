@@ -18,8 +18,12 @@ function hasGoal(): boolean {
 // ── Actions ──
 
 export async function doSave() {
-  if (!hasSonic()) { setStatus('Error: Sonic Placer (spawn) is required!'); return; }
-  if (!hasGoal()) { setStatus('Error: Sign Post (goal) is required!'); return; }
+  const sonics = S.objects.filter(o => o.type === 151).length;
+  const goals = S.objects.filter(o => o.type === 44).length;
+  if (sonics === 0) { setStatus('Error: Sonic Placer (spawn) is required!'); return; }
+  if (goals === 0) { setStatus('Error: Sign Post (goal) is required!'); return; }
+  if (sonics > 1) { setStatus('Error: Only one Sonic Placer allowed (game uses the last)!'); return; }
+  if (goals > 1) { setStatus('Error: Only one Sign Post allowed!'); return; }
   setStatus('Saving...');
   try {
     const bin = encodeBin(S.grid);

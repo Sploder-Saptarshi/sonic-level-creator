@@ -2,6 +2,7 @@
 
 import { BLOCK_PX, TOTAL_BLOCKS, blockSheetXY } from './format';
 import { S, cellSize, findDef } from './state';
+import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL } from './sprites';
 
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
@@ -63,21 +64,41 @@ export function draw() {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
 
-  // objects: point markers centered on the exact pixel position
-  // (placements are free pixels, not tile corners)
+  // objects: true sprites where the game has art, placeholder markers where
+  // the game itself draws nothing (no GH art / no draw routine for the type)
+  const k = spriteScale(cs);
   for (let i = 0; i < objects.length; i++) {
     const obj = objects[i];
+    const isSel = i === S.selectedObjIdx;
+    const parts = partsFor(obj.type, obj.sub);
+    if (parts) {
+      const bb = spriteBBox(parts);
+      const bx0 = (obj.x + bb.x) * k, by0 = (obj.y + bb.y) * k;
+      const bw = bb.w * k, bh = bb.h * k;
+      if (bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH) continue;
+      drawParts(ctx, parts, obj.x, obj.y, k);
+      if (isSel) {
+        ctx.strokeStyle = '#f00';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(bx0 - 3, by0 - 3, bw + 6, bh + 6);
+        ctx.setLineDash([]);
+      }
+      continue;
+    }
+    // placeholder: game-invisible type (no art / no draw routine)
     const dx = (obj.x / BLOCK_PX) * cs;
     const dy = (obj.y / BLOCK_PX) * cs;
     const m = Math.max(14, Math.min(48, cs * 0.35));
     if (dx + m < scrollX || dx - m > scrollX + viewW || dy + m < scrollY || dy - m > scrollY + viewH) continue;
-    const isSel = i === S.selectedObjIdx;
     const def = findDef(obj.type);
-    ctx.fillStyle = isSel ? 'rgba(255,80,80,0.7)' : 'rgba(255,200,0,0.6)';
+    ctx.fillStyle = isSel ? 'rgba(255,80,80,0.7)' : 'rgba(160,160,160,0.5)';
     ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
-    ctx.strokeStyle = isSel ? '#f00' : '#880';
+    ctx.strokeStyle = isSel ? '#f00' : '#666';
     ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
     ctx.strokeRect(dx - m / 2, dy - m / 2, m, m);
+    ctx.setLineDash([]);
     if (cs >= 24) {
       ctx.fillStyle = '#000';
       ctx.font = `${Math.max(8, Math.round(m / 3))}px sans-serif`;
@@ -111,6 +132,27 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
     ghostEl.style.backgroundSize = '100% 100%';
     ghostEl.style.display = '';
+  } else if (S.paletteDragDef) {
+    const url = spriteThumbURL(S.paletteDragDef.id);
+    if (url) {
+      ghostEl.style.backgroundImage = `url(${url})`;
+      ghostEl.style.backgroundSize = 'contain';
+      ghostEl.style.backgroundRepeat = 'no-repeat';
+      ghostEl.style.backgroundPosition = 'center';
+      ghostEl.style.backgroundColor = 'rgba(0,0,0,0.3)';
+      ghostEl.style.display = '';
+      ghostEl.textContent = '';
+    } else {
+      ghostEl.style.backgroundImage = 'none';
+      ghostEl.style.backgroundColor = 'rgba(255,200,0,0.5)';
+      ghostEl.style.display = 'flex';
+      ghostEl.style.alignItems = 'center';
+      ghostEl.style.justifyContent = 'center';
+      ghostEl.style.fontSize = '10px';
+      ghostEl.style.color = '#fff';
+      ghostEl.style.textAlign = 'center';
+      ghostEl.textContent = S.paletteDragDef.name.split(' ')[0];
+    }
   } else {
     ghostEl.style.backgroundImage = 'none';
     ghostEl.style.backgroundColor = 'rgba(255,200,0,0.5)';
@@ -120,7 +162,7 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.fontSize = '10px';
     ghostEl.style.color = '#fff';
     ghostEl.style.textAlign = 'center';
-    ghostEl.textContent = S.paletteDragDef ? S.paletteDragDef.name.split(' ')[0] : '';
+    ghostEl.textContent = '';
   }
 }
 

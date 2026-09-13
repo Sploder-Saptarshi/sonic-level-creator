@@ -4,6 +4,7 @@ import { DEFAULT_COLS, DEFAULT_ROWS } from './format';
 import { S, initGrid, cellSize, setStatus, updateDesc } from './state';
 import { EDITOR_CSS, EDITOR_HTML } from './ui';
 import { draw, initGhostCanvas } from './render';
+import { preloadSprites } from './sprites';
 import { buildThumbnails, switchTab, updateCounter } from './thumbnails';
 import { resizeCanvas } from './actions';
 import { wireEvents } from './events';
@@ -43,6 +44,9 @@ function boot() {
   S.spritesheetImg = new Image();
   S.spritesheetImg.onload = () => { buildThumbnails(); draw(); };
   S.spritesheetImg.src = '/editors/assets/spritesheet.png';
+
+  // Load object sprites (redraw thumbnails + canvas as each arrives)
+  preloadSprites(() => { buildThumbnails(); draw(); });
 
   // Wire all event handlers
   wireEvents();

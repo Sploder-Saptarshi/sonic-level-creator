@@ -177,18 +177,21 @@ function onDocMouseUp(e: MouseEvent) {
       S.grid[by][bx] = S.paletteDragTile;
       setStatus(`Placed block ${S.paletteDragTile} at (${bx},${by})`);
     } else if (S.paletteDragDef) {
-      if (S.grid[by][bx] === 0) {
-        setStatus('Objects must be placed on a tile!');
+      const def = S.paletteDragDef;
+      if ((def.id === 151 || def.id === 44) && S.objects.some(o => o.type === def.id)) {
+        setStatus(`Only one ${def.name} per level!`);
       } else if (totalObjects() >= countPlacedTiles()) {
         setStatus('Max object limit reached!');
       } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
         setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
       } else {
-        // Free pixel placement (8px snap), like the stock levels use —
-        // NOT the tile corner.
+        // Free pixel placement (8px snap), like the stock levels use.
+        // Objects live in AIR (or straddling ground) — the per-tile count
+        // is a budget, not a solidity requirement. Warn if buried solid.
         const ox = snap8(px), oy = snap8(py);
-        S.objects.push({ x: ox, y: oy, variant: 0, type: S.paletteDragDef.id, sub: 0 });
-        setStatus(`Placed ${S.paletteDragDef.name} at (${ox},${oy})`);
+        S.objects.push({ x: ox, y: oy, variant: 0, type: def.id, sub: 0 });
+        const buried = S.grid[by][bx] !== 0;
+        setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? ' — inside solid tile!' : ''));
       }
     }
     updateCounter();

@@ -6,6 +6,7 @@ import {
   pixelToTile, objectsInTile, setStatus, updateDesc,
 } from './state';
 import { draw } from './render';
+import { partsFor, paintFitted } from './sprites';
 
 export function updateCounter() {
   if (!S.counterEl) return;
@@ -50,16 +51,29 @@ export function buildThumbnails() {
   } else {
     for (const def of defsForTab(activeTab)) {
       const el = document.createElement('div');
-      el.className = 'thumb thumb-txt';
-      el.title = def.desc;
-      el.textContent = def.name;
+      const noArt = !partsFor(def.id, 0);
+      el.title = def.desc + (noArt ? ' (invisible in-game: no art in this zone)' : '');
+      const parts = partsFor(def.id, 0);
+      if (parts) {
+        // True-sprite thumbnail (transparent bg, fitted, pixel-crisp)
+        el.className = 'thumb';
+        const cvs = document.createElement('canvas');
+        cvs.width = BLOCK_PX;
+        cvs.height = BLOCK_PX;
+        paintFitted(cvs.getContext('2d')!, parts);
+        el.appendChild(cvs);
+      } else {
+        // Game-invisible type (no zone art / no draw routine): labeled box
+        el.className = 'thumb thumb-txt';
+        el.textContent = def.name;
+      }
       el.addEventListener('mousedown', (ev) => {
         ev.preventDefault();
         S.selectedObj = def;
         S.selectedObjIdx = -1;
         S.paletteDrag = true;
         S.paletteDragDef = def;
-        updateDesc(`${def.name}: ${def.desc}`);
+        updateDesc(`${def.name}: ${def.desc}` + (noArt ? ' (invisible in-game: no art in this zone)' : ''));
         draw();
       });
       thumbstrip.appendChild(el);
