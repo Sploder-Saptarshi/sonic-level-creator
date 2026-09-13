@@ -9,9 +9,14 @@ export const EDITOR_CSS = `
   background: linear-gradient(#ffffff, #e8e8e8); overflow: hidden; user-select: none;
   border-radius: 10px; }
 
-/* ── top bar (light, like the site chrome) ── */
+/* ── top bar: flush header band inside the canvas container — full-bleed,
+   top edge flush with the panel top, bottom border doubling as the divider
+   over the canvas ── */
 .topbar { display: flex; align-items: center; justify-content: space-between;
-  margin: 0; padding: 2px 4px; background: transparent; color: #555; flex-shrink: 0; }
+  margin: 0 -8px; padding: 4px 18px;
+  background: linear-gradient(#f4f4f4, #d9d9d9);
+  border: none; border-bottom: 1px solid #c9c9c9; border-radius: 7px 7px 0 0;
+  color: #555; flex-shrink: 0; }
 .topbar-l, .topbar-r { display: flex; align-items: center; gap: 6px; }
 .topbar label { font-size: 12px; }
 .btn { padding: 1px 10px; border: 1px solid #d99a3d; border-radius: 10px;
@@ -31,7 +36,7 @@ export const EDITOR_CSS = `
 
 /* ── canvas area: white rounded panel with padding ── */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 8px; }
+  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 0 8px 8px; }
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
 .canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -50,7 +55,7 @@ canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
   background: transparent; color: #3d2c00; cursor: pointer;
   font-size: 12px; font-weight: bold; font-family: inherit; }
 .tab:hover { background: rgba(255,255,255,0.35); }
-.tab-active { background: #fff; }
+.tab-active, .tab-active:hover { background: #fff; }
 .thumbstrip { flex: 1; display: flex; gap: 4px; padding: 6px;
   background: #fff; overflow-x: auto; overflow-y: hidden; align-items: stretch; }
 .thumb { height: 100%; aspect-ratio: 1; border: 1px solid #b5b5b5; cursor: pointer;
@@ -113,22 +118,21 @@ canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
 
 export const EDITOR_HTML = `
 <div class="editor">
-  <div class="topbar">
-    <div class="topbar-l">
-      <label>Zoom:</label>
-      <button class="btn btn-active" data-zoom="2">100%</button>
-      <button class="btn" data-zoom="1">50%</button>
-      <button class="btn" data-zoom="0.5">25%</button>
-    </div>
-    <div class="topbar-r">
-      <span>Object Counter:</span>
-      <span class="counter">0</span>
-      <button class="btn btn-clear" title="Clear entire level">X</button>
-    </div>
-  </div>
-
   <div class="main">
     <div class="canvas-area">
+      <div class="topbar">
+        <div class="topbar-l">
+          <label>Zoom:</label>
+          <button class="btn btn-active" data-zoom="2">100%</button>
+          <button class="btn" data-zoom="1">50%</button>
+          <button class="btn" data-zoom="0.5">25%</button>
+        </div>
+        <div class="topbar-r">
+          <span>Object Counter:</span>
+          <span class="counter">0</span>
+          <button class="btn btn-clear" title="Clear entire level">X</button>
+        </div>
+      </div>
       <div class="canvas-wrap">
         <canvas class="display"></canvas>
       </div>
