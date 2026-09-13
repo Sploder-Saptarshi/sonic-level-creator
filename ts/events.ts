@@ -147,6 +147,21 @@ function onKeyUp(e: KeyboardEvent) {
   }
 }
 
+// ── Redraw after scroll (wheel/pan/scrollbar) ──
+// The canvas is full-grid sized with viewport culling in draw(); scrolling
+// reveals previously-culled (blank) regions, so redraw on scroll. Throttled
+// via requestAnimationFrame to avoid re-entrant calls during fast scroll.
+let canvasDrawPending = false;
+
+function redrawCanvasOnScroll() {
+  if (canvasDrawPending) return;
+  canvasDrawPending = true;
+  requestAnimationFrame(() => {
+    draw();
+    canvasDrawPending = false;
+  });
+}
+
 // ── Wheel (scroll canvas) ──
 
 function onWheel(e: WheelEvent) {
@@ -157,6 +172,7 @@ function onWheel(e: WheelEvent) {
     S.canvasWrap!.scrollLeft += e.deltaX;
     S.canvasWrap!.scrollTop += e.deltaY;
   }
+  redrawCanvasOnScroll();
 }
 
 // ── Wheel (scroll tray horizontally via vertical scroll) ──
@@ -268,6 +284,10 @@ export function wireEvents() {
 
   // Window resize
   window.addEventListener('resize', resizeCanvas);
+
+  // Canvas: redraw after any scroll (wheel, pan, or scrollbar drag) so
+  // newly-revealed viewport regions get painted — not just on next mouse move.
+  canvasWrap?.addEventListener('scroll', redrawCanvasOnScroll);
 
   // Thumbstrip: vertical wheel → horizontal scroll (tray is overflow-x only)
   thumbstrip?.addEventListener('wheel', onThumbstripWheel, { passive: false });

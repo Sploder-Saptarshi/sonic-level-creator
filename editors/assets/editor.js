@@ -1377,6 +1377,15 @@ canvas.display { display: block; cursor: crosshair; }
       S.canvas.style.cursor = "crosshair";
     }
   }
+  var canvasDrawPending = false;
+  function redrawCanvasOnScroll() {
+    if (canvasDrawPending) return;
+    canvasDrawPending = true;
+    requestAnimationFrame(() => {
+      draw();
+      canvasDrawPending = false;
+    });
+  }
   function onWheel(e) {
     e.preventDefault();
     if (e.shiftKey) {
@@ -1385,6 +1394,7 @@ canvas.display { display: block; cursor: crosshair; }
       S.canvasWrap.scrollLeft += e.deltaX;
       S.canvasWrap.scrollTop += e.deltaY;
     }
+    redrawCanvasOnScroll();
   }
   function onThumbstripWheel(e) {
     e.preventDefault();
@@ -1458,6 +1468,7 @@ canvas.display { display: block; cursor: crosshair; }
     });
     shadow.querySelector(".btn-clear")?.addEventListener("click", doClearAll);
     window.addEventListener("resize", resizeCanvas);
+    canvasWrap?.addEventListener("scroll", redrawCanvasOnScroll);
     thumbstrip?.addEventListener("wheel", onThumbstripWheel, { passive: false });
   }
 
