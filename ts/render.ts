@@ -73,7 +73,7 @@ export function draw() {
   const scrollX = canvasWrap.scrollLeft, scrollY = canvasWrap.scrollTop;
   const viewW = canvasWrap.clientWidth || W, viewH = canvasWrap.clientHeight || H;
 
-  ctx.fillStyle = '#d4e8c0';
+  ctx.fillStyle = '#f4f9f4';
   ctx.fillRect(0, 0, W, H);
 
   const c0 = Math.max(0, Math.floor(scrollX / cs) - 1);
@@ -84,7 +84,8 @@ export function draw() {
   // gridlines first (under blocks/objects so they don't show through tiles
   // or sprites). 16 sub-divisions per block (one per tile): 15 thin lines
   // inside each block, bold at the boundary. All 1px; opacity hierarchy —
-  // 60% at block boundaries (max), 30% at every 8th tile, 10% per-tile.
+  // faint on the near-white canvas: 35% at block boundaries (max), 18% at
+  // every 8th tile, 8% per-tile.
   const tileCs = cs / 16;
   const tc0 = Math.max(0, Math.floor(scrollX / tileCs) - 1);
   const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
@@ -92,17 +93,17 @@ export function draw() {
   const tr1 = Math.min(grid.length * 16, Math.ceil((scrollY + viewH) / tileCs) + 1);
   for (let t = tc0; t <= tc1; t++) {
     const x = Math.round(t * tileCs) + 0.5;
-    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.6)'; }
-    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.3)'; }
-    else { ctx.strokeStyle = 'rgba(128,128,128,0.1)'; }
+    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.35)'; }
+    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.18)'; }
+    else { ctx.strokeStyle = 'rgba(128,128,128,0.08)'; }
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
   for (let t = tr0; t <= tr1; t++) {
     const y = Math.round(t * tileCs) + 0.5;
-    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.6)'; }
-    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.3)'; }
-    else { ctx.strokeStyle = 'rgba(128,128,128,0.1)'; }
+    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.35)'; }
+    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.18)'; }
+    else { ctx.strokeStyle = 'rgba(128,128,128,0.08)'; }
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }

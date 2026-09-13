@@ -4,43 +4,56 @@ export const EDITOR_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :host { display: block; width: 100%; height: 100%; margin: 0; padding: 0; }
 .editor { display: flex; flex-direction: column; width: 100%; height: 100%;
-  margin: 0; padding: 0;
+  margin: 0; padding: 8px; gap: 8px;
   font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000;
-  background: #2a2a2a; overflow: hidden; user-select: none;
-  border-radius: 0 0 10px 10px; }
+  background: linear-gradient(#ffffff, #e8e8e8); overflow: hidden; user-select: none;
+  border-radius: 10px; }
 
-/* ── top bar ── */
+/* ── top bar (light, like the site chrome) ── */
 .topbar { display: flex; align-items: center; justify-content: space-between;
-  margin: 0; padding: 4px 8px; background: #333; color: #fff; flex-shrink: 0; }
+  margin: 0; padding: 2px 4px; background: transparent; color: #555; flex-shrink: 0; }
 .topbar-l, .topbar-r { display: flex; align-items: center; gap: 6px; }
 .topbar label { font-size: 12px; }
-.btn { padding: 2px 8px; border: 1px solid #666; background: #555; color: #fff;
-  cursor: pointer; font-size: 11px; font-family: inherit; }
-.btn:hover { background: #777; }
-.btn-active { background: #0a0; border-color: #0f0; }
-.btn-clear { background: #633; border-color: #a44; }
-.btn-clear:hover { background: #944; }
+.btn { padding: 1px 10px; border: 1px solid #d99a3d; border-radius: 10px;
+  background: linear-gradient(#fff8ea, #ffe2b0); color: #6b4a00;
+  cursor: pointer; font-size: 11px; font-weight: bold; font-family: inherit; }
+.btn-active { background: linear-gradient(#ffb85e, #ff9426); border-color: #d97a1a; color: #fff; }
+.btn-clear { width: 20px; height: 20px; padding: 0; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid #999;
+  background: linear-gradient(#ffffff, #e2e2e2); color: #666;
+  font-size: 11px; font-weight: bold; line-height: 18px; text-align: center; }
+.counter { background: #ffe9c0; border: 1px solid #d99a3d; border-radius: 8px;
+  padding: 0 8px; font-weight: bold; color: #6b4a00; }
+.topbar-r > span:first-child { color: #777; }
 
 /* ── main split: canvas on top, tabs+options below ── */
-.main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.main { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }
 
-/* ── canvas area ── */
-.canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.canvas-wrap { flex: 1; overflow: auto; background: #d4e8c0; min-height: 0; }
-canvas.display { display: block; cursor: crosshair; }
+/* ── canvas area: white rounded panel with padding ── */
+.canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 8px; }
+.canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
+  scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
+.canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+.canvas-wrap::-webkit-scrollbar-track { background: #f0f0f0; }
+.canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
+  border: 2px solid #f0f0f0; }
+canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
 
-/* ── bottom: tabs + options (25% height) ── */
-.bottom { display: flex; height: 25%; min-height: 140px; border-top: 2px solid #555; flex-shrink: 0; }
+/* ── bottom: tabs+strip panel + options box (30% height) ── */
+.bottom { display: flex; height: 30%; min-height: 170px; gap: 8px; flex-shrink: 0; }
 .panel-left { flex: 3; display: flex; flex-direction: column; overflow: hidden;
-  border-right: 1px solid #555; background: #ddd; }
-.tabs { display: flex; flex-shrink: 0; border-bottom: 1px solid #999; }
-.tab { padding: 4px 10px; border: 1px solid #999; border-bottom: none;
-  background: #ccc; cursor: pointer; font-size: 11px; font-family: inherit; }
-.tab:hover { background: #ddd; }
-.tab-active { background: #fff; font-weight: bold; }
-.thumbstrip { flex: 1; display: flex; gap: 3px; padding: 4px;
-  overflow-x: auto; overflow-y: hidden; align-items: stretch; }
-.thumb { height: 100%; aspect-ratio: 1; border: 1px solid #888; cursor: pointer;
+  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; }
+.tabs { display: flex; gap: 4px; flex-shrink: 0; padding: 0 8px;
+  background: linear-gradient(#ffcf90, #ffa13c); border-radius: 7px 7px 0 0; }
+.tab { padding: 4px 12px; border: none; border-radius: 6px 6px 0 0;
+  background: transparent; color: #3d2c00; cursor: pointer;
+  font-size: 12px; font-weight: bold; font-family: inherit; }
+.tab:hover { background: rgba(255,255,255,0.35); }
+.tab-active { background: #fff; }
+.thumbstrip { flex: 1; display: flex; gap: 4px; padding: 6px;
+  background: #fff; overflow-x: auto; overflow-y: hidden; align-items: stretch; }
+.thumb { height: 100%; aspect-ratio: 1; border: 1px solid #b5b5b5; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
 .thumb:hover { border-color: #f00; }
@@ -53,13 +66,13 @@ canvas.display { display: block; cursor: crosshair; }
   object-fit: contain; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
-.desc { height: 20px; padding: 2px 6px; background: #f0f0f0; border-top: 1px solid #ccc;
-  font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  flex-shrink: 0; }
 
-.panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px 14px;
-  background: #eee; gap: 6px; max-width: 150px; }
-.panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
+.panel-right { flex: 1; display: flex; flex-direction: column; padding: 10px 14px;
+  background: linear-gradient(#ffffff, #e6e6e6);
+  border: 1px solid #c9c9c9; border-radius: 8px;
+  gap: 6px; max-width: 150px; }
+.panel-right h4 { margin: 0 0 4px 0; padding-bottom: 6px; font-size: 13px; color: #333;
+  text-align: left; border-bottom: 1px solid #c9c9c9; }
 /* Options buttons: site lozenge remade in pure CSS — no image assets.
    Extracted via Python from bg_button_span.gif (300x44: normal rows 0-21,
    hover rows 22-43):
@@ -131,7 +144,6 @@ export const EDITOR_HTML = `
           <button class="tab" data-tab="essentials">Essentials</button>
         </div>
         <div class="thumbstrip"></div>
-        <div class="desc">Select an item below</div>
       </div>
       <div class="panel-right">
         <h4>Options</h4>
