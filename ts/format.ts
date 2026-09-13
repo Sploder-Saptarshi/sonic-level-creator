@@ -46,26 +46,34 @@ export const OBJECTS: ObjectDef[] = [
   // Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
   // sub%16==2 yellow art + weak bounce; sideways facing by variant.
   // Stock GH: yellow-up x15, red-side-R (16,1) x6.
+  // Tray order is flat but grouped by family: all red subtypes, then
+  // all yellow subtypes (up -> sideways R/L -> down).
   { id: 2, name: 'Red Spring', desc: 'Red spring pad (bounces up)', sub: 0 },
-  { id: 2, name: 'Yellow Spring', desc: 'Yellow spring pad, weak bounce (stock GH)', sub: 2 },
   { id: 2, name: 'Red Spring R', desc: 'Sideways red spring (faces right)', variant: 0, sub: 16 },
   { id: 2, name: 'Red Spring L', desc: 'Sideways red spring (faces left, stock GH)', variant: 1, sub: 16 },
+  { id: 2, name: 'Red Spring Down', desc: 'Ceiling red spring (bounces down)', sub: 32 },
+  { id: 2, name: 'Yellow Spring', desc: 'Yellow spring pad, weak bounce (stock GH)', sub: 2 },
   { id: 2, name: 'Yellow Spring R', desc: 'Sideways yellow spring, weak (faces right)', variant: 0, sub: 18 },
   { id: 2, name: 'Yellow Spring L', desc: 'Sideways yellow spring, weak (faces left)', variant: 1, sub: 18 },
-  { id: 2, name: 'Red Spring Down', desc: 'Ceiling red spring (bounces down)', sub: 32 },
   { id: 2, name: 'Yellow Spring Down', desc: 'Ceiling yellow spring, weak', sub: 34 },
   // Spikes (type 9): width/orientation by sub; variant 2 = ceiling (ROT180),
   // wall subs (16/18/82) face by variant 0/1. Stock GH: 0/32/48/64 + one 16.
+  // Tray order is flat, sorted by spike count ascending (1 -> 3 -> 5 -> 6),
+  // then by gap ascending (contiguous sheet before spaced columns; the
+  // ceiling twin sits right after its floor twin, wall singles before
+  // full-wall sheets). Counts: sub 32 / 82 = 1 spike, sub 48 = 3 spikes
+  // at 24px spacing, sub 0 / 16 / 18 = 5 contiguous spikes, sub 64 =
+  // 6 spikes at 24px spacing (see spike_draw in MainCanvas.as).
+  { id: 9, name: 'Spikes Narrow', desc: 'Single-column spikes (stock GH)', sub: 32 },
+  { id: 9, name: 'Spikes Single L', desc: 'Single wall spike (faces left)', variant: 0, sub: 82 },
+  { id: 9, name: 'Spikes Single R', desc: 'Single wall spike (faces right)', variant: 1, sub: 82 },
+  { id: 9, name: 'Spikes Triple', desc: 'Triple spikes (stock GH)', sub: 48 },
   { id: 9, name: 'Spikes', desc: 'Spike trap (floor, stock GH)', sub: 0 },
   { id: 9, name: 'Spikes Ceiling', desc: 'Spike trap (ceiling, variant 2)', variant: 2, sub: 0 },
-  { id: 9, name: 'Spikes Narrow', desc: 'Single-column spikes (stock GH)', sub: 32 },
-  { id: 9, name: 'Spikes Triple', desc: 'Triple spikes (stock GH)', sub: 48 },
-  { id: 9, name: 'Spikes Wide', desc: 'Six-column spikes (stock GH)', sub: 64 },
   { id: 9, name: 'Spikes Wall L', desc: 'Wall spikes (faces left, stock GH)', variant: 0, sub: 16 },
   { id: 9, name: 'Spikes Wall R', desc: 'Wall spikes (faces right)', variant: 1, sub: 16 },
   { id: 9, name: 'Spikes Wall 18', desc: 'Wall spikes, sub 18 (collision unverified)', variant: 0, sub: 18 },
-  { id: 9, name: 'Spikes Single L', desc: 'Single wall spike (faces left)', variant: 0, sub: 82 },
-  { id: 9, name: 'Spikes Single R', desc: 'Single wall spike (faces right)', variant: 1, sub: 82 },
+  { id: 9, name: 'Spikes Wide', desc: 'Six-column spikes (stock GH)', sub: 64 },
   // Switch (type 15): sub = switchflag index it drives. No stock GH usage.
   { id: 15, name: 'Switch 0', desc: 'Switch driving flag 0', sub: 0 },
   { id: 15, name: 'Switch 1', desc: 'Switch driving flag 1', sub: 1 },
