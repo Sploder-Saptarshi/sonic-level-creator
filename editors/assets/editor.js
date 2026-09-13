@@ -369,7 +369,7 @@ canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
 .thumb:hover { border-color: #f00; }
-.thumb canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated;
+.thumb canvas { display: block; width: 80%; height: 80%; image-rendering: pixelated;
   image-rendering: crisp-edges; }
 /* Object thumbs: same forced-square box as tiles, but art inside stays at
    original 1x pixels (attribute size from paintThumb scale=1), centered,
@@ -379,34 +379,34 @@ canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 
-.panel-right { flex: 1; display: flex; flex-direction: column; padding: 10px 14px;
-  background: linear-gradient(#ffffff, #e6e6e6);
-  border: 1px solid #c9c9c9; border-radius: 8px;
-  gap: 6px; max-width: 150px; }
-.panel-right h4 { margin: 0 0 4px 0; padding-bottom: 6px; font-size: 13px; color: #333;
-  text-align: left; border-bottom: 1px solid #c9c9c9; }
-/* Options buttons: site lozenge remade in pure CSS \u2014 no image assets.
-   Extracted via Python from bg_button_span.gif (300x44: normal rows 0-21,
-   hover rows 22-43):
-   - 1px #ffa035 border on all four sides (edge rows/cols uniformly #ffa035).
-   - Body horizontally flat, near-linear vertical ramp over the inner 20
-     rows: normal #fee6ba -> #ffc376 (row 10, 47.5%) -> #ffa137; hover
-     #fdf2de -> #fece94 (47.5%) -> #ffad4f.
-   - Corner alpha-boundary circle fit: r~=6.6 top (light-matte AA fringe
-     inflates it) / r~=8.0 bottom -> 8px radius at 22px tall; buttons are
-     rendered larger (28px) with the radius scaled proportionally to 10px.
-     Box is border-box so the 26px content box stretches the %-stop ramp.
-   Shadow DOM seals out page CSS, so the rule lives here. Markup stays
-   <a class="act-btn"><span>\u2026</span></a> so [data-action] wiring is untouched. */
-.act-btn { display: block; height: 28px; margin: 0 0 6px 0;
-  background: linear-gradient(to bottom, #fee6ba 0%, #ffc376 47.5%, #ffa137 100%);
-  border: 1px solid #ffa035; border-radius: 10px;
-  color: #4c4c4c; font-weight: bold; font-size: 12px; font-family: inherit;
+.panel-right { flex: 1; display: flex; flex-direction: column; padding: 0 0 12px;
+  background: linear-gradient(#ffffff, #e9e9e9);
+  border: 1px solid #c4c4c4; border-radius: 10px;
+  gap: 10px; max-width: 150px; }
+.panel-right h4 { margin: 0; padding: 8px 14px 6px; font-size: 14px; color: #333;
+  text-align: left; background: linear-gradient(#f4f4f4, #d9d9d9);
+  border-radius: 9px 9px 0 0; border-bottom: 1px solid #c4c4c4; }
+/* Options buttons: glossy site lozenge in pure CSS \u2014 no image assets.
+   Tuned to the reference render: pale flash top (#ffedbe) falling to deep
+   orange (#ffa028) with the turn at 45%, darker #e8932b rim, 8px corners,
+   inset top highlight for the gloss, 13px near-black label. Hover lifts the
+   whole ramp. Markup stays <a class="act-btn"><span>\u2026</span></a> so the
+   [data-action] wiring is untouched. Buttons carry their own side margins
+   so the header divider runs full-bleed edge to edge. */
+.act-btn { display: block; height: 28px; margin: 0 14px;
+  background: linear-gradient(to bottom, #ffedbe 0%, #ffc46a 45%, #ffa028 100%);
+  border: 1px solid #e8932b; border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+  color: #333; font-weight: bold; font-size: 13px; font-family: inherit;
   text-decoration: none; cursor: pointer; }
-.act-btn span { display: block; line-height: 11px; padding: 7px 10px 8px 16px; text-align: center; }
-.act-btn:link, .act-btn:active, .act-btn:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
-.act-btn:hover { background: linear-gradient(to bottom, #fdf2de 0%, #fece94 47.5%, #ffad4f 100%);
-  color: #4c4c4c; outline: none; }
+.act-btn span { display: flex; align-items: center; justify-content: center;
+  height: 100%; text-align: center;
+  /* Measured against a screenshot: the flex-centered label sits ~0.5px low,
+     so nudge up half a pixel. */
+  transform: translateY(-0.5px); }
+.act-btn:link, .act-btn:active, .act-btn:visited { color: #333; text-decoration: none; font-weight: bold; }
+.act-btn:hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%);
+  color: #333; outline: none; }
 
 /* \u2500\u2500 bottom bar \u2500\u2500 */
 .bottombar { display: flex; align-items: center; justify-content: space-between;
