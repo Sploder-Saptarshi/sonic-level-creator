@@ -227,6 +227,11 @@
     paletteDrag: false,
     paletteDragTile: 0,
     paletteDragDef: null,
+    // Palette-drag drop preview (snapped world px, only live while the cursor
+    // is over the canvas itself — canvas-drawn, no HTML duplication)
+    previewPX: 0,
+    previewPY: 0,
+    previewOnCanvas: false,
     // Hover highlight (tile cell under the cursor, -1 when outside grid)
     hoverBx: -1,
     hoverBy: -1,
@@ -633,6 +638,21 @@ canvas.display { display: block; cursor: crosshair; }
     if (v !== void 0) return [ring, ...triPair(v, "v", cy, scale)];
     return [];
   }
+  function moveExtremes(type, sub) {
+    if (type !== 16 && type !== 90) return [];
+    const amp = {
+      1: { ax: 64, ay: 0 },
+      5: { ax: 64, ay: 0 },
+      2: { ax: 0, ay: 64 },
+      6: { ax: 0, ay: 64 },
+      11: { ax: 0, ay: 48 },
+      12: { ax: 0, ay: 48 },
+      16: { ax: 0, ay: 32 }
+    };
+    const a = amp[sub];
+    if (!a) return [];
+    return [{ dx: -a.ax, dy: -a.ay }, { dx: a.ax, dy: a.ay }];
+  }
   var SUBSPRITES = {
     // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
     42: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
@@ -941,6 +961,30 @@ canvas.display { display: block; cursor: crosshair; }
     thumbCache.set(key, cvs);
     return cvs;
   }
+  var whiteThumbCache = /* @__PURE__ */ new Map();
+  function whiteThumbFor(type, sub, variant, mirror) {
+    const key = `${type}:${sub}:${variant}:${mirror ? 1 : 0}`;
+    const hit = whiteThumbCache.get(key);
+    if (hit) return hit;
+    const parts = partsFor(type, sub, variant);
+    if (!parts) return null;
+    const core = parts.filter((p2) => !p2.badge);
+    if (!core.length) return null;
+    const src = document.createElement("canvas");
+    if (!paintThumb(src.getContext("2d"), core, 1, mirror)) return null;
+    const cvs = document.createElement("canvas");
+    cvs.width = src.width;
+    cvs.height = src.height;
+    const c = cvs.getContext("2d");
+    c.drawImage(src, 0, 0);
+    c.globalCompositeOperation = "source-in";
+    c.fillStyle = "#ffffff";
+    c.fillRect(0, 0, cvs.width, cvs.height);
+    const bb = spriteBBox(core);
+    const out = { cvs, bb };
+    whiteThumbCache.set(key, out);
+    return out;
+  }
   function initGhostCanvas() {
     ghostCanvas = document.createElement("canvas");
     ghostCanvas.width = GHOST_PX;
@@ -1028,6 +1072,23 @@ canvas.display { display: block; cursor: crosshair; }
         if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
         else drawParts(ctx, parts, obj.x, obj.y, k, mirror);
         if (isSel) {
+          const extremes = moveExtremes(obj.type, obj.sub);
+          if (extremes.length) {
+            const wt = whiteThumbFor(obj.type, obj.sub, obj.variant, mirror);
+            if (wt) {
+              ctx.imageSmoothingEnabled = false;
+              const prevAlpha = ctx.globalAlpha;
+              ctx.globalAlpha = 0.5;
+              for (const ex of extremes) {
+                const ex0 = (obj.x + ex.dx + wt.bb.x) * k;
+                const ey0 = (obj.y + ex.dy + wt.bb.y) * k;
+                const ew = wt.bb.w * k, eh = wt.bb.h * k;
+                if (ex0 + ew < scrollX || ex0 > scrollX + viewW || ey0 + eh < scrollY || ey0 > scrollY + viewH) continue;
+                ctx.drawImage(wt.cvs, 0, 0, wt.cvs.width, wt.cvs.height, ex0, ey0, ew, eh);
+              }
+              ctx.globalAlpha = prevAlpha;
+            }
+          }
           ctx.strokeStyle = "#f00";
           ctx.lineWidth = 2;
           ctx.setLineDash([6, 4]);
@@ -1067,6 +1128,50 @@ canvas.display { display: block; cursor: crosshair; }
       }
       ctx.globalAlpha = prevAlpha;
     }
+    if (S.paletteDrag && S.previewOnCanvas && S.activeTab !== "tiles") {
+      if (S.paletteDragDef) {
+        const def = S.paletteDragDef;
+        const dsub = def.sub ?? 0, dvar = def.variant ?? 0;
+        const dmirror = !!def.mirror || isMirrored(def.id, dvar, dsub);
+        const dparts = partsFor(def.id, dsub, dvar);
+        const px = S.previewPX, py = S.previewPY;
+        if (dparts) {
+          const dbb = spriteBBox(dparts);
+          const bx0 = (px + dbb.x) * k, by0 = (py + dbb.y) * k;
+          const bw = dbb.w * k, bh = dbb.h * k;
+          if (!(bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH)) {
+            const t = thumbFor(def.id, dsub, dvar, dmirror);
+            ctx.imageSmoothingEnabled = false;
+            if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
+            else drawParts(ctx, dparts, px, py, k, dmirror);
+          }
+          const extremes = moveExtremes(def.id, dsub);
+          if (extremes.length) {
+            const wt = whiteThumbFor(def.id, dsub, dvar, dmirror);
+            if (wt) {
+              ctx.imageSmoothingEnabled = false;
+              const prevAlpha = ctx.globalAlpha;
+              ctx.globalAlpha = 0.5;
+              for (const ex of extremes) {
+                const ex0 = (px + ex.dx + wt.bb.x) * k;
+                const ey0 = (py + ex.dy + wt.bb.y) * k;
+                const ew = wt.bb.w * k, eh = wt.bb.h * k;
+                if (ex0 + ew < scrollX || ex0 > scrollX + viewW || ey0 + eh < scrollY || ey0 > scrollY + viewH) continue;
+                ctx.drawImage(wt.cvs, 0, 0, wt.cvs.width, wt.cvs.height, ex0, ey0, ew, eh);
+              }
+              ctx.globalAlpha = prevAlpha;
+            }
+          }
+        } else {
+          const dx = px / BLOCK_PX * cs, dy = py / BLOCK_PX * cs;
+          const m = Math.max(14, Math.min(48, cs * 0.35));
+          if (!(dx + m < scrollX || dx - m > scrollX + viewW || dy + m < scrollY || dy - m > scrollY + viewH)) {
+            ctx.fillStyle = "rgba(255,200,0,0.5)";
+            ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
+          }
+        }
+      }
+    }
   }
   var GLOW_PERIOD_MS = 1600;
   function glowAlpha(now = performance.now()) {
@@ -1097,8 +1202,21 @@ canvas.display { display: block; cursor: crosshair; }
       hideGhost();
       return;
     }
+    if (S.canvas) {
+      try {
+        const { bx, by, px, py } = canvasToWorld(e);
+        S.previewOnCanvas = inGrid(bx, by);
+        S.previewPX = snap8(px);
+        S.previewPY = snap8(py);
+      } catch (_) {
+        S.previewOnCanvas = false;
+      }
+    } else {
+      S.previewOnCanvas = false;
+    }
     const cs = cellSize();
     ghostEl.classList.add("visible");
+    ghostEl.style.display = "";
     ghostEl.style.width = cs + "px";
     ghostEl.style.height = cs + "px";
     ghostEl.style.left = e.clientX - cs / 2 + "px";
@@ -1153,9 +1271,11 @@ canvas.display { display: block; cursor: crosshair; }
       ghostEl.style.textAlign = "center";
       ghostEl.textContent = "";
     }
+    if (S.previewOnCanvas && S.activeTab !== "tiles") draw();
   }
   function hideGhost() {
     const { ghostEl } = S;
+    S.previewOnCanvas = false;
     if (!ghostEl) return;
     ghostEl.classList.remove("visible");
     ghostEl.style.display = "";
@@ -1400,6 +1520,11 @@ canvas.display { display: block; cursor: crosshair; }
       S.dragObj.y = snap8(py - S.dragOffY);
       updateCounter();
     }
+    if (S.paletteDrag) {
+      S.previewOnCanvas = inGrid(bx, by);
+      S.previewPX = snap8(px);
+      S.previewPY = snap8(py);
+    }
     draw();
     ensureGlowLoop();
   }
@@ -1414,6 +1539,7 @@ canvas.display { display: block; cursor: crosshair; }
     S.dragObj = null;
     S.hoverBx = -1;
     S.hoverBy = -1;
+    S.previewOnCanvas = false;
     S.canvas.style.cursor = S.spaceHeld ? "grab" : "crosshair";
     draw();
   }
@@ -1486,6 +1612,7 @@ canvas.display { display: block; cursor: crosshair; }
         } else {
           const ox = snap8(px), oy = snap8(py);
           S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
+          S.selectedObjIdx = S.objects.length - 1;
           const buried = S.grid[by][bx] !== 0;
           setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? " \u2014 inside solid tile!" : ""));
         }
@@ -1556,7 +1683,7 @@ canvas.display { display: block; cursor: crosshair; }
     S.descEl = shadow.querySelector(".desc");
     S.statusEl = shadow.querySelector(".status");
     S.counterEl = shadow.querySelector(".counter");
-    S.ghostEl = shadow.querySelector(".ghost");
+    S.ghostEl = shadow.querySelector("#ghost");
     initGrid();
     initGhostCanvas();
     S.spritesheetImg = new Image();

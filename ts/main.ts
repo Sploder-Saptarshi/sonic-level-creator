@@ -36,7 +36,7 @@ function boot() {
   S.descEl = shadow.querySelector('.desc')!;
   S.statusEl = shadow.querySelector('.status')!;
   S.counterEl = shadow.querySelector('.counter')!;
-  S.ghostEl = shadow.querySelector('.ghost')!;
+  S.ghostEl = shadow.querySelector('#ghost')!;
 
   initGrid();
   initGhostCanvas();

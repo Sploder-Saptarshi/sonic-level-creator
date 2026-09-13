@@ -1,8 +1,8 @@
 // ts/render.ts — Canvas drawing + ghost preview
 
-import { BLOCK_PX, TOTAL_BLOCKS, blockSheetXY } from './format';
-import { S, cellSize, findDef } from './state';
-import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored, paintThumb } from './sprites';
+import { BLOCK_PX, TOTAL_BLOCKS, snap8, blockSheetXY } from './format';
+import { S, cellSize, findDef, inGrid, canvasToWorld } from './state';
+import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored, paintThumb, moveExtremes } from './sprites';
 
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
@@ -22,6 +22,35 @@ function thumbFor(type: number, sub: number, variant: number, mirror: boolean): 
   if (!paintThumb(cvs.getContext('2d')!, parts, 1, mirror)) return null;
   thumbCache.set(key, cvs);
   return cvs;
+}
+
+// White-filled silhouette of the platform core (badge-free) at 1x, for the
+// two-direction mover extreme ghosts. Same bbox-fit as thumbFor so canvas
+// and extremes share exact pixels; tinted fully white via source-in.
+const whiteThumbCache = new Map<string, { cvs: HTMLCanvasElement; bb: { x: number; y: number; w: number; h: number } }>();
+
+function whiteThumbFor(type: number, sub: number, variant: number, mirror: boolean) {
+  const key = `${type}:${sub}:${variant}:${mirror ? 1 : 0}`;
+  const hit = whiteThumbCache.get(key);
+  if (hit) return hit;
+  const parts = partsFor(type, sub, variant);
+  if (!parts) return null;
+  const core = parts.filter(p => !p.badge);
+  if (!core.length) return null;
+  const src = document.createElement('canvas');
+  if (!paintThumb(src.getContext('2d')!, core, 1, mirror)) return null;
+  const cvs = document.createElement('canvas');
+  cvs.width = src.width;
+  cvs.height = src.height;
+  const c = cvs.getContext('2d')!;
+  c.drawImage(src, 0, 0);
+  c.globalCompositeOperation = 'source-in';
+  c.fillStyle = '#ffffff';
+  c.fillRect(0, 0, cvs.width, cvs.height);
+  const bb = spriteBBox(core);
+  const out = { cvs, bb };
+  whiteThumbCache.set(key, out);
+  return out;
 }
 
 export function initGhostCanvas() {
@@ -114,6 +143,25 @@ export function draw() {
       if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
       else drawParts(ctx, parts, obj.x, obj.y, k, mirror);
       if (isSel) {
+        // Two-direction movers (two triangles): white-filled ghosts at both
+        // travel extremes (shima_nflag_move amplitudes via moveExtremes).
+        const extremes = moveExtremes(obj.type, obj.sub);
+        if (extremes.length) {
+          const wt = whiteThumbFor(obj.type, obj.sub, obj.variant, mirror);
+          if (wt) {
+            ctx.imageSmoothingEnabled = false;
+            const prevAlpha = ctx.globalAlpha;
+            ctx.globalAlpha = 0.5;
+            for (const ex of extremes) {
+              const ex0 = (obj.x + ex.dx + wt.bb.x) * k;
+              const ey0 = (obj.y + ex.dy + wt.bb.y) * k;
+              const ew = wt.bb.w * k, eh = wt.bb.h * k;
+              if (ex0 + ew < scrollX || ex0 > scrollX + viewW || ey0 + eh < scrollY || ey0 > scrollY + viewH) continue;
+              ctx.drawImage(wt.cvs, 0, 0, wt.cvs.width, wt.cvs.height, ex0, ey0, ew, eh);
+            }
+            ctx.globalAlpha = prevAlpha;
+          }
+        }
         ctx.strokeStyle = '#f00';
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 4]);
@@ -156,6 +204,57 @@ export function draw() {
     catch (_) { /* image not ready yet — skip */ }
     ctx.globalAlpha = prevAlpha;
   }
+
+  // Palette-drag drop preview, drawn inside the canvas itself (no HTML
+  // duplication). Objects only — tiles keep just the HTML carry ghost.
+  // Only live while the cursor is over the grid — updateGhost tracks the
+  // snapped world-px drop point into S.previewPX/PY.
+  if (S.paletteDrag && S.previewOnCanvas && S.activeTab !== 'tiles') {
+    if (S.paletteDragDef) {
+      const def = S.paletteDragDef;
+      const dsub = def.sub ?? 0, dvar = def.variant ?? 0;
+      const dmirror = !!def.mirror || isMirrored(def.id, dvar, dsub);
+      const dparts = partsFor(def.id, dsub, dvar);
+      const px = S.previewPX, py = S.previewPY;
+      if (dparts) {
+        const dbb = spriteBBox(dparts);
+        const bx0 = (px + dbb.x) * k, by0 = (py + dbb.y) * k;
+        const bw = dbb.w * k, bh = dbb.h * k;
+        if (!(bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH)) {
+          const t = thumbFor(def.id, dsub, dvar, dmirror);
+          ctx.imageSmoothingEnabled = false;
+          if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
+          else drawParts(ctx, dparts, px, py, k, dmirror);
+        }
+        // Two-direction movers: white-filled core ghosts at both travel
+        // extremes (shima_nflag_move amplitudes via moveExtremes), 50% opacity.
+        const extremes = moveExtremes(def.id, dsub);
+        if (extremes.length) {
+          const wt = whiteThumbFor(def.id, dsub, dvar, dmirror);
+          if (wt) {
+            ctx.imageSmoothingEnabled = false;
+            const prevAlpha = ctx.globalAlpha;
+            ctx.globalAlpha = 0.5;
+            for (const ex of extremes) {
+              const ex0 = (px + ex.dx + wt.bb.x) * k;
+              const ey0 = (py + ex.dy + wt.bb.y) * k;
+              const ew = wt.bb.w * k, eh = wt.bb.h * k;
+              if (ex0 + ew < scrollX || ex0 > scrollX + viewW || ey0 + eh < scrollY || ey0 > scrollY + viewH) continue;
+              ctx.drawImage(wt.cvs, 0, 0, wt.cvs.width, wt.cvs.height, ex0, ey0, ew, eh);
+            }
+            ctx.globalAlpha = prevAlpha;
+          }
+        }
+      } else {
+        const dx = (px / BLOCK_PX) * cs, dy = (py / BLOCK_PX) * cs;
+        const m = Math.max(14, Math.min(48, cs * 0.35));
+        if (!(dx + m < scrollX || dx - m > scrollX + viewW || dy + m < scrollY || dy - m > scrollY + viewH)) {
+          ctx.fillStyle = 'rgba(255,200,0,0.5)';
+          ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
+        }
+      }
+    }
+  }
 }
 
 // ── Hover-glow pulse ──
@@ -192,6 +291,13 @@ export function ensureGlowLoop() {
 }
 
 // ── Ghost preview (follows cursor during palette drag) ──
+//
+// The single floating HTML ghost (#ghost) is the carry preview and stays
+// visible everywhere — including over the grid — so the page always shows an
+// HTML preview of the dragged item. Travel extremes are NOT duplicated into
+// HTML: they live only in the canvas drop preview in draw(), which paints the
+// snapped placement (+ white 50% ghosts) underneath the cursor while over
+// the grid.
 
 export function updateGhost(e: MouseEvent) {
   const { ghostEl, spritesheetImg, activeTab } = S;
@@ -200,8 +306,21 @@ export function updateGhost(e: MouseEvent) {
     hideGhost();
     return;
   }
+  // Track the snapped drop point + whether the cursor is over the grid.
+  // canvasToWorld works for out-of-canvas events too (negative/off-grid).
+  if (S.canvas) {
+    try {
+      const { bx, by, px, py } = canvasToWorld(e);
+      S.previewOnCanvas = inGrid(bx, by);
+      S.previewPX = snap8(px);
+      S.previewPY = snap8(py);
+    } catch (_) { S.previewOnCanvas = false; }
+  } else {
+    S.previewOnCanvas = false;
+  }
   const cs = cellSize();
   ghostEl.classList.add('visible');
+  ghostEl.style.display = '';
   ghostEl.style.width = cs + 'px';
   ghostEl.style.height = cs + 'px';
   ghostEl.style.left = (e.clientX - cs / 2) + 'px';
@@ -221,9 +340,7 @@ export function updateGhost(e: MouseEvent) {
     const parts = partsFor(def.id, dsub, dvar);
     const url = spriteThumbURL(def.id, dsub, dvar, dmirror);
     if (url && parts) {
-      // True-scale preview: the ghost div matches exactly what draw() will
-      // paint — bbox-sized at canvas scale, offset by the bbox origin, with
-      // the drop point (cursor) as the object origin. NOT cell-filling.
+      // True-scale carry preview (bbox-sized); extremes stay canvas-only.
       const k = spriteScale(cs);
       const bb = spriteBBox(parts);
       ghostEl.style.width = Math.max(1, bb.w * k) + 'px';
@@ -259,10 +376,15 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.textAlign = 'center';
     ghostEl.textContent = '';
   }
+  // Over the grid the canvas paints the snapped object drop preview (+
+  // extremes for two-direction movers) underneath the HTML carry ghost.
+  // Tiles stay HTML-only, so no canvas redraw for them.
+  if (S.previewOnCanvas && S.activeTab !== 'tiles') draw();
 }
 
 export function hideGhost() {
   const { ghostEl } = S;
+  S.previewOnCanvas = false;
   if (!ghostEl) return;
   ghostEl.classList.remove('visible');
   ghostEl.style.display = '';

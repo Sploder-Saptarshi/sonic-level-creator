@@ -253,8 +253,7 @@ function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0, scale = 1): SpritePar
  *  the pillar) so it sits at the platform's pivot instead of the object
  *  origin. The tall pillar (sub 16) uses a 30px ring (1.25x) so the overlay
  *  reads on its tall art; all other shima variants use the standard 24px. */
-export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
-  if (type !== 16 && type !== 90) return [];
+export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {  if (type !== 16 && type !== 90) return [];
   const scale = sub === 16 ? 32 / 24 : 1;
   const ring = badgePart('ring', undefined, BADGE_WHITE, 24 * scale, 24 * scale, 0, cy);
   if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12 * scale, 8 * scale, 0, cy)];
@@ -264,6 +263,30 @@ export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
   const v = SHIMA_V_FIRST[sub];
   if (v !== undefined) return [ring, ...triPair(v, 'v', cy, scale)];
   return [];
+}
+
+// ── Movement extremes (editor-only selection overlay) ──
+//
+// Amplitudes from shima_nflag_move (MainCanvas.as): pos = home + sin(t)*amp,
+// so the platform oscillates between home-amp and home+amp. Only the
+// two-triangle oscillators (two directions) get extreme ghosts:
+//   H: sub 1/5 -> X +/-64 | V: sub 2/6 -> Y +/-64, sub 11/12 -> Y +/-48,
+//      sub 16 (pillar) -> Y +/-32.
+// One-way movers (sub 3 crumble, sub 7 switch-rise) and statics return [].
+export function moveExtremes(type: number, sub: number): Array<{ dx: number; dy: number }> {
+  if (type !== 16 && type !== 90) return [];
+  const amp: Record<number, { ax: number; ay: number }> = {
+    1: { ax: 64, ay: 0 },
+    5: { ax: 64, ay: 0 },
+    2: { ax: 0, ay: 64 },
+    6: { ax: 0, ay: 64 },
+    11: { ax: 0, ay: 48 },
+    12: { ax: 0, ay: 48 },
+    16: { ax: 0, ay: 32 },
+  };
+  const a = amp[sub];
+  if (!a) return [];
+  return [{ dx: -a.ax, dy: -a.ay }, { dx: a.ax, dy: a.ay }];
 }
 
 // Sub-indexed art: type -> sub -> parts (motion-only subs fall back to base).
@@ -568,7 +591,6 @@ export function isMirrored(type: number, variant: number, sub = 0): boolean {
 }
 
 const thumbURLCache = new Map<string, string>();
-
 /** Cached dataURL of the 3x composite (for the drag ghost). Null until loaded. */
 export function spriteThumbURL(typeId: number, sub = 0, variant = 0, mirror = false): string | null {
   const parts = partsFor(typeId, sub, variant);
@@ -584,3 +606,4 @@ export function spriteThumbURL(typeId: number, sub = 0, variant = 0, mirror = fa
   thumbURLCache.set(key, url);
   return url;
 }
+

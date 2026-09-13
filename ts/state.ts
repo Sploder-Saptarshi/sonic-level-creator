@@ -26,6 +26,12 @@ export const S = {
   paletteDragTile: 0,
   paletteDragDef: null as ObjectDef | null,
 
+  // Palette-drag drop preview (snapped world px, only live while the cursor
+  // is over the canvas itself — canvas-drawn, no HTML duplication)
+  previewPX: 0,
+  previewPY: 0,
+  previewOnCanvas: false,
+
   // Hover highlight (tile cell under the cursor, -1 when outside grid)
   hoverBx: -1,
   hoverBy: -1,

@@ -102,6 +102,15 @@ function onMouseMove(e: MouseEvent) {
     updateCounter();
   }
 
+  // Palette-drag drop preview: keep the snapped canvas preview in sync even
+  // for canvas-originated moves (the document handler re-syncs + draws again,
+  // setting identical values, so this stays idempotent).
+  if (S.paletteDrag) {
+    S.previewOnCanvas = inGrid(bx, by);
+    S.previewPX = snap8(px);
+    S.previewPY = snap8(py);
+  }
+
   draw();
   ensureGlowLoop();
 }
@@ -122,6 +131,7 @@ function onMouseLeave() {
   S.dragObj = null;
   S.hoverBx = -1;
   S.hoverBy = -1;
+  S.previewOnCanvas = false;
   S.canvas!.style.cursor = S.spaceHeld ? 'grab' : 'crosshair';
   draw();
 }
@@ -225,6 +235,9 @@ function onDocMouseUp(e: MouseEvent) {
         // is a budget, not a solidity requirement. Warn if buried solid.
         const ox = snap8(px), oy = snap8(py);
         S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
+        // Auto-select the new object so its selection ghosts (travel
+        // extremes + red box) show immediately at the placed spot.
+        S.selectedObjIdx = S.objects.length - 1;
         const buried = S.grid[by][bx] !== 0;
         setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? ' — inside solid tile!' : ''));
       }
