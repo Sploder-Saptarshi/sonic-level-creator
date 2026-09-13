@@ -955,24 +955,6 @@ canvas.display { display: block; cursor: crosshair; }
     const r0 = Math.max(0, Math.floor(scrollY / cs) - 1);
     const c1 = Math.min(grid[0].length, Math.ceil((scrollX + viewW) / cs) + 1);
     const r1 = Math.min(grid.length, Math.ceil((scrollY + viewH) / cs) + 1);
-    for (let r = r0; r < r1; r++) {
-      for (let c = c0; c < c1; c++) {
-        const id = grid[r][c];
-        const dx = c * cs, dy = r * cs;
-        if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg?.complete) {
-          const { x: sx, y: sy } = blockSheetXY(id);
-          try {
-            ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs);
-          } catch (_) {
-            ctx.fillStyle = "#aabbcc";
-            ctx.fillRect(dx, dy, cs, cs);
-          }
-        } else if (id > 0) {
-          ctx.fillStyle = "#aabbcc";
-          ctx.fillRect(dx, dy, cs, cs);
-        }
-      }
-    }
     const tileCs = cs / 16;
     const tc0 = Math.max(0, Math.floor(scrollX / tileCs) - 1);
     const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
@@ -1007,6 +989,24 @@ canvas.display { display: block; cursor: crosshair; }
       ctx.moveTo(0, y);
       ctx.lineTo(W, y);
       ctx.stroke();
+    }
+    for (let r = r0; r < r1; r++) {
+      for (let c = c0; c < c1; c++) {
+        const id = grid[r][c];
+        const dx = c * cs, dy = r * cs;
+        if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg?.complete) {
+          const { x: sx, y: sy } = blockSheetXY(id);
+          try {
+            ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs);
+          } catch (_) {
+            ctx.fillStyle = "#aabbcc";
+            ctx.fillRect(dx, dy, cs, cs);
+          }
+        } else if (id > 0) {
+          ctx.fillStyle = "#aabbcc";
+          ctx.fillRect(dx, dy, cs, cs);
+        }
+      }
     }
     const k = spriteScale(cs);
     for (let i = 0; i < objects.length; i++) {

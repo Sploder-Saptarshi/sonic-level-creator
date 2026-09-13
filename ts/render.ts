@@ -52,27 +52,10 @@ export function draw() {
   const c1 = Math.min(grid[0].length, Math.ceil((scrollX + viewW) / cs) + 1);
   const r1 = Math.min(grid.length, Math.ceil((scrollY + viewH) / cs) + 1);
 
-  // blocks
-  for (let r = r0; r < r1; r++) {
-    for (let c = c0; c < c1; c++) {
-      const id = grid[r][c];
-      const dx = c * cs, dy = r * cs;
-      if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg?.complete) {
-        const { x: sx, y: sy } = blockSheetXY(id);
-        try { ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs); }
-        catch (_) { ctx.fillStyle = '#aabbcc'; ctx.fillRect(dx, dy, cs, cs); }
-      } else if (id > 0) {
-        ctx.fillStyle = '#aabbcc';
-        ctx.fillRect(dx, dy, cs, cs);
-      }
-    }
-  }
-
-  // gridlines (absolute coords, span full canvas)
-  // 16 sub-divisions per block (one per tile): 15 thin lines inside each
-  // block, plus a bold line at the block boundary. All 1px; visual
-  // hierarchy via opacity only — 80% at block boundaries (max), 50% at
-  // every 8th tile, 25% at the per-tile base lines (last).
+  // gridlines first (under blocks/objects so they don't show through tiles
+  // or sprites). 16 sub-divisions per block (one per tile): 15 thin lines
+  // inside each block, bold at the boundary. All 1px; opacity hierarchy —
+  // 60% at block boundaries (max), 30% at every 8th tile, 10% per-tile.
   const tileCs = cs / 16;
   const tc0 = Math.max(0, Math.floor(scrollX / tileCs) - 1);
   const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
@@ -93,6 +76,22 @@ export function draw() {
     else { ctx.strokeStyle = 'rgba(128,128,128,0.1)'; }
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // blocks
+  for (let r = r0; r < r1; r++) {
+    for (let c = c0; c < c1; c++) {
+      const id = grid[r][c];
+      const dx = c * cs, dy = r * cs;
+      if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg?.complete) {
+        const { x: sx, y: sy } = blockSheetXY(id);
+        try { ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs); }
+        catch (_) { ctx.fillStyle = '#aabbcc'; ctx.fillRect(dx, dy, cs, cs); }
+      } else if (id > 0) {
+        ctx.fillStyle = '#aabbcc';
+        ctx.fillRect(dx, dy, cs, cs);
+      }
+    }
   }
 
   // objects: true sprites where the game has art, placeholder markers where
