@@ -81,6 +81,16 @@ export const SPRITES: Record<number, SpritePart[]> = {
   ],
   // Swing seat (GH branch): cell (16,16,16,16) at origin (swinging_platform_draw)
   3: [p(D + 'buranko.png', 16, 16, 16, 16, 0, 0, 'center')],
+  // GH-native gimmicks: all placed by stock ZONE1ACT, art registered for custom
+  16: [p(G + 'shima.png', 0, 0, 64, 32, 0, 0, 'center')], // shima_draw idle (variant 0)
+  90: [p(G + 'shima.png', 0, 0, 64, 32, 0, 0, 'center')], // shima2_nflag_draw -> shima_draw
+  37: [p(G + 'kageb.png', 0, 0, 16, 64, 0, 0, 'center')], // kageb_draw idle (variant 0)
+  38: [p(G + 'hashi.png', 0, 0, 32, 16, 0, 0, 'center')], // bridge_edge_draw (W/3*2 x H of 48x16)
+  58: [p(G + 'jyama.png', 0, 0, 48, 32, 0, 0, 'center')], // jyama_draw (whole image)
+  42: [p(D + 'item.png', 0, 0, 32, 32, 0, 0, 'center')], // item_nflag_draw idle approx
+  43: [p(D + 'item.png', 0, 0, 32, 32, 0, 0, 'center')],
+  // Bten switch shares Button art (bonus_draw variant-0 row, sub==1-gated in-game)
+  46: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
   // Switch unpressed: base + stem (switch2_draw, switchflag[var]==false)
   15: [
     p(D + 'switch2.png', 0, 0, 32, 11, 0, -3, 'center'),

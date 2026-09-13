@@ -38,30 +38,21 @@ export const OBJECTS: ObjectDef[] = [
   { id: 2, name: 'Red Spring', desc: 'Red spring pad (bounces up)' },
   { id: 153, name: 'Yellow Spring', desc: 'Yellow spring pad (bounces up)' },
   { id: 9, name: 'Spikes', desc: 'Spike trap' },
-  { id: 10, name: 'Monitor', desc: 'Item monitor (TV box)' },
-  { id: 12, name: 'Platform', desc: 'Static platform' },
-  { id: 17, name: 'Moving Platform', desc: 'Moving platform (patrol)' },
-  { id: 32, name: 'Large Platform', desc: 'Large moving platform' },
-  { id: 62, name: 'Platform Lamp', desc: 'Platform with lamp decoration' },
-  { id: 83, name: 'DAI3 Platform', desc: 'Alternate platform variant' },
-  { id: 11, name: 'Falling Block', desc: 'Block that falls when stepped on' },
   { id: 15, name: 'Switch', desc: 'Activates connected objects' },
-  { id: 22, name: 'Fan', desc: 'Wind fan (blows upward)' },
-  { id: 24, name: 'Conveyor', desc: 'Conveyor belt surface' },
-  { id: 33, name: 'Elevator Rail', desc: 'Elevator on a rail' },
-  { id: 73, name: 'Elevator', desc: 'Standard elevator platform' },
-  { id: 47, name: 'Giant Ring', desc: 'Giant ring (special stage entry)' },
   { id: 45, name: 'Button', desc: 'Button / base plate' },
-  { id: 102, name: 'Solid Block', desc: 'Solid collision block' },
-  { id: 30, name: 'Door', desc: 'Door / gate' },
+  { id: 46, name: 'Bten Switch', desc: 'Button variant (drawn in-game only when sub=1)' },
+  { id: 42, name: 'Item Pickup', desc: 'Monitor power-up placed directly' },
+  { id: 43, name: 'Item Pickup S', desc: 'Monitor power-up placed directly (stock GH uses this)' },
   { id: 4, name: 'Tall Bridge', desc: 'Tall bridge / pole' },
   { id: 5, name: 'Bridge', desc: 'Standard bridge' },
+  { id: 38, name: 'Bridge Edge', desc: 'Bridge end decoration (static)' },
   { id: 6, name: 'Breakable Wall', desc: 'Breakable wall segment' },
   { id: 18, name: 'Breakable Wall GH', desc: 'Breakable wall (Green Hill)' },
-  { id: 21, name: 'Steps', desc: 'Step platforms' },
   { id: 3, name: 'Swing', desc: 'Swinging platform' },
-  { id: 7, name: 'Floor Block', desc: 'Solid floor piece' },
-  { id: 29, name: 'Floor Trap', desc: 'Trap floor segment' },
+  { id: 16, name: 'Shima Platform', desc: 'Green Hill floating platform' },
+  { id: 90, name: 'Shima Pillar', desc: 'Tall Green Hill platform variant' },
+  { id: 37, name: 'Kageb Block', desc: 'Green Hill block gimmick' },
+  { id: 58, name: 'Jyama', desc: 'Green Hill gimmick' },
 ];
 
 export const ENEMIES: ObjectDef[] = [
@@ -70,20 +61,10 @@ export const ENEMIES: ObjectDef[] = [
   { id: 86, name: 'Fish Chopper', desc: 'Chopper fish (jumps from water)' },
   { id: 39, name: 'Kamere', desc: 'Chameleon badnik (spits fireballs)' },
   { id: 57, name: 'Kani', desc: 'Crab badnik (walks and pinches)' },
-  { id: 74, name: 'Uni', desc: 'Unibadnik (crawls on surfaces)' },
-  { id: 51, name: 'Buta', desc: 'Pig badnik (charges forward)' },
-  { id: 50, name: 'Brobo', desc: 'Robot badnik (shoots projectiles)' },
-  { id: 49, name: 'Imo', desc: 'Caterpillar badnik (segmented)' },
-  { id: 70, name: 'Armadillo', desc: 'Armadillo badnik (rolls and charges)' },
-  { id: 71, name: 'Yado', desc: 'Hermit-crab badnik (retreats to shell)' },
-  { id: 78, name: 'Bat', desc: 'Bat badnik (flies in swooping arcs)' },
-  { id: 81, name: 'Mogura', desc: 'Mole badnik (pops from ground)' },
-  { id: 25, name: 'Pata', desc: 'Flap enemy (hovers and drops)' },
-  { id: 28, name: 'Mawaru', desc: 'Spinner badnik (rotates in place)' },
 ];
 
 // Per-zone enemy subsets (zone 7 / custom = Green Hill set)
-export const ZONE_ENEMIES: number[] = [41, 40, 86, 39, 57, 74, 51, 50, 49, 70, 71, 78, 81, 25, 28];
+export const ZONE_ENEMIES: number[] = [41, 40, 86, 39, 57];
 
 // --- Block spritesheet layout ---
 export const SHEET_SIZE = 4096;
