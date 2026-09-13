@@ -23,14 +23,20 @@ export interface SpritePart {
   sx: number; sy: number; w: number; h: number; // source cell, native px
   ox: number; oy: number; // anchor-point offset from object origin, game px
   anchor: Anchor;
+  rot?: 0 | 90 | 180 | 270; // clockwise transform about the anchor (TRANS_ROT*)
+  flip?: boolean; // horizontal mirror about the anchor, applied before rot
 }
 
 const D = '/games/swf/52/res/images/default/';
 const G = '/games/swf/52/res/images/zone_greenhill/';
 
 function p(img: string, sx: number, sy: number, w: number, h: number,
-           ox: number, oy: number, anchor: Anchor): SpritePart {
-  return { img, sx, sy, w, h, ox, oy, anchor };
+           ox: number, oy: number, anchor: Anchor,
+           rot?: 0 | 90 | 180 | 270, flip?: boolean): SpritePart {
+  const part: SpritePart = { img, sx, sy, w, h, ox, oy, anchor };
+  if (rot) part.rot = rot;
+  if (flip) part.flip = flip;
+  return part;
 }
 
 // Bridge/pole rows: 12 segments spanning x-96..x+80 (game draws the row
@@ -65,7 +71,9 @@ export const SPRITES: Record<number, SpritePart[]> = {
   47: [p(D + 'ring_large.png', 0, 0, 64, 256, 0, 0, 'center')],
   // Springs idle (spring_draw case 0, frame 0): BOTTOM|HCENTER at (x, y+8)
   2: [p(D + 'sjump.png', 0, 0, 32, 16, 0, 8, 'bottomcenter')], // framedata[2][0]
-  153: [p(D + 'sjump2.png', 0, 0, 32, 16, 0, 8, 'bottomcenter')], // framedata[153][0]
+  // NOTE: type 153 has NO case in callObjectDraw/move/draw — dead in-game.
+  // Yellow springs are type 2 with sub%16==2 (springParts); 153 gets no art
+  // so the editor shows an honest invisible-marker instead of fake art.
   // Spikes default (var 0): full sheet centered (spike_draw else-branch)
   9: [p(D + 'toge.png', 0, 0, 40, 32, 0, 0, 'center')],
   // Tall bridge: 12 animated 16x24 segments, idle row 0 (thorn_draw)
@@ -74,13 +82,10 @@ export const SPRITES: Record<number, SpritePart[]> = {
   5: row(G + 'hashi.png', 32, 0, 16, 16),
   // Breakable wall idle: whole 96x96 sheet, center at (x, y-8) (break_draw)
   6: [p(G + 'break.png', 0, 0, 96, 96, 0, -8, 'center')],
-  // GH breakable idle (var 0): two 16x16 columns, TOP|LEFT (breakable_draw)
-  18: [
-    p(G + 'brkabe_g.png', 0, 0, 16, 16, -16, -32, 'topleft'),
-    p(G + 'brkabe_g.png', 16, 0, 16, 16, 0, -32, 'topleft'),
-  ],
-  // Swing seat (GH branch): cell (16,16,16,16) at origin (swinging_platform_draw)
-  3: [p(D + 'buranko.png', 16, 16, 16, 16, 0, 0, 'center')],
+  // GH breakable idle (var 0): two 16x16 columns x4 rows, TOP|LEFT (breakable_draw)
+  18: breakableParts(0),
+  // Swing at rest: pivot + chains + seat (swinging_platform_draw, GH branch)
+  3: swingParts(0),
   // GH-native gimmicks: all placed by stock ZONE1ACT, art registered for custom
   16: [p(G + 'shima.png', 0, 0, 64, 32, 0, 0, 'center')], // shima_draw idle (variant 0)
   90: [p(G + 'shima.png', 0, 0, 64, 32, 0, 0, 'center')], // shima2_nflag_draw -> shima_draw
@@ -106,7 +111,139 @@ export const SPRITES: Record<number, SpritePart[]> = {
   57: [p(G + 'kani.png', 0, 0, 48, 32, 0, 0, 'center')], // framedata[57][0]
 };
 
-// Ring fan-out per addObjectSet: one entry spawns 1+sub rings stepped by layout.
+// ── Sub-variant art (sub = ACT byte 6, variant = ACT byte 4) ──
+
+// Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
+// sub%16==2 yellow art + weak bounce; sideways variant 0 faces right
+// (TRANS_ROT90), variant 1 faces left (TRANS_MIRROR_ROT270) — verified
+// against spring_move push directions. Idle frame 0 (32x16 cap).
+function springParts(sub: number, variant: number): SpritePart[] {
+  const img = sub % 16 === 2 ? D + 'sjump2.png' : D + 'sjump.png';
+  const ori = Math.floor(sub / 16);
+  if (ori === 1) {
+    return variant === 0
+      ? [p(img, 0, 0, 32, 16, 0, 0, 'center', 90)]
+      : [p(img, 0, 0, 32, 16, 0, 0, 'center', 270, true)];
+  }
+  if (ori >= 2) return [p(img, 0, 0, 32, 16, 0, 0, 'center', 180, true)];
+  return [p(img, 0, 0, 32, 16, 0, 8, 'bottomcenter')];
+}
+
+// Spikes (type 9): width/orientation by sub, facing/upside-down by variant.
+function spikeParts(sub: number, variant: number): SpritePart[] {
+  const T = D + 'toge.png';
+  const U = variant === 2; // TRANS_ROT180 wrap over floor layouts
+  const R180 = U ? 180 as const : undefined;
+  if (sub === 48) {
+    return [-24, 0, 24].map(ox => p(T, 0, 0, 8, 32, ox, 0, 'center', R180));
+  }
+  if (sub === 64) {
+    const parts: SpritePart[] = [];
+    for (let i = 0; i < 6; i++) parts.push(p(T, 16, 0, 8, 32, -60 + i * 24, 0, 'center', R180));
+    return parts;
+  }
+  if (sub === 16 || sub === 18) {
+    return [p(T, 0, 0, 40, 32, -16, -20, 'topleft', variant === 0 ? 270 : 90)];
+  }
+  if (sub === 82) {
+    return variant === 0
+      ? [p(T, 16, 0, 8, 32, -16, -4, 'topleft', 270, true)]
+      : [p(T, 16, 0, 8, 32, -16, -4, 'topleft', 90)];
+  }
+  if (sub === 32) return [p(T, 16, 0, 8, 32, 0, 0, 'center', R180)];
+  return [p(T, 0, 0, 40, 32, 0, 0, 'center', R180)];
+}
+
+// Swing (type 3): pivot + sub chain links + seat hanging at rest (straight
+// down). Game loop draws links i=1..sub at (x, y+i*16) and the seat at
+// (x, y+(sub+1)*16-8); pivot cell (16,16) sits at the origin. GH branch
+// cells: pivot (16,16,16,16), chain (16,32,16,16), seat (0,0,48,16).
+// variant 1 / sub 5 only reverse the swing direction (same idle art).
+function swingParts(sub: number): SpritePart[] {
+  const B = D + 'buranko.png';
+  const parts: SpritePart[] = [p(B, 16, 16, 16, 16, 0, 0, 'center')];
+  const n = Math.max(0, sub);
+  for (let i = 1; i <= n; i++) parts.push(p(B, 16, 32, 16, 16, 0, i * 16, 'center'));
+  parts.push(p(B, 0, 0, 48, 16, 0, (n + 1) * 16 - 8, 'center'));
+  return parts;
+}
+
+// Monitor icon rows: sub -> sheet row (item_nflag_ike_itemTable).
+// sub 0 (spent/dead) and sub >= 7 draw nothing in-game (null).
+// Dud (table row 8) is a half-height box (0,256,32,16) at y+8, no icon.
+const ITEM_ROWS = [8, 0, 4, 3, 2, 1, 0];
+function monitorParts(sub: number): SpritePart[] | null {
+  if (sub <= 0 || sub >= 7) return null;
+  const row = ITEM_ROWS[sub] ?? 0;
+  if (row === 8) return [p(D + 'item.png', 0, 256, 32, 16, 0, 8, 'center')];
+  return [
+    p(D + 'item.png', 0, row * 32, 32, 32, 0, 0, 'center'),
+    p(D + 'item.png', 8, row * 32 + 7, 16, 14, 0, 0, 'center'),
+  ];
+}
+
+// GH breakable wall (type 18): 2 columns x 4 rows of 16x16 cells.
+// Left column cell: sub==0 ? 0 : 1; right column cell: sub==2 ? 2 : 1.
+// (breakable_draw; unknown subs fall back to the sub-1 look.)
+function breakableParts(sub: number): SpritePart[] {
+  const B = G + 'brkabe_g.png';
+  const left = sub === 0 ? 0 : 16;
+  const right = sub === 2 ? 32 : 16;
+  const parts: SpritePart[] = [];
+  for (let r = 0; r < 4; r++) {
+    parts.push(p(B, left, 0, 16, 16, -16, -32 + r * 16, 'topleft'));
+    parts.push(p(B, right, 0, 16, 16, 0, -32 + r * 16, 'topleft'));
+  }
+  return parts;
+}
+
+// Sub-indexed art: type -> sub -> parts (motion-only subs fall back to base).
+const SUBSPRITES: Record<number, Record<number, SpritePart[]>> = {
+  // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
+  42: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
+  43: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
+  // Buttons 45/46 art rows (shared bonus_draw)
+  45: {
+    0: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
+    1: [p(D + 'bten.png', 0, 48, 32, 24, 0, 0, 'center')],
+    2: [p(D + 'bten.png', 0, 24, 32, 24, 0, 0, 'center')],
+    3: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
+  },
+  46: {
+    0: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
+    1: [p(D + 'bten.png', 0, 48, 32, 24, 0, 0, 'center')],
+    2: [p(D + 'bten.png', 0, 24, 32, 24, 0, 0, 'center')],
+    3: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
+  },
+  // Shima tall pillar (sub 16): top + 6 stacked segments (shima_draw)
+  16: {
+    16: [
+      p(G + 'shima.png', 0, 32, 64, 48, 0, 8, 'center'),
+      ...[0, 1, 2, 3, 4, 5].map(i => p(G + 'shima.png', 0, 64, 64, 16, 0, 40 + i * 16, 'center')),
+    ],
+  },
+  90: {
+    16: [
+      p(G + 'shima.png', 0, 32, 64, 48, 0, 8, 'center'),
+      ...[0, 1, 2, 3, 4, 5].map(i => p(G + 'shima.png', 0, 64, 64, 16, 0, 40 + i * 16, 'center')),
+    ],
+  },
+  // Kageb frames (sub -> sheet frame; 0-2 solid, 16-18 decor)
+  37: {
+    0: [p(G + 'kageb.png', 0, 0, 16, 64, 0, 0, 'center')],
+    1: [p(G + 'kageb.png', 16, 0, 16, 64, 0, 0, 'center')],
+    2: [p(G + 'kageb.png', 32, 0, 16, 64, 0, 0, 'center')],
+    16: [p(G + 'kageb.png', 48, 0, 16, 64, 0, 0, 'center')],
+    17: [p(G + 'kageb.png', 64, 0, 16, 64, 0, 0, 'center')],
+    18: [p(G + 'kageb.png', 80, 0, 16, 64, 0, 0, 'center')],
+  },
+  // Breakable GH debris styles (left/right column cells; full 2x4 stack)
+  18: {
+    0: breakableParts(0),
+    1: breakableParts(1),
+    2: breakableParts(2),
+  },
+};
 // (sub is read signed in-game; clamp to the 0..127 range the engine honors.)
 export function ringParts(type: number, sub: number): SpritePart[] {
   const base = SPRITES[type][0];
@@ -126,10 +263,26 @@ export function ringParts(type: number, sub: number): SpritePart[] {
 
 const RING_TYPES = new Set([0, 1, 63, 64, 65, 66, 67, 68, 69]);
 
-/** Full part list for a placed object (with ring expansion). */
-export function partsFor(type: number, sub: number): SpritePart[] | null {
+/** Full part list for a placed object (with ring expansion + sub/variant art).
+ *  Returns null when the game itself draws nothing for the combination
+ *  (dead type, spent monitor, out-of-range sub) so callers show a marker. */
+export function partsFor(type: number, sub = 0, variant = 0): SpritePart[] | null {
   if (!(type in SPRITES)) return null;
   if (RING_TYPES.has(type)) return ringParts(type, sub);
+  if (type === 2) return springParts(sub, variant);
+  if (type === 9) return spikeParts(sub, variant);
+  if (type === 3) return swingParts(sub);
+  if (type === 42 || type === 43) return monitorParts(sub);
+  if (type === 45 || type === 46) {
+    const table = SUBSPRITES[type];
+    return table[sub] ?? table[2]; // unknown subs share the row-24 look
+  }
+  if (type === 16 || type === 90) {
+    if (sub === 16) return SUBSPRITES[type][16];
+    return SPRITES[type]; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
+  }
+  if (type === 37) return SUBSPRITES[37][sub] ?? SPRITES[37]; // gate subs -> frame 0
+  if (type === 18) return breakableParts(sub);
   return SPRITES[type];
 }
 
@@ -149,9 +302,18 @@ export function spriteImg(url: string): HTMLImageElement {
 
 /** Kick off loads for every registered sprite; redraw after each arrives. */
 export function preloadSprites(onOneReady: () => void) {
-  const urls = new Set<string>();
+  const urls = new Set<string>([
+    // Dynamically resolved by springParts() (sub%16==2) — referenced by no
+    // static table since the dead type-153 entry was removed.
+    D + 'sjump2.png',
+  ]);
   for (const t of Object.keys(SPRITES)) {
     for (const part of SPRITES[Number(t)]) urls.add(part.img);
+  }
+  for (const t of Object.keys(SUBSPRITES)) {
+    for (const s of Object.keys(SUBSPRITES[Number(t)])) {
+      for (const part of SUBSPRITES[Number(t)][Number(s)]) urls.add(part.img);
+    }
   }
   for (const url of urls) {
     const img = spriteImg(url);
@@ -160,15 +322,31 @@ export function preloadSprites(onOneReady: () => void) {
   }
 }
 
+/** Corners of a part in game px relative to the object origin,
+ *  with flip/rot applied about the anchor (matches drawParts). */
+function partCorners(part: SpritePart): [number, number][] {
+  let x0 = 0, y0 = 0, x1 = part.w, y1 = part.h;
+  if (part.anchor === 'center') { x0 = -part.w / 2; y0 = -part.h / 2; x1 = part.w / 2; y1 = part.h / 2; }
+  else if (part.anchor === 'bottomcenter') { x0 = -part.w / 2; y0 = -part.h; x1 = part.w / 2; y1 = 0; }
+  const pts: [number, number][] = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]];
+  return pts.map(([x, y]): [number, number] => {
+    if (part.flip) x = -x;
+    const r = part.rot ?? 0;
+    if (r === 90) [x, y] = [-y, x];
+    else if (r === 180) [x, y] = [-x, -y];
+    else if (r === 270) [x, y] = [y, -x];
+    return [part.ox + x, part.oy + y];
+  });
+}
+
 /** Bounding box of parts in game px, relative to object origin. */
 export function spriteBBox(parts: SpritePart[]): { x: number; y: number; w: number; h: number } {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const part of parts) {
-    let px = part.ox, py = part.oy;
-    if (part.anchor === 'center') { px -= part.w / 2; py -= part.h / 2; }
-    else if (part.anchor === 'bottomcenter') { px -= part.w / 2; py -= part.h; }
-    x0 = Math.min(x0, px); y0 = Math.min(y0, py);
-    x1 = Math.max(x1, px + part.w); y1 = Math.max(y1, py + part.h);
+    for (const [px, py] of partCorners(part)) {
+      x0 = Math.min(x0, px); y0 = Math.min(y0, py);
+      x1 = Math.max(x1, px); y1 = Math.max(y1, py);
+    }
   }
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
@@ -192,6 +370,28 @@ export function drawParts(
     if (!img.complete || img.naturalWidth === 0) continue;
     const ax = (gx + part.ox) * k, ay = (gy + part.oy) * k;
     const dw = part.w * k, dh = part.h * k;
+    if (part.rot || part.flip) {
+      // Transform about the anchor point (game TRANS_* semantics:
+      // TRANS_MIRROR_ROTx mirrors first, then rotates, so the canvas
+      // calls go rotate-then-scale — canvas composes right-to-left).
+      // NOTE: draw the UNSWAPPED w×h rect in the rotated frame — the
+      // canvas rotation itself produces the on-screen h×w extents
+      // (matches drawRegion, whose anchor math also uses the unrotated
+      // w/h). Pre-swapping rw/rh here would cancel the rotation and
+      // draw sideways springs (32×16 cell, rot 90) as a flat 32×16
+      // instead of the correct tall 16×32.
+      ctx.save();
+      ctx.translate(ax, ay);
+      if (part.rot) ctx.rotate(part.rot * Math.PI / 180);
+      if (part.flip) ctx.scale(-1, 1);
+      const rw = dw, rh = dh;
+      let rx = 0, ry = 0;
+      if (part.anchor === 'center') { rx = -rw / 2; ry = -rh / 2; }
+      else if (part.anchor === 'bottomcenter') { rx = -rw / 2; ry = -rh; }
+      ctx.drawImage(img, part.sx, part.sy, part.w, part.h, rx, ry, rw, rh);
+      ctx.restore();
+      continue;
+    }
     let dx = ax, dy = ay;
     if (part.anchor === 'center') { dx = ax - dw / 2; dy = ay - dh / 2; }
     else if (part.anchor === 'bottomcenter') { dx = ax - dw / 2; dy = ay - dh; }
@@ -241,20 +441,26 @@ export function paintThumb(
 
 // Enemy types whose draw routine mirrors by facing (drawChara / hachi_draw):
 // variant byte (objectData[19]) != 0 draws TRANS_MIRRORED in-game.
+// Plus static mirror rules verified in draw code:
+//   - type 38 (bridge_edge_draw): variant 0 draws TRANS_MIRROR, else normal.
+//   - type 6 (break_draw): sub != 0 draws TRANS_MIRROR debris.
 const FACING_TYPES = new Set([39, 40, 41, 57, 86]);
 
-/** True when the game draws this enemy mirrored (right-facing subtype). */
-export function isMirrored(type: number, variant: number): boolean {
-  return FACING_TYPES.has(type) && variant !== 0;
+/** True when the game draws this object mirrored for the given subtype. */
+export function isMirrored(type: number, variant: number, sub = 0): boolean {
+  if (FACING_TYPES.has(type)) return variant !== 0;
+  if (type === 38) return variant === 0;
+  if (type === 6) return sub !== 0;
+  return false;
 }
 
 const thumbURLCache = new Map<string, string>();
 
 /** Cached dataURL of the 3x composite (for the drag ghost). Null until loaded. */
-export function spriteThumbURL(typeId: number, mirror = false): string | null {
-  const parts = partsFor(typeId, 0);
+export function spriteThumbURL(typeId: number, sub = 0, variant = 0, mirror = false): string | null {
+  const parts = partsFor(typeId, sub, variant);
   if (!parts) return null;
-  const key = `${typeId}:${mirror ? 1 : 0}`;
+  const key = `${typeId}:${sub}:${variant}:${mirror ? 1 : 0}`;
   const hit = thumbURLCache.get(key);
   if (hit) return hit;
   const cvs = document.createElement('canvas');

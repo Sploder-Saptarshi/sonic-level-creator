@@ -122,7 +122,7 @@ export const EDITOR_HTML = `
         <button class="act-btn" data-action="test">Test Level</button>
         <button class="act-btn" data-action="save">Save</button>
         <button class="act-btn" data-action="fullscreen">Go Fullscreen</button>
-        <div class="status">Ready</div>
+        <div class="status">Ready — editor build 20260913T1849</div>
       </div>
     </div>
   </div>

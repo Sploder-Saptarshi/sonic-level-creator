@@ -6,7 +6,7 @@ import {
   pixelToTile, objectsInTile, setStatus, updateDesc,
 } from './state';
 import { draw } from './render';
-import { partsFor, paintThumb } from './sprites';
+import { partsFor, paintThumb, isMirrored } from './sprites';
 
 export function updateCounter() {
   if (!S.counterEl) return;
@@ -51,14 +51,17 @@ export function buildThumbnails() {
   } else {
     for (const def of defsForTab(activeTab)) {
       const el = document.createElement('div');
-      const noArt = !partsFor(def.id, 0);
+      const sub = def.sub ?? 0, variant = def.variant ?? 0;
+      const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
+      const noArt = !partsFor(def.id, sub, variant);
       el.title = def.desc + (noArt ? ' (invisible in-game: no art in this zone)' : '');
-      const parts = partsFor(def.id, 0);
+      const parts = partsFor(def.id, sub, variant);
+      let cvs: HTMLCanvasElement | null = null;
       if (parts) {
         // True-sprite thumbnail (transparent bg, 1x integer scale, pixel-crisp)
         el.className = 'thumb thumb-obj';
-        const cvs = document.createElement('canvas');
-        paintThumb(cvs.getContext('2d')!, parts, 1, !!def.mirror);
+        cvs = document.createElement('canvas');
+        paintThumb(cvs.getContext('2d')!, parts, 1, mirror);
         el.appendChild(cvs);
       } else {
         // Game-invisible type (no zone art / no draw routine): labeled box
@@ -75,6 +78,18 @@ export function buildThumbnails() {
         draw();
       });
       thumbstrip.appendChild(el);
+      if (cvs) {
+        // Deterministic 1x sizing with proportional shrink-only, measured
+        // from the live box (post-append, so layout is real): immune to
+        // flex/aspect-ratio/max-clamp quirks, so art can never be
+        // squeezed on one axis.
+        const boxH = el.clientHeight - 2, boxW = el.clientWidth - 2;
+        if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
+          const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
+          cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + 'px';
+          cvs.style.height = Math.max(1, Math.floor(cvs.height * s)) + 'px';
+        }
+      }
     }
   }
 }

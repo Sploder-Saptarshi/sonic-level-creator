@@ -42,23 +42,88 @@
     { id: 69, name: "Ring Vert 32", desc: "Vertical ring line 32px", isRing: true, ringLayout: 69 }
   ];
   var OBJECTS = [
-    { id: 2, name: "Red Spring", desc: "Red spring pad (bounces up)" },
-    { id: 153, name: "Yellow Spring", desc: "Yellow spring pad (bounces up)" },
-    { id: 9, name: "Spikes", desc: "Spike trap" },
-    { id: 15, name: "Switch", desc: "Activates connected objects" },
-    { id: 45, name: "Button", desc: "Button / base plate" },
-    { id: 46, name: "Bten Switch", desc: "Button variant (drawn in-game only when sub=1)" },
-    { id: 42, name: "Item Pickup", desc: "Monitor power-up placed directly" },
-    { id: 43, name: "Item Pickup S", desc: "Monitor power-up placed directly (stock GH uses this)" },
-    { id: 4, name: "Tall Bridge", desc: "Tall bridge / pole" },
-    { id: 5, name: "Bridge", desc: "Standard bridge" },
-    { id: 38, name: "Bridge Edge", desc: "Bridge end decoration (static)" },
-    { id: 6, name: "Breakable Wall", desc: "Breakable wall segment" },
-    { id: 18, name: "Breakable Wall GH", desc: "Breakable wall (Green Hill)" },
-    { id: 3, name: "Swing", desc: "Swinging platform" },
-    { id: 16, name: "Shima Platform", desc: "Green Hill floating platform" },
-    { id: 90, name: "Shima Pillar", desc: "Tall Green Hill platform variant" },
-    { id: 37, name: "Kageb Block", desc: "Green Hill block gimmick" },
+    // Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
+    // sub%16==2 yellow art + weak bounce; sideways facing by variant.
+    // Stock GH: yellow-up x15, red-side-R (16,1) x6.
+    { id: 2, name: "Red Spring", desc: "Red spring pad (bounces up)", sub: 0 },
+    { id: 2, name: "Yellow Spring", desc: "Yellow spring pad, weak bounce (stock GH)", sub: 2 },
+    { id: 2, name: "Red Spring R", desc: "Sideways red spring (faces right)", variant: 0, sub: 16 },
+    { id: 2, name: "Red Spring L", desc: "Sideways red spring (faces left, stock GH)", variant: 1, sub: 16 },
+    { id: 2, name: "Yellow Spring R", desc: "Sideways yellow spring, weak (faces right)", variant: 0, sub: 18 },
+    { id: 2, name: "Yellow Spring L", desc: "Sideways yellow spring, weak (faces left)", variant: 1, sub: 18 },
+    { id: 2, name: "Red Spring Down", desc: "Ceiling red spring (bounces down)", sub: 32 },
+    { id: 2, name: "Yellow Spring Down", desc: "Ceiling yellow spring, weak", sub: 34 },
+    // Spikes (type 9): width/orientation by sub; variant 2 = ceiling (ROT180),
+    // wall subs (16/18/82) face by variant 0/1. Stock GH: 0/32/48/64 + one 16.
+    { id: 9, name: "Spikes", desc: "Spike trap (floor, stock GH)", sub: 0 },
+    { id: 9, name: "Spikes Ceiling", desc: "Spike trap (ceiling, variant 2)", variant: 2, sub: 0 },
+    { id: 9, name: "Spikes Narrow", desc: "Single-column spikes (stock GH)", sub: 32 },
+    { id: 9, name: "Spikes Triple", desc: "Triple spikes (stock GH)", sub: 48 },
+    { id: 9, name: "Spikes Wide", desc: "Six-column spikes (stock GH)", sub: 64 },
+    { id: 9, name: "Spikes Wall L", desc: "Wall spikes (faces left, stock GH)", variant: 0, sub: 16 },
+    { id: 9, name: "Spikes Wall R", desc: "Wall spikes (faces right)", variant: 1, sub: 16 },
+    { id: 9, name: "Spikes Wall 18", desc: "Wall spikes, sub 18 (collision unverified)", variant: 0, sub: 18 },
+    { id: 9, name: "Spikes Single L", desc: "Single wall spike (faces left)", variant: 0, sub: 82 },
+    { id: 9, name: "Spikes Single R", desc: "Single wall spike (faces right)", variant: 1, sub: 82 },
+    // Switch (type 15): sub = switchflag index it drives. No stock GH usage.
+    { id: 15, name: "Switch 0", desc: "Switch driving flag 0", sub: 0 },
+    { id: 15, name: "Switch 1", desc: "Switch driving flag 1", sub: 1 },
+    { id: 15, name: "Switch 2", desc: "Switch driving flag 2", sub: 2 },
+    // Buttons (type 45): sub selects art row (0/3 row 0, 1 row 2, else row 1).
+    // Invisible in-game until touched; editor previews idle art. Stock GH: 1/2/3.
+    { id: 45, name: "Button 1", desc: "Button sub 1 (stock GH; shows when touched)", sub: 1 },
+    { id: 45, name: "Button 2", desc: "Button sub 2 (stock GH; shows when touched)", sub: 2 },
+    { id: 45, name: "Button 3", desc: "Button sub 3 (stock GH; shows when touched)", sub: 3 },
+    { id: 46, name: "Bten Switch", desc: "Button variant (shows in-game only when touched)", sub: 1 },
+    // Monitors (type 43 = stock GH flavor): sub = contents
+    // (1 dud, 2 1UP, 3 speed, 4 shield, 5 invinc, 6 rings; 0 dead, 7+ invisible).
+    { id: 43, name: "Monitor Dud", desc: "Empty monitor (stock art row 0)", sub: 1 },
+    { id: 43, name: "Monitor 1UP", desc: "Extra-life monitor (stock GH)", sub: 2 },
+    { id: 43, name: "Monitor Speed", desc: "Speed-shoes monitor (stock GH)", sub: 3 },
+    { id: 43, name: "Monitor Shield", desc: "Shield monitor (stock GH)", sub: 4 },
+    { id: 43, name: "Monitor Invinc", desc: "Invincibility monitor (stock GH)", sub: 5 },
+    { id: 43, name: "Monitor Rings", desc: "10-rings monitor (stock GH)", sub: 6 },
+    { id: 42, name: "Item Pickup", desc: "Monitor power-up placed directly (rings)", sub: 6 },
+    // Tall bridge (type 4, stock sub 16) / standard bridge (type 5, stock sub 12)
+    { id: 4, name: "Tall Bridge", desc: "Tall bridge / pole (stock GH sub 16)", sub: 16 },
+    { id: 5, name: "Bridge", desc: "Standard bridge (stock GH sub 12)", sub: 12 },
+    // Bridge edge (type 38, stock sub 3): variant 0 mirrored, else normal.
+    { id: 38, name: "Bridge Edge L", desc: "Bridge end, mirrored (stock GH)", variant: 0, mirror: true, sub: 3 },
+    { id: 38, name: "Bridge Edge R", desc: "Bridge end, normal (stock GH)", variant: 1, sub: 3 },
+    // Breakable wall (type 6): sub != 0 mirrors debris. Stock: (0,0) + (1,1).
+    { id: 6, name: "Breakable Wall", desc: "Breakable wall segment (stock GH)", sub: 0 },
+    { id: 6, name: "Breakable Wall M", desc: "Breakable wall, mirrored debris (stock GH)", variant: 1, mirror: true, sub: 1 },
+    // GH breakable (type 18): sub 0/1/2 visual styles, all in stock GH.
+    { id: 18, name: "Break Wall A", desc: "GH breakable wall, style A (stock GH)", sub: 0 },
+    { id: 18, name: "Break Wall B", desc: "GH breakable wall, style B (stock GH)", sub: 1 },
+    { id: 18, name: "Break Wall C", desc: "GH breakable wall, style C (stock GH)", sub: 2 },
+    // Swing (type 3): sub = chain length - 1 (stock 6/7/8); sub 5 or
+    // variant 1 reverses swing direction (same idle art).
+    { id: 3, name: "Swing S", desc: "Swinging platform, short (stock GH sub 6)", sub: 6 },
+    { id: 3, name: "Swing M", desc: "Swinging platform, medium (stock GH sub 7)", sub: 7 },
+    { id: 3, name: "Swing L", desc: "Swinging platform, long (stock GH sub 8)", sub: 8 },
+    { id: 3, name: "Swing Reverse", desc: "Short swing, reversed direction (variant 1)", variant: 1, sub: 6 },
+    // Shima platforms (type 16): motion by sub (same idle art except pillar).
+    // Stock 16: 0/1/2/3/5/6. Pillar art only for sub 16.
+    { id: 16, name: "Shima Platform", desc: "GH floating platform, static", sub: 0 },
+    { id: 16, name: "Shima Mover H", desc: "Platform moving horizontally (stock GH)", sub: 1 },
+    { id: 16, name: "Shima Mover V", desc: "Platform moving vertically (stock GH)", sub: 2 },
+    { id: 16, name: "Shima Crumble", desc: "Crumbling platform (stock GH)", sub: 3 },
+    { id: 16, name: "Shima Pillar", desc: "Tall pillar platform (sub 16 art)", sub: 16 },
+    { id: 16, name: "Shima Switch", desc: "Switch-rise platform (flag 128)", sub: 7 },
+    // Shima variant (type 90): stock subs 1/2/3/5/16.
+    { id: 90, name: "Shima2 Mover H", desc: "Tall platform moving horizontally (stock GH)", sub: 1 },
+    { id: 90, name: "Shima2 Mover V", desc: "Tall platform moving vertically (stock GH)", sub: 2 },
+    { id: 90, name: "Shima2 Crumble", desc: "Tall crumbling platform (stock GH)", sub: 3 },
+    { id: 90, name: "Shima2 Pillar", desc: "Tall pillar platform (stock GH sub 16 art)", sub: 16 },
+    // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
+    // All six in stock GH; other subs < 16 fall back to frame 0 art.
+    { id: 37, name: "Kageb A", desc: "GH block, solid frame 0 (stock GH)", sub: 0 },
+    { id: 37, name: "Kageb B", desc: "GH block, solid frame 1 (stock GH)", sub: 1 },
+    { id: 37, name: "Kageb C", desc: "GH block, solid frame 2 (stock GH)", sub: 2 },
+    { id: 37, name: "Kageb Decor A", desc: "GH block, decor frame 3 (stock GH)", sub: 16 },
+    { id: 37, name: "Kageb Decor B", desc: "GH block, decor frame 4 (stock GH)", sub: 17 },
+    { id: 37, name: "Kageb Decor C", desc: "GH block, decor frame 5 (stock GH)", sub: 18 },
     { id: 58, name: "Jyama", desc: "Green Hill gimmick" }
   ];
   var ENEMIES = [
@@ -69,6 +134,8 @@
     { id: 86, name: "Fish Chopper", desc: "Chopper fish (jumps from water)" },
     { id: 39, name: "Kamere", desc: "Chameleon badnik (faces left)" },
     { id: 39, name: "Kamere R", desc: "Chameleon badnik (faces right)", variant: 1, mirror: true },
+    { id: 39, name: "Kamere Turret", desc: "Chameleon turret, stationary (faces left)", sub: 1 },
+    { id: 39, name: "Kamere Turret R", desc: "Chameleon turret, stationary (faces right)", variant: 1, mirror: true, sub: 1 },
     { id: 57, name: "Kani", desc: "Crab badnik (walks left)" },
     { id: 57, name: "Kani R", desc: "Crab badnik (walks right)", variant: 1, mirror: true }
   ];
@@ -231,8 +298,15 @@
     for (const row2 of S.grid) for (const id of row2) if (id > 0) c++;
     return c;
   }
-  function findDef(typeId) {
-    for (const arr of [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES])
+  function findDef(typeId, variant, sub) {
+    var _a, _b;
+    const pools = [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES];
+    if (variant !== void 0 || sub !== void 0) {
+      for (const arr of pools)
+        for (const d of arr)
+          if (d.id === typeId && (variant === void 0 || ((_a = d.variant) != null ? _a : 0) === variant) && (sub === void 0 || ((_b = d.sub) != null ? _b : 0) === sub)) return d;
+    }
+    for (const arr of pools)
       for (const d of arr) if (d.id === typeId) return d;
     return null;
   }
@@ -359,7 +433,7 @@ canvas.display { display: block; cursor: crosshair; }
         <button class="act-btn" data-action="test">Test Level</button>
         <button class="act-btn" data-action="save">Save</button>
         <button class="act-btn" data-action="fullscreen">Go Fullscreen</button>
-        <div class="status">Ready</div>
+        <div class="status">Ready \u2014 editor build 20260913T1849</div>
       </div>
     </div>
   </div>
@@ -379,8 +453,11 @@ canvas.display { display: block; cursor: crosshair; }
   // ts/sprites.ts
   var D = "/games/swf/52/res/images/default/";
   var G = "/games/swf/52/res/images/zone_greenhill/";
-  function p(img, sx, sy, w, h, ox, oy, anchor) {
-    return { img, sx, sy, w, h, ox, oy, anchor };
+  function p(img, sx, sy, w, h, ox, oy, anchor, rot, flip) {
+    const part = { img, sx, sy, w, h, ox, oy, anchor };
+    if (rot) part.rot = rot;
+    if (flip) part.flip = flip;
+    return part;
   }
   function row(img, sx, sy, w, h) {
     const parts = [];
@@ -414,8 +491,9 @@ canvas.display { display: block; cursor: crosshair; }
     // Springs idle (spring_draw case 0, frame 0): BOTTOM|HCENTER at (x, y+8)
     2: [p(D + "sjump.png", 0, 0, 32, 16, 0, 8, "bottomcenter")],
     // framedata[2][0]
-    153: [p(D + "sjump2.png", 0, 0, 32, 16, 0, 8, "bottomcenter")],
-    // framedata[153][0]
+    // NOTE: type 153 has NO case in callObjectDraw/move/draw — dead in-game.
+    // Yellow springs are type 2 with sub%16==2 (springParts); 153 gets no art
+    // so the editor shows an honest invisible-marker instead of fake art.
     // Spikes default (var 0): full sheet centered (spike_draw else-branch)
     9: [p(D + "toge.png", 0, 0, 40, 32, 0, 0, "center")],
     // Tall bridge: 12 animated 16x24 segments, idle row 0 (thorn_draw)
@@ -424,13 +502,10 @@ canvas.display { display: block; cursor: crosshair; }
     5: row(G + "hashi.png", 32, 0, 16, 16),
     // Breakable wall idle: whole 96x96 sheet, center at (x, y-8) (break_draw)
     6: [p(G + "break.png", 0, 0, 96, 96, 0, -8, "center")],
-    // GH breakable idle (var 0): two 16x16 columns, TOP|LEFT (breakable_draw)
-    18: [
-      p(G + "brkabe_g.png", 0, 0, 16, 16, -16, -32, "topleft"),
-      p(G + "brkabe_g.png", 16, 0, 16, 16, 0, -32, "topleft")
-    ],
-    // Swing seat (GH branch): cell (16,16,16,16) at origin (swinging_platform_draw)
-    3: [p(D + "buranko.png", 16, 16, 16, 16, 0, 0, "center")],
+    // GH breakable idle (var 0): two 16x16 columns x4 rows, TOP|LEFT (breakable_draw)
+    18: breakableParts(0),
+    // Swing at rest: pivot + chains + seat (swinging_platform_draw, GH branch)
+    3: swingParts(0),
     // GH-native gimmicks: all placed by stock ZONE1ACT, art registered for custom
     16: [p(G + "shima.png", 0, 0, 64, 32, 0, 0, "center")],
     // shima_draw idle (variant 0)
@@ -466,6 +541,112 @@ canvas.display { display: block; cursor: crosshair; }
     57: [p(G + "kani.png", 0, 0, 48, 32, 0, 0, "center")]
     // framedata[57][0]
   };
+  function springParts(sub, variant) {
+    const img = sub % 16 === 2 ? D + "sjump2.png" : D + "sjump.png";
+    const ori = Math.floor(sub / 16);
+    if (ori === 1) {
+      return variant === 0 ? [p(img, 0, 0, 32, 16, 0, 0, "center", 90)] : [p(img, 0, 0, 32, 16, 0, 0, "center", 270, true)];
+    }
+    if (ori >= 2) return [p(img, 0, 0, 32, 16, 0, 0, "center", 180, true)];
+    return [p(img, 0, 0, 32, 16, 0, 8, "bottomcenter")];
+  }
+  function spikeParts(sub, variant) {
+    const T = D + "toge.png";
+    const U = variant === 2;
+    const R180 = U ? 180 : void 0;
+    if (sub === 48) {
+      return [-24, 0, 24].map((ox) => p(T, 0, 0, 8, 32, ox, 0, "center", R180));
+    }
+    if (sub === 64) {
+      const parts = [];
+      for (let i = 0; i < 6; i++) parts.push(p(T, 16, 0, 8, 32, -60 + i * 24, 0, "center", R180));
+      return parts;
+    }
+    if (sub === 16 || sub === 18) {
+      return [p(T, 0, 0, 40, 32, -16, -20, "topleft", variant === 0 ? 270 : 90)];
+    }
+    if (sub === 82) {
+      return variant === 0 ? [p(T, 16, 0, 8, 32, -16, -4, "topleft", 270, true)] : [p(T, 16, 0, 8, 32, -16, -4, "topleft", 90)];
+    }
+    if (sub === 32) return [p(T, 16, 0, 8, 32, 0, 0, "center", R180)];
+    return [p(T, 0, 0, 40, 32, 0, 0, "center", R180)];
+  }
+  function swingParts(sub) {
+    const B = D + "buranko.png";
+    const parts = [p(B, 16, 16, 16, 16, 0, 0, "center")];
+    const n = Math.max(0, sub);
+    for (let i = 1; i <= n; i++) parts.push(p(B, 16, 32, 16, 16, 0, i * 16, "center"));
+    parts.push(p(B, 0, 0, 48, 16, 0, (n + 1) * 16 - 8, "center"));
+    return parts;
+  }
+  var ITEM_ROWS = [8, 0, 4, 3, 2, 1, 0];
+  function monitorParts(sub) {
+    var _a;
+    if (sub <= 0 || sub >= 7) return null;
+    const row2 = (_a = ITEM_ROWS[sub]) != null ? _a : 0;
+    if (row2 === 8) return [p(D + "item.png", 0, 256, 32, 16, 0, 8, "center")];
+    return [
+      p(D + "item.png", 0, row2 * 32, 32, 32, 0, 0, "center"),
+      p(D + "item.png", 8, row2 * 32 + 7, 16, 14, 0, 0, "center")
+    ];
+  }
+  function breakableParts(sub) {
+    const B = G + "brkabe_g.png";
+    const left = sub === 0 ? 0 : 16;
+    const right = sub === 2 ? 32 : 16;
+    const parts = [];
+    for (let r = 0; r < 4; r++) {
+      parts.push(p(B, left, 0, 16, 16, -16, -32 + r * 16, "topleft"));
+      parts.push(p(B, right, 0, 16, 16, 0, -32 + r * 16, "topleft"));
+    }
+    return parts;
+  }
+  var SUBSPRITES = {
+    // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
+    42: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
+    43: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
+    // Buttons 45/46 art rows (shared bonus_draw)
+    45: {
+      0: [p(D + "bten.png", 0, 0, 32, 24, 0, 0, "center")],
+      1: [p(D + "bten.png", 0, 48, 32, 24, 0, 0, "center")],
+      2: [p(D + "bten.png", 0, 24, 32, 24, 0, 0, "center")],
+      3: [p(D + "bten.png", 0, 0, 32, 24, 0, 0, "center")]
+    },
+    46: {
+      0: [p(D + "bten.png", 0, 0, 32, 24, 0, 0, "center")],
+      1: [p(D + "bten.png", 0, 48, 32, 24, 0, 0, "center")],
+      2: [p(D + "bten.png", 0, 24, 32, 24, 0, 0, "center")],
+      3: [p(D + "bten.png", 0, 0, 32, 24, 0, 0, "center")]
+    },
+    // Shima tall pillar (sub 16): top + 6 stacked segments (shima_draw)
+    16: {
+      16: [
+        p(G + "shima.png", 0, 32, 64, 48, 0, 8, "center"),
+        ...[0, 1, 2, 3, 4, 5].map((i) => p(G + "shima.png", 0, 64, 64, 16, 0, 40 + i * 16, "center"))
+      ]
+    },
+    90: {
+      16: [
+        p(G + "shima.png", 0, 32, 64, 48, 0, 8, "center"),
+        ...[0, 1, 2, 3, 4, 5].map((i) => p(G + "shima.png", 0, 64, 64, 16, 0, 40 + i * 16, "center"))
+      ]
+    },
+    // Kageb frames (sub -> sheet frame; 0-2 solid, 16-18 decor)
+    37: {
+      0: [p(G + "kageb.png", 0, 0, 16, 64, 0, 0, "center")],
+      1: [p(G + "kageb.png", 16, 0, 16, 64, 0, 0, "center")],
+      2: [p(G + "kageb.png", 32, 0, 16, 64, 0, 0, "center")],
+      16: [p(G + "kageb.png", 48, 0, 16, 64, 0, 0, "center")],
+      17: [p(G + "kageb.png", 64, 0, 16, 64, 0, 0, "center")],
+      18: [p(G + "kageb.png", 80, 0, 16, 64, 0, 0, "center")]
+    },
+    // Breakable GH debris styles (left/right column cells; full 2x4 stack)
+    18: {
+      0: breakableParts(0),
+      1: breakableParts(1),
+      2: breakableParts(2)
+    }
+  };
   function ringParts(type, sub) {
     var _a;
     const base = SPRITES[type][0];
@@ -489,9 +670,24 @@ canvas.display { display: block; cursor: crosshair; }
     return parts;
   }
   var RING_TYPES2 = /* @__PURE__ */ new Set([0, 1, 63, 64, 65, 66, 67, 68, 69]);
-  function partsFor(type, sub) {
+  function partsFor(type, sub = 0, variant = 0) {
+    var _a, _b;
     if (!(type in SPRITES)) return null;
     if (RING_TYPES2.has(type)) return ringParts(type, sub);
+    if (type === 2) return springParts(sub, variant);
+    if (type === 9) return spikeParts(sub, variant);
+    if (type === 3) return swingParts(sub);
+    if (type === 42 || type === 43) return monitorParts(sub);
+    if (type === 45 || type === 46) {
+      const table = SUBSPRITES[type];
+      return (_a = table[sub]) != null ? _a : table[2];
+    }
+    if (type === 16 || type === 90) {
+      if (sub === 16) return SUBSPRITES[type][16];
+      return SPRITES[type];
+    }
+    if (type === 37) return (_b = SUBSPRITES[37][sub]) != null ? _b : SPRITES[37];
+    if (type === 18) return breakableParts(sub);
     return SPRITES[type];
   }
   var cache = /* @__PURE__ */ new Map();
@@ -505,9 +701,18 @@ canvas.display { display: block; cursor: crosshair; }
     return img;
   }
   function preloadSprites(onOneReady) {
-    const urls = /* @__PURE__ */ new Set();
+    const urls = /* @__PURE__ */ new Set([
+      // Dynamically resolved by springParts() (sub%16==2) — referenced by no
+      // static table since the dead type-153 entry was removed.
+      D + "sjump2.png"
+    ]);
     for (const t of Object.keys(SPRITES)) {
       for (const part of SPRITES[Number(t)]) urls.add(part.img);
+    }
+    for (const t of Object.keys(SUBSPRITES)) {
+      for (const s of Object.keys(SUBSPRITES[Number(t)])) {
+        for (const part of SUBSPRITES[Number(t)][Number(s)]) urls.add(part.img);
+      }
     }
     for (const url of urls) {
       const img = spriteImg(url);
@@ -515,21 +720,39 @@ canvas.display { display: block; cursor: crosshair; }
       img.onload = onOneReady;
     }
   }
+  function partCorners(part) {
+    let x0 = 0, y0 = 0, x1 = part.w, y1 = part.h;
+    if (part.anchor === "center") {
+      x0 = -part.w / 2;
+      y0 = -part.h / 2;
+      x1 = part.w / 2;
+      y1 = part.h / 2;
+    } else if (part.anchor === "bottomcenter") {
+      x0 = -part.w / 2;
+      y0 = -part.h;
+      x1 = part.w / 2;
+      y1 = 0;
+    }
+    const pts = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]];
+    return pts.map(([x, y]) => {
+      var _a;
+      if (part.flip) x = -x;
+      const r = (_a = part.rot) != null ? _a : 0;
+      if (r === 90) [x, y] = [-y, x];
+      else if (r === 180) [x, y] = [-x, -y];
+      else if (r === 270) [x, y] = [y, -x];
+      return [part.ox + x, part.oy + y];
+    });
+  }
   function spriteBBox(parts) {
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const part of parts) {
-      let px = part.ox, py = part.oy;
-      if (part.anchor === "center") {
-        px -= part.w / 2;
-        py -= part.h / 2;
-      } else if (part.anchor === "bottomcenter") {
-        px -= part.w / 2;
-        py -= part.h;
+      for (const [px, py] of partCorners(part)) {
+        x0 = Math.min(x0, px);
+        y0 = Math.min(y0, py);
+        x1 = Math.max(x1, px);
+        y1 = Math.max(y1, py);
       }
-      x0 = Math.min(x0, px);
-      y0 = Math.min(y0, py);
-      x1 = Math.max(x1, px + part.w);
-      y1 = Math.max(y1, py + part.h);
     }
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
@@ -545,6 +768,24 @@ canvas.display { display: block; cursor: crosshair; }
       if (!img.complete || img.naturalWidth === 0) continue;
       const ax = (gx + part.ox) * k, ay = (gy + part.oy) * k;
       const dw = part.w * k, dh = part.h * k;
+      if (part.rot || part.flip) {
+        ctx.save();
+        ctx.translate(ax, ay);
+        if (part.rot) ctx.rotate(part.rot * Math.PI / 180);
+        if (part.flip) ctx.scale(-1, 1);
+        const rw = dw, rh = dh;
+        let rx = 0, ry = 0;
+        if (part.anchor === "center") {
+          rx = -rw / 2;
+          ry = -rh / 2;
+        } else if (part.anchor === "bottomcenter") {
+          rx = -rw / 2;
+          ry = -rh;
+        }
+        ctx.drawImage(img, part.sx, part.sy, part.w, part.h, rx, ry, rw, rh);
+        ctx.restore();
+        continue;
+      }
       let dx = ax, dy = ay;
       if (part.anchor === "center") {
         dx = ax - dw / 2;
@@ -583,14 +824,17 @@ canvas.display { display: block; cursor: crosshair; }
     return true;
   }
   var FACING_TYPES = /* @__PURE__ */ new Set([39, 40, 41, 57, 86]);
-  function isMirrored(type, variant) {
-    return FACING_TYPES.has(type) && variant !== 0;
+  function isMirrored(type, variant, sub = 0) {
+    if (FACING_TYPES.has(type)) return variant !== 0;
+    if (type === 38) return variant === 0;
+    if (type === 6) return sub !== 0;
+    return false;
   }
   var thumbURLCache = /* @__PURE__ */ new Map();
-  function spriteThumbURL(typeId, mirror = false) {
-    const parts = partsFor(typeId, 0);
+  function spriteThumbURL(typeId, sub = 0, variant = 0, mirror = false) {
+    const parts = partsFor(typeId, sub, variant);
     if (!parts) return null;
-    const key = `${typeId}:${mirror ? 1 : 0}`;
+    const key = `${typeId}:${sub}:${variant}:${mirror ? 1 : 0}`;
     const hit = thumbURLCache.get(key);
     if (hit) return hit;
     const cvs = document.createElement("canvas");
@@ -606,6 +850,18 @@ canvas.display { display: block; cursor: crosshair; }
   var GHOST_PX = 256;
   var ghostCanvas;
   var ghostCtx;
+  var thumbCache = /* @__PURE__ */ new Map();
+  function thumbFor(type, sub, variant, mirror) {
+    const key = `${type}:${sub}:${variant}:${mirror ? 1 : 0}`;
+    const hit = thumbCache.get(key);
+    if (hit) return hit;
+    const parts = partsFor(type, sub, variant);
+    if (!parts) return null;
+    const cvs = document.createElement("canvas");
+    if (!paintThumb(cvs.getContext("2d"), parts, 1, mirror)) return null;
+    thumbCache.set(key, cvs);
+    return cvs;
+  }
   function initGhostCanvas() {
     ghostCanvas = document.createElement("canvas");
     ghostCanvas.width = GHOST_PX;
@@ -662,13 +918,17 @@ canvas.display { display: block; cursor: crosshair; }
     for (let i = 0; i < objects.length; i++) {
       const obj = objects[i];
       const isSel = i === S.selectedObjIdx;
-      const parts = partsFor(obj.type, obj.sub);
+      const parts = partsFor(obj.type, obj.sub, obj.variant);
       if (parts) {
+        const mirror = isMirrored(obj.type, obj.variant, obj.sub);
         const bb = spriteBBox(parts);
         const bx0 = (obj.x + bb.x) * k, by0 = (obj.y + bb.y) * k;
         const bw = bb.w * k, bh = bb.h * k;
         if (bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH) continue;
-        drawParts(ctx, parts, obj.x, obj.y, k, isMirrored(obj.type, obj.variant));
+        const t = thumbFor(obj.type, obj.sub, obj.variant, mirror);
+        ctx.imageSmoothingEnabled = false;
+        if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
+        else drawParts(ctx, parts, obj.x, obj.y, k, mirror);
         if (isSel) {
           ctx.strokeStyle = "#f00";
           ctx.lineWidth = 2;
@@ -700,6 +960,7 @@ canvas.display { display: block; cursor: crosshair; }
     }
   }
   function updateGhost(e) {
+    var _a, _b;
     const { ghostEl, spritesheetImg, activeTab } = S;
     if (!ghostEl) return;
     if (!S.paletteDrag) {
@@ -721,8 +982,11 @@ canvas.display { display: block; cursor: crosshair; }
       ghostEl.style.backgroundSize = "100% 100%";
       ghostEl.style.display = "";
     } else if (S.paletteDragDef) {
-      const parts = partsFor(S.paletteDragDef.id, 0);
-      const url = spriteThumbURL(S.paletteDragDef.id, !!S.paletteDragDef.mirror);
+      const def = S.paletteDragDef;
+      const dsub = (_a = def.sub) != null ? _a : 0, dvar = (_b = def.variant) != null ? _b : 0;
+      const dmirror = !!def.mirror || isMirrored(def.id, dvar, dsub);
+      const parts = partsFor(def.id, dsub, dvar);
+      const url = spriteThumbURL(def.id, dsub, dvar, dmirror);
       if (url && parts) {
         const k = spriteScale(cs);
         const bb = spriteBBox(parts);
@@ -776,6 +1040,7 @@ canvas.display { display: block; cursor: crosshair; }
     S.counterEl.textContent = `${totalObjects()}/${placedTiles}`;
   }
   function buildThumbnails() {
+    var _a, _b;
     const { thumbstrip, spritesheetImg, activeTab } = S;
     if (!thumbstrip) return;
     thumbstrip.innerHTML = "";
@@ -809,13 +1074,16 @@ canvas.display { display: block; cursor: crosshair; }
     } else {
       for (const def of defsForTab(activeTab)) {
         const el = document.createElement("div");
-        const noArt = !partsFor(def.id, 0);
+        const sub = (_a = def.sub) != null ? _a : 0, variant = (_b = def.variant) != null ? _b : 0;
+        const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
+        const noArt = !partsFor(def.id, sub, variant);
         el.title = def.desc + (noArt ? " (invisible in-game: no art in this zone)" : "");
-        const parts = partsFor(def.id, 0);
+        const parts = partsFor(def.id, sub, variant);
+        let cvs = null;
         if (parts) {
           el.className = "thumb thumb-obj";
-          const cvs = document.createElement("canvas");
-          paintThumb(cvs.getContext("2d"), parts, 1, !!def.mirror);
+          cvs = document.createElement("canvas");
+          paintThumb(cvs.getContext("2d"), parts, 1, mirror);
           el.appendChild(cvs);
         } else {
           el.className = "thumb thumb-txt";
@@ -831,6 +1099,14 @@ canvas.display { display: block; cursor: crosshair; }
           draw();
         });
         thumbstrip.appendChild(el);
+        if (cvs) {
+          const boxH = el.clientHeight - 2, boxW = el.clientWidth - 2;
+          if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
+            const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
+            cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + "px";
+            cvs.style.height = Math.max(1, Math.floor(cvs.height * s)) + "px";
+          }
+        }
       }
     }
   }
@@ -970,7 +1246,7 @@ canvas.display { display: block; cursor: crosshair; }
         S.dragObj = o;
         S.dragOffX = px - o.x;
         S.dragOffY = py - o.y;
-        setStatus(`Selected: ${findDefName(o.type)} at (${o.x},${o.y})`);
+        setStatus(`Selected: ${findDefName(o.type, o.variant, o.sub)} at (${o.x},${o.y})`);
       } else {
         S.dragObj = null;
         setStatus("");
@@ -1042,7 +1318,7 @@ canvas.display { display: block; cursor: crosshair; }
     updateGhost(e);
   }
   function onDocMouseUp(e) {
-    var _a;
+    var _a, _b;
     hideGhost();
     if (!S.paletteDrag) return;
     const { bx, by, px, py } = canvasToWorld(e);
@@ -1060,7 +1336,7 @@ canvas.display { display: block; cursor: crosshair; }
           setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
         } else {
           const ox = snap8(px), oy = snap8(py);
-          S.objects.push({ x: ox, y: oy, variant: (_a = def.variant) != null ? _a : 0, type: def.id, sub: 0 });
+          S.objects.push({ x: ox, y: oy, variant: (_a = def.variant) != null ? _a : 0, type: def.id, sub: (_b = def.sub) != null ? _b : 0 });
           const buried = S.grid[by][bx] !== 0;
           setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? " \u2014 inside solid tile!" : ""));
         }
@@ -1071,8 +1347,8 @@ canvas.display { display: block; cursor: crosshair; }
     S.paletteDragDef = null;
     draw();
   }
-  function findDefName(typeId) {
-    const def = findDef(typeId);
+  function findDefName(typeId, variant = 0, sub = 0) {
+    const def = findDef(typeId, variant, sub);
     return def ? def.name : `${typeId}`;
   }
   function wireEvents() {
@@ -1111,6 +1387,7 @@ canvas.display { display: block; cursor: crosshair; }
 
   // ts/main.ts
   function boot() {
+    console.log("[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)");
     const host = document.getElementById("gamecontainer");
     if (!host) return;
     const shadow = host.attachShadow({ mode: "open" });

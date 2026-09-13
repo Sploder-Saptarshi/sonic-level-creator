@@ -114,8 +114,16 @@ export function countPlacedTiles(): number {
   return c;
 }
 
-export function findDef(typeId: number): ObjectDef | null {
-  for (const arr of [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES])
+export function findDef(typeId: number, variant?: number, sub?: number): ObjectDef | null {
+  const pools = [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES];
+  if (variant !== undefined || sub !== undefined) {
+    for (const arr of pools)
+      for (const d of arr)
+        if (d.id === typeId
+          && (variant === undefined || (d.variant ?? 0) === variant)
+          && (sub === undefined || (d.sub ?? 0) === sub)) return d;
+  }
+  for (const arr of pools)
     for (const d of arr) if (d.id === typeId) return d;
   return null;
 }

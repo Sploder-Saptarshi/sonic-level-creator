@@ -10,6 +10,7 @@ import { resizeCanvas } from './actions';
 import { wireEvents } from './events';
 
 function boot() {
+  console.log('[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)');
   const host = document.getElementById('gamecontainer');
   if (!host) return;
 

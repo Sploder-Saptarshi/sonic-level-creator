@@ -2,11 +2,27 @@
 
 import { BLOCK_PX, TOTAL_BLOCKS, blockSheetXY } from './format';
 import { S, cellSize, findDef } from './state';
-import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored } from './sprites';
+import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored, paintThumb } from './sprites';
 
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
 let ghostCtx: CanvasRenderingContext2D;
+
+// 1x bbox-fitted thumb cache: the canvas blits the exact same paintThumb
+// output the tray shows, so tray and canvas can never diverge.
+const thumbCache = new Map<string, HTMLCanvasElement>();
+
+function thumbFor(type: number, sub: number, variant: number, mirror: boolean): HTMLCanvasElement | null {
+  const key = `${type}:${sub}:${variant}:${mirror ? 1 : 0}`;
+  const hit = thumbCache.get(key);
+  if (hit) return hit;
+  const parts = partsFor(type, sub, variant);
+  if (!parts) return null;
+  const cvs = document.createElement('canvas');
+  if (!paintThumb(cvs.getContext('2d')!, parts, 1, mirror)) return null;
+  thumbCache.set(key, cvs);
+  return cvs;
+}
 
 export function initGhostCanvas() {
   ghostCanvas = document.createElement('canvas');
@@ -70,13 +86,19 @@ export function draw() {
   for (let i = 0; i < objects.length; i++) {
     const obj = objects[i];
     const isSel = i === S.selectedObjIdx;
-    const parts = partsFor(obj.type, obj.sub);
+    const parts = partsFor(obj.type, obj.sub, obj.variant);
     if (parts) {
+      const mirror = isMirrored(obj.type, obj.variant, obj.sub);
       const bb = spriteBBox(parts);
       const bx0 = (obj.x + bb.x) * k, by0 = (obj.y + bb.y) * k;
       const bw = bb.w * k, bh = bb.h * k;
       if (bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH) continue;
-      drawParts(ctx, parts, obj.x, obj.y, k, isMirrored(obj.type, obj.variant));
+      // Blit the tray-identical 1x thumb (same paintThumb output, same bbox).
+      // Falls back to direct draw while images are still loading.
+      const t = thumbFor(obj.type, obj.sub, obj.variant, mirror);
+      ctx.imageSmoothingEnabled = false;
+      if (t) ctx.drawImage(t, 0, 0, t.width, t.height, bx0, by0, bw, bh);
+      else drawParts(ctx, parts, obj.x, obj.y, k, mirror);
       if (isSel) {
         ctx.strokeStyle = '#f00';
         ctx.lineWidth = 2;
@@ -133,8 +155,11 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.backgroundSize = '100% 100%';
     ghostEl.style.display = '';
   } else if (S.paletteDragDef) {
-    const parts = partsFor(S.paletteDragDef.id, 0);
-    const url = spriteThumbURL(S.paletteDragDef.id, !!S.paletteDragDef.mirror);
+    const def = S.paletteDragDef;
+    const dsub = def.sub ?? 0, dvar = def.variant ?? 0;
+    const dmirror = !!def.mirror || isMirrored(def.id, dvar, dsub);
+    const parts = partsFor(def.id, dsub, dvar);
+    const url = spriteThumbURL(def.id, dsub, dvar, dmirror);
     if (url && parts) {
       // True-scale preview: the ghost div matches exactly what draw() will
       // paint — bbox-sized at canvas scale, offset by the bbox origin, with

@@ -14,10 +14,14 @@ export interface ObjectDef {
   desc: string;
   isRing?: boolean;
   ringLayout?: number;
-  // Subtype bytes written on placement (ACT byte 4 = variant/facing).
-  // Enemies use mirrored R-subtypes for initial direction (variant 1).
+  // Subtype bytes written on placement (ACT byte 4 = variant/facing,
+  // ACT byte 6 = sub). Enemies use mirrored R-subtypes for initial
+  // direction (variant 1); objects use duplicated tray entries per
+  // verified sub/variant combo (spring orientation, spike width,
+  // monitor contents, platform behavior, ...).
   variant?: number;
   mirror?: boolean;
+  sub?: number;
 }
 
 export const ESSENTIALS: ObjectDef[] = [
@@ -39,23 +43,88 @@ export const RING_TYPES: ObjectDef[] = [
 ];
 
 export const OBJECTS: ObjectDef[] = [
-  { id: 2, name: 'Red Spring', desc: 'Red spring pad (bounces up)' },
-  { id: 153, name: 'Yellow Spring', desc: 'Yellow spring pad (bounces up)' },
-  { id: 9, name: 'Spikes', desc: 'Spike trap' },
-  { id: 15, name: 'Switch', desc: 'Activates connected objects' },
-  { id: 45, name: 'Button', desc: 'Button / base plate' },
-  { id: 46, name: 'Bten Switch', desc: 'Button variant (drawn in-game only when sub=1)' },
-  { id: 42, name: 'Item Pickup', desc: 'Monitor power-up placed directly' },
-  { id: 43, name: 'Item Pickup S', desc: 'Monitor power-up placed directly (stock GH uses this)' },
-  { id: 4, name: 'Tall Bridge', desc: 'Tall bridge / pole' },
-  { id: 5, name: 'Bridge', desc: 'Standard bridge' },
-  { id: 38, name: 'Bridge Edge', desc: 'Bridge end decoration (static)' },
-  { id: 6, name: 'Breakable Wall', desc: 'Breakable wall segment' },
-  { id: 18, name: 'Breakable Wall GH', desc: 'Breakable wall (Green Hill)' },
-  { id: 3, name: 'Swing', desc: 'Swinging platform' },
-  { id: 16, name: 'Shima Platform', desc: 'Green Hill floating platform' },
-  { id: 90, name: 'Shima Pillar', desc: 'Tall Green Hill platform variant' },
-  { id: 37, name: 'Kageb Block', desc: 'Green Hill block gimmick' },
+  // Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
+  // sub%16==2 yellow art + weak bounce; sideways facing by variant.
+  // Stock GH: yellow-up x15, red-side-R (16,1) x6.
+  { id: 2, name: 'Red Spring', desc: 'Red spring pad (bounces up)', sub: 0 },
+  { id: 2, name: 'Yellow Spring', desc: 'Yellow spring pad, weak bounce (stock GH)', sub: 2 },
+  { id: 2, name: 'Red Spring R', desc: 'Sideways red spring (faces right)', variant: 0, sub: 16 },
+  { id: 2, name: 'Red Spring L', desc: 'Sideways red spring (faces left, stock GH)', variant: 1, sub: 16 },
+  { id: 2, name: 'Yellow Spring R', desc: 'Sideways yellow spring, weak (faces right)', variant: 0, sub: 18 },
+  { id: 2, name: 'Yellow Spring L', desc: 'Sideways yellow spring, weak (faces left)', variant: 1, sub: 18 },
+  { id: 2, name: 'Red Spring Down', desc: 'Ceiling red spring (bounces down)', sub: 32 },
+  { id: 2, name: 'Yellow Spring Down', desc: 'Ceiling yellow spring, weak', sub: 34 },
+  // Spikes (type 9): width/orientation by sub; variant 2 = ceiling (ROT180),
+  // wall subs (16/18/82) face by variant 0/1. Stock GH: 0/32/48/64 + one 16.
+  { id: 9, name: 'Spikes', desc: 'Spike trap (floor, stock GH)', sub: 0 },
+  { id: 9, name: 'Spikes Ceiling', desc: 'Spike trap (ceiling, variant 2)', variant: 2, sub: 0 },
+  { id: 9, name: 'Spikes Narrow', desc: 'Single-column spikes (stock GH)', sub: 32 },
+  { id: 9, name: 'Spikes Triple', desc: 'Triple spikes (stock GH)', sub: 48 },
+  { id: 9, name: 'Spikes Wide', desc: 'Six-column spikes (stock GH)', sub: 64 },
+  { id: 9, name: 'Spikes Wall L', desc: 'Wall spikes (faces left, stock GH)', variant: 0, sub: 16 },
+  { id: 9, name: 'Spikes Wall R', desc: 'Wall spikes (faces right)', variant: 1, sub: 16 },
+  { id: 9, name: 'Spikes Wall 18', desc: 'Wall spikes, sub 18 (collision unverified)', variant: 0, sub: 18 },
+  { id: 9, name: 'Spikes Single L', desc: 'Single wall spike (faces left)', variant: 0, sub: 82 },
+  { id: 9, name: 'Spikes Single R', desc: 'Single wall spike (faces right)', variant: 1, sub: 82 },
+  // Switch (type 15): sub = switchflag index it drives. No stock GH usage.
+  { id: 15, name: 'Switch 0', desc: 'Switch driving flag 0', sub: 0 },
+  { id: 15, name: 'Switch 1', desc: 'Switch driving flag 1', sub: 1 },
+  { id: 15, name: 'Switch 2', desc: 'Switch driving flag 2', sub: 2 },
+  // Buttons (type 45): sub selects art row (0/3 row 0, 1 row 2, else row 1).
+  // Invisible in-game until touched; editor previews idle art. Stock GH: 1/2/3.
+  { id: 45, name: 'Button 1', desc: 'Button sub 1 (stock GH; shows when touched)', sub: 1 },
+  { id: 45, name: 'Button 2', desc: 'Button sub 2 (stock GH; shows when touched)', sub: 2 },
+  { id: 45, name: 'Button 3', desc: 'Button sub 3 (stock GH; shows when touched)', sub: 3 },
+  { id: 46, name: 'Bten Switch', desc: 'Button variant (shows in-game only when touched)', sub: 1 },
+  // Monitors (type 43 = stock GH flavor): sub = contents
+  // (1 dud, 2 1UP, 3 speed, 4 shield, 5 invinc, 6 rings; 0 dead, 7+ invisible).
+  { id: 43, name: 'Monitor Dud', desc: 'Empty monitor (stock art row 0)', sub: 1 },
+  { id: 43, name: 'Monitor 1UP', desc: 'Extra-life monitor (stock GH)', sub: 2 },
+  { id: 43, name: 'Monitor Speed', desc: 'Speed-shoes monitor (stock GH)', sub: 3 },
+  { id: 43, name: 'Monitor Shield', desc: 'Shield monitor (stock GH)', sub: 4 },
+  { id: 43, name: 'Monitor Invinc', desc: 'Invincibility monitor (stock GH)', sub: 5 },
+  { id: 43, name: 'Monitor Rings', desc: '10-rings monitor (stock GH)', sub: 6 },
+  { id: 42, name: 'Item Pickup', desc: 'Monitor power-up placed directly (rings)', sub: 6 },
+  // Tall bridge (type 4, stock sub 16) / standard bridge (type 5, stock sub 12)
+  { id: 4, name: 'Tall Bridge', desc: 'Tall bridge / pole (stock GH sub 16)', sub: 16 },
+  { id: 5, name: 'Bridge', desc: 'Standard bridge (stock GH sub 12)', sub: 12 },
+  // Bridge edge (type 38, stock sub 3): variant 0 mirrored, else normal.
+  { id: 38, name: 'Bridge Edge L', desc: 'Bridge end, mirrored (stock GH)', variant: 0, mirror: true, sub: 3 },
+  { id: 38, name: 'Bridge Edge R', desc: 'Bridge end, normal (stock GH)', variant: 1, sub: 3 },
+  // Breakable wall (type 6): sub != 0 mirrors debris. Stock: (0,0) + (1,1).
+  { id: 6, name: 'Breakable Wall', desc: 'Breakable wall segment (stock GH)', sub: 0 },
+  { id: 6, name: 'Breakable Wall M', desc: 'Breakable wall, mirrored debris (stock GH)', variant: 1, mirror: true, sub: 1 },
+  // GH breakable (type 18): sub 0/1/2 visual styles, all in stock GH.
+  { id: 18, name: 'Break Wall A', desc: 'GH breakable wall, style A (stock GH)', sub: 0 },
+  { id: 18, name: 'Break Wall B', desc: 'GH breakable wall, style B (stock GH)', sub: 1 },
+  { id: 18, name: 'Break Wall C', desc: 'GH breakable wall, style C (stock GH)', sub: 2 },
+  // Swing (type 3): sub = chain length - 1 (stock 6/7/8); sub 5 or
+  // variant 1 reverses swing direction (same idle art).
+  { id: 3, name: 'Swing S', desc: 'Swinging platform, short (stock GH sub 6)', sub: 6 },
+  { id: 3, name: 'Swing M', desc: 'Swinging platform, medium (stock GH sub 7)', sub: 7 },
+  { id: 3, name: 'Swing L', desc: 'Swinging platform, long (stock GH sub 8)', sub: 8 },
+  { id: 3, name: 'Swing Reverse', desc: 'Short swing, reversed direction (variant 1)', variant: 1, sub: 6 },
+  // Shima platforms (type 16): motion by sub (same idle art except pillar).
+  // Stock 16: 0/1/2/3/5/6. Pillar art only for sub 16.
+  { id: 16, name: 'Shima Platform', desc: 'GH floating platform, static', sub: 0 },
+  { id: 16, name: 'Shima Mover H', desc: 'Platform moving horizontally (stock GH)', sub: 1 },
+  { id: 16, name: 'Shima Mover V', desc: 'Platform moving vertically (stock GH)', sub: 2 },
+  { id: 16, name: 'Shima Crumble', desc: 'Crumbling platform (stock GH)', sub: 3 },
+  { id: 16, name: 'Shima Pillar', desc: 'Tall pillar platform (sub 16 art)', sub: 16 },
+  { id: 16, name: 'Shima Switch', desc: 'Switch-rise platform (flag 128)', sub: 7 },
+  // Shima variant (type 90): stock subs 1/2/3/5/16.
+  { id: 90, name: 'Shima2 Mover H', desc: 'Tall platform moving horizontally (stock GH)', sub: 1 },
+  { id: 90, name: 'Shima2 Mover V', desc: 'Tall platform moving vertically (stock GH)', sub: 2 },
+  { id: 90, name: 'Shima2 Crumble', desc: 'Tall crumbling platform (stock GH)', sub: 3 },
+  { id: 90, name: 'Shima2 Pillar', desc: 'Tall pillar platform (stock GH sub 16 art)', sub: 16 },
+  // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
+  // All six in stock GH; other subs < 16 fall back to frame 0 art.
+  { id: 37, name: 'Kageb A', desc: 'GH block, solid frame 0 (stock GH)', sub: 0 },
+  { id: 37, name: 'Kageb B', desc: 'GH block, solid frame 1 (stock GH)', sub: 1 },
+  { id: 37, name: 'Kageb C', desc: 'GH block, solid frame 2 (stock GH)', sub: 2 },
+  { id: 37, name: 'Kageb Decor A', desc: 'GH block, decor frame 3 (stock GH)', sub: 16 },
+  { id: 37, name: 'Kageb Decor B', desc: 'GH block, decor frame 4 (stock GH)', sub: 17 },
+  { id: 37, name: 'Kageb Decor C', desc: 'GH block, decor frame 5 (stock GH)', sub: 18 },
   { id: 58, name: 'Jyama', desc: 'Green Hill gimmick' },
 ];
 
@@ -67,6 +136,8 @@ export const ENEMIES: ObjectDef[] = [
   { id: 86, name: 'Fish Chopper', desc: 'Chopper fish (jumps from water)' },
   { id: 39, name: 'Kamere', desc: 'Chameleon badnik (faces left)' },
   { id: 39, name: 'Kamere R', desc: 'Chameleon badnik (faces right)', variant: 1, mirror: true },
+  { id: 39, name: 'Kamere Turret', desc: 'Chameleon turret, stationary (faces left)', sub: 1 },
+  { id: 39, name: 'Kamere Turret R', desc: 'Chameleon turret, stationary (faces right)', variant: 1, mirror: true, sub: 1 },
   { id: 57, name: 'Kani', desc: 'Crab badnik (walks left)' },
   { id: 57, name: 'Kani R', desc: 'Crab badnik (walks right)', variant: 1, mirror: true },
 ];
