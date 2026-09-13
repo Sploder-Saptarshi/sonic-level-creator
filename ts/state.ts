@@ -51,7 +51,6 @@ export const S = {
   spritesheetImg: null as HTMLImageElement | null,
   thumbstrip: null as HTMLElement | null,
   descEl: null as HTMLElement | null,
-  statusEl: null as HTMLElement | null,
   counterEl: null as HTMLElement | null,
   canvasWrap: null as HTMLElement | null,
   ghostEl: null as HTMLElement | null,
@@ -72,10 +71,6 @@ export function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
 
 export function inGrid(bx: number, by: number): boolean {
   return bx >= 0 && bx < S.grid[0].length && by >= 0 && by < S.grid.length;
-}
-
-export function setStatus(msg: string) {
-  if (S.statusEl) S.statusEl.textContent = msg;
 }
 
 export function updateDesc(text: string) {

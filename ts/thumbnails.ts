@@ -3,7 +3,7 @@
 import { BLOCK_PX, USED_BLOCKS, MAX_OBJECTS_PER_TILE, blockSheetXY } from './format';
 import {
   S, cellSize, defsForTab, totalObjects, countPlacedTiles,
-  pixelToTile, objectsInTile, setStatus, updateDesc,
+  pixelToTile, objectsInTile, updateDesc,
 } from './state';
 import { draw } from './render';
 import { partsFor, paintThumb, isMirrored } from './sprites';

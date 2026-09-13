@@ -2,7 +2,7 @@
 
 import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
 import {
-  S, inGrid, canvasToWorld, objectsInTile, findDef, totalObjects, countPlacedTiles, setStatus,
+  S, inGrid, canvasToWorld, objectsInTile, totalObjects, countPlacedTiles,
 } from './state';
 import { draw, updateGhost, hideGhost, ensureGlowLoop } from './render';
 import { updateCounter } from './thumbnails';
@@ -67,10 +67,8 @@ function onMouseDown(e: MouseEvent) {
       S.dragObj = o;
       S.dragOffX = px - o.x;
       S.dragOffY = py - o.y;
-      setStatus(`Selected: ${findDefName(o.type, o.variant, o.sub)} at (${o.x},${o.y})`);
     } else {
       S.dragObj = null;
-      setStatus('');
     }
     updateCounter();
     draw();
@@ -153,7 +151,6 @@ function onKeyDown(e: KeyboardEvent) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && S.selectedObjIdx >= 0) {
     S.objects.splice(S.selectedObjIdx, 1);
     S.selectedObjIdx = -1;
-    setStatus('Deleted');
     updateCounter();
     draw();
   }
@@ -220,26 +217,23 @@ function onDocMouseUp(e: MouseEvent) {
   if (inGrid(bx, by)) {
     if (S.activeTab === 'tiles') {
       S.grid[by][bx] = S.paletteDragTile;
-      setStatus(`Placed block ${S.paletteDragTile} at (${bx},${by})`);
     } else if (S.paletteDragDef) {
       const def = S.paletteDragDef;
       if ((def.id === 151 || def.id === 44) && S.objects.some(o => o.type === def.id)) {
-        setStatus(`Only one ${def.name} per level!`);
+        // Only one Sonic/Sign Post per level — drop rejected.
       } else if (totalObjects() >= countPlacedTiles()) {
-        setStatus('Max object limit reached!');
+        // Object budget reached — drop rejected.
       } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
-        setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
+        // Per-tile cap reached — drop rejected.
       } else {
         // Free pixel placement (8px snap), like the stock levels use.
         // Objects live in AIR (or straddling ground) — the per-tile count
-        // is a budget, not a solidity requirement. Warn if buried solid.
+        // is a budget, not a solidity requirement.
         const ox = snap8(px), oy = snap8(py);
         S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
         // Auto-select the new object so its selection ghosts (travel
         // extremes + red box) show immediately at the placed spot.
         S.selectedObjIdx = S.objects.length - 1;
-        const buried = S.grid[by][bx] !== 0;
-        setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? ' — inside solid tile!' : ''));
       }
     }
     updateCounter();
@@ -248,13 +242,6 @@ function onDocMouseUp(e: MouseEvent) {
   S.paletteDrag = false;
   S.paletteDragDef = null;
   draw();
-}
-
-// ── Helpers ──
-
-function findDefName(typeId: number, variant = 0, sub = 0): string {
-  const def = findDef(typeId, variant, sub);
-  return def ? def.name : `${typeId}`;
 }
 
 // ── Wire everything up ──
@@ -295,7 +282,6 @@ export function wireEvents() {
       if (a === 'save') doSave();
       else if (a === 'test') doTest();
       else if (a === 'fullscreen') doFullscreen();
-      else if (a === 'share') setStatus('SHARE — not wired yet');
       else if (a === 'mylevels') location.href = '/editors/?action=myLevels&gamegroupid=52';
       else if (a === 'alllevels') location.href = '/editors/?action=editorDetail&gamegroupid=52';
     });

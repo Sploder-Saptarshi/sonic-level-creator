@@ -1,7 +1,7 @@
 // ts/main.ts — Boot: create Shadow DOM, initialise state, wire events
 
 import { DEFAULT_COLS, DEFAULT_ROWS } from './format';
-import { S, initGrid, cellSize, setStatus, updateDesc } from './state';
+import { S, initGrid, cellSize, updateDesc } from './state';
 import { EDITOR_CSS, EDITOR_HTML } from './ui';
 import { draw, initGhostCanvas } from './render';
 import { preloadSprites } from './sprites';
@@ -34,7 +34,6 @@ function boot() {
   S.canvasWrap = shadow.querySelector('.canvas-wrap')!;
   S.thumbstrip = shadow.querySelector('.thumbstrip')!;
   S.descEl = shadow.querySelector('.desc')!;
-  S.statusEl = shadow.querySelector('.status')!;
   S.counterEl = shadow.querySelector('.counter')!;
   S.ghostEl = shadow.querySelector('#ghost')!;
 

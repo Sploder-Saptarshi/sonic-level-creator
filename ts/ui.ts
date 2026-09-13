@@ -57,8 +57,8 @@ canvas.display { display: block; cursor: crosshair; }
   font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex-shrink: 0; }
 
-.panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px;
-  background: #eee; gap: 6px; max-width: 200px; }
+.panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px 14px;
+  background: #eee; gap: 6px; max-width: 150px; }
 .panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
 /* Options buttons: site lozenge remade in pure CSS — no image assets.
    Extracted via Python from bg_button_span.gif (300x44: normal rows 0-21,

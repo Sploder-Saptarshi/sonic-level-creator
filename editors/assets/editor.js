@@ -249,7 +249,6 @@
     spritesheetImg: null,
     thumbstrip: null,
     descEl: null,
-    statusEl: null,
     counterEl: null,
     canvasWrap: null,
     ghostEl: null
@@ -265,9 +264,6 @@
   }
   function inGrid(bx, by) {
     return bx >= 0 && bx < S.grid[0].length && by >= 0 && by < S.grid.length;
-  }
-  function setStatus(msg) {
-    if (S.statusEl) S.statusEl.textContent = msg;
   }
   function updateDesc(text) {
     if (S.descEl) S.descEl.textContent = text;
@@ -373,8 +369,8 @@ canvas.display { display: block; cursor: crosshair; }
   font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex-shrink: 0; }
 
-.panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px;
-  background: #eee; gap: 6px; max-width: 200px; }
+.panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px 14px;
+  background: #eee; gap: 6px; max-width: 150px; }
 .panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
 /* Options buttons: site lozenge remade in pure CSS \u2014 no image assets.
    Extracted via Python from bg_button_span.gif (300x44: normal rows 0-21,
@@ -398,8 +394,6 @@ canvas.display { display: block; cursor: crosshair; }
 .act-btn:link, .act-btn:active, .act-btn:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
 .act-btn:hover { background: linear-gradient(to bottom, #fdf2de 0%, #fece94 47.5%, #ffad4f 100%);
   color: #4c4c4c; outline: none; }
-.status { margin-top: auto; padding: 4px; background: #fff; border: 1px solid #ccc;
-  font-size: 11px; min-height: 20px; word-wrap: break-word; }
 
 /* \u2500\u2500 bottom bar \u2500\u2500 */
 .bottombar { display: flex; align-items: center; justify-content: space-between;
@@ -455,7 +449,6 @@ canvas.display { display: block; cursor: crosshair; }
         <a class="act-btn" data-action="test"><span>Test Level</span></a>
         <a class="act-btn" data-action="save"><span>Save</span></a>
         <a class="act-btn" data-action="fullscreen"><span>Go Fullscreen</span></a>
-        <div class="status">Ready</div>
       </div>
     </div>
   </div>
@@ -1398,42 +1391,23 @@ canvas.display { display: block; cursor: crosshair; }
   async function doSave() {
     const sonics = S.objects.filter((o) => o.type === 151).length;
     const goals = S.objects.filter((o) => o.type === 44).length;
-    if (sonics === 0) {
-      setStatus("Error: Sonic Placer (spawn) is required!");
-      return;
-    }
-    if (goals === 0) {
-      setStatus("Error: Sign Post (goal) is required!");
-      return;
-    }
-    if (sonics > 1) {
-      setStatus("Error: Only one Sonic Placer allowed (game uses the last)!");
-      return;
-    }
-    if (goals > 1) {
-      setStatus("Error: Only one Sign Post allowed!");
-      return;
-    }
-    setStatus("Saving...");
+    if (sonics === 0) return;
+    if (goals === 0) return;
+    if (sonics > 1) return;
+    if (goals > 1) return;
     try {
       const bin = encodeBin(S.grid);
       const act = encodeAct(S.objects);
-      const resp = await fetch("/editors/save.php", {
+      await fetch("/editors/save.php", {
         method: "POST",
         headers: { "Content-Type": "application/octet-stream" },
         body: toCSV(bin, act)
       });
-      const r = await resp.json();
-      setStatus(r.ok ? `Saved! (${r.binBytes}B BIN + ${r.actBytes}B ACT)` : `Save error: ${r.error}`);
-    } catch (err) {
-      setStatus(`Save failed: ${err.message}`);
+    } catch (_) {
     }
   }
   async function doTest() {
-    if (!hasSonic() || !hasGoal()) {
-      setStatus("Error: Sonic Placer + Sign Post required to test!");
-      return;
-    }
+    if (!hasSonic() || !hasGoal()) return;
     await doSave();
     window.open("/", "_blank");
   }
@@ -1446,7 +1420,6 @@ canvas.display { display: block; cursor: crosshair; }
     if (!confirm("Clear entire level? This cannot be undone.")) return;
     initGrid();
     S.selectedObjIdx = -1;
-    setStatus("Level cleared");
     updateCounter();
     draw();
   }
@@ -1512,10 +1485,8 @@ canvas.display { display: block; cursor: crosshair; }
         S.dragObj = o;
         S.dragOffX = px - o.x;
         S.dragOffY = py - o.y;
-        setStatus(`Selected: ${findDefName(o.type, o.variant, o.sub)} at (${o.x},${o.y})`);
       } else {
         S.dragObj = null;
-        setStatus("");
       }
       updateCounter();
       draw();
@@ -1573,7 +1544,6 @@ canvas.display { display: block; cursor: crosshair; }
     if ((e.key === "Delete" || e.key === "Backspace") && S.selectedObjIdx >= 0) {
       S.objects.splice(S.selectedObjIdx, 1);
       S.selectedObjIdx = -1;
-      setStatus("Deleted");
       updateCounter();
       draw();
     }
@@ -1618,21 +1588,15 @@ canvas.display { display: block; cursor: crosshair; }
     if (inGrid(bx, by)) {
       if (S.activeTab === "tiles") {
         S.grid[by][bx] = S.paletteDragTile;
-        setStatus(`Placed block ${S.paletteDragTile} at (${bx},${by})`);
       } else if (S.paletteDragDef) {
         const def = S.paletteDragDef;
         if ((def.id === 151 || def.id === 44) && S.objects.some((o) => o.type === def.id)) {
-          setStatus(`Only one ${def.name} per level!`);
         } else if (totalObjects() >= countPlacedTiles()) {
-          setStatus("Max object limit reached!");
         } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
-          setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
         } else {
           const ox = snap8(px), oy = snap8(py);
           S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
           S.selectedObjIdx = S.objects.length - 1;
-          const buried = S.grid[by][bx] !== 0;
-          setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? " \u2014 inside solid tile!" : ""));
         }
       }
       updateCounter();
@@ -1640,10 +1604,6 @@ canvas.display { display: block; cursor: crosshair; }
     S.paletteDrag = false;
     S.paletteDragDef = null;
     draw();
-  }
-  function findDefName(typeId, variant = 0, sub = 0) {
-    const def = findDef(typeId, variant, sub);
-    return def ? def.name : `${typeId}`;
   }
   function wireEvents() {
     const { canvas, canvasWrap, shadow, thumbstrip } = S;
@@ -1669,7 +1629,6 @@ canvas.display { display: block; cursor: crosshair; }
         if (a === "save") doSave();
         else if (a === "test") doTest();
         else if (a === "fullscreen") doFullscreen();
-        else if (a === "share") setStatus("SHARE \u2014 not wired yet");
         else if (a === "mylevels") location.href = "/editors/?action=myLevels&gamegroupid=52";
         else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
       });
@@ -1699,7 +1658,6 @@ canvas.display { display: block; cursor: crosshair; }
     S.canvasWrap = shadow.querySelector(".canvas-wrap");
     S.thumbstrip = shadow.querySelector(".thumbstrip");
     S.descEl = shadow.querySelector(".desc");
-    S.statusEl = shadow.querySelector(".status");
     S.counterEl = shadow.querySelector(".counter");
     S.ghostEl = shadow.querySelector("#ghost");
     initGrid();

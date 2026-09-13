@@ -1,7 +1,7 @@
 // ts/actions.ts — Save, test, fullscreen, clear, resize, zoom
 
 import { encodeBin, encodeAct, toCSV } from './format';
-import { S, cellSize, setStatus, initGrid } from './state';
+import { S, cellSize, initGrid } from './state';
 import { draw } from './render';
 import { updateCounter } from './thumbnails';
 
@@ -20,31 +20,23 @@ function hasGoal(): boolean {
 export async function doSave() {
   const sonics = S.objects.filter(o => o.type === 151).length;
   const goals = S.objects.filter(o => o.type === 44).length;
-  if (sonics === 0) { setStatus('Error: Sonic Placer (spawn) is required!'); return; }
-  if (goals === 0) { setStatus('Error: Sign Post (goal) is required!'); return; }
-  if (sonics > 1) { setStatus('Error: Only one Sonic Placer allowed (game uses the last)!'); return; }
-  if (goals > 1) { setStatus('Error: Only one Sign Post allowed!'); return; }
-  setStatus('Saving...');
+  if (sonics === 0) return;
+  if (goals === 0) return;
+  if (sonics > 1) return;
+  if (goals > 1) return;
   try {
     const bin = encodeBin(S.grid);
     const act = encodeAct(S.objects);
-    const resp = await fetch('/editors/save.php', {
+    await fetch('/editors/save.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
       body: toCSV(bin, act),
     });
-    const r = await resp.json();
-    setStatus(r.ok ? `Saved! (${r.binBytes}B BIN + ${r.actBytes}B ACT)` : `Save error: ${r.error}`);
-  } catch (err: any) {
-    setStatus(`Save failed: ${err.message}`);
-  }
+  } catch (_) { /* save failed — game requires Sonic + goal present */ }
 }
 
 export async function doTest() {
-  if (!hasSonic() || !hasGoal()) {
-    setStatus('Error: Sonic Placer + Sign Post required to test!');
-    return;
-  }
+  if (!hasSonic() || !hasGoal()) return;
   await doSave();
   window.open('/', '_blank');
 }
@@ -59,7 +51,6 @@ export function doClearAll() {
   if (!confirm('Clear entire level? This cannot be undone.')) return;
   initGrid();
   S.selectedObjIdx = -1;
-  setStatus('Level cleared');
   updateCounter();
   draw();
 }
