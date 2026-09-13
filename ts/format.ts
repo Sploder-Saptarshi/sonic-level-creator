@@ -30,17 +30,35 @@ export const ESSENTIALS: ObjectDef[] = [
   { id: 36, name: 'Star Post', desc: 'Checkpoint post' },
 ];
 
-export const RING_TYPES: ObjectDef[] = [
-  { id: 0, name: 'Ring Row', desc: 'Horizontal ring line (+X)', isRing: true, ringLayout: 0 },
-  { id: 1, name: 'Ring Column', desc: 'Vertical ring line (+Y)', isRing: true, ringLayout: 1 },
-  { id: 63, name: 'Ring Diag -16', desc: 'Diagonal ring line (-16/+16)', isRing: true, ringLayout: 63 },
-  { id: 64, name: 'Ring Diag +16', desc: 'Diagonal ring line (+16/+16)', isRing: true, ringLayout: 64 },
-  { id: 65, name: 'Ring Diag +32', desc: 'Diagonal ring line (+32/+32)', isRing: true, ringLayout: 65 },
-  { id: 66, name: 'Ring Horiz 16', desc: 'Horizontal ring line 16px', isRing: true, ringLayout: 66 },
-  { id: 67, name: 'Ring Horiz 32', desc: 'Horizontal ring line 32px', isRing: true, ringLayout: 67 },
-  { id: 68, name: 'Ring Vert 16', desc: 'Vertical ring line 16px', isRing: true, ringLayout: 68 },
-  { id: 69, name: 'Ring Vert 32', desc: 'Vertical ring line 32px', isRing: true, ringLayout: 69 },
+// Ring layouts: type selects the fan-out direction/steps (see §6.1),
+// sub fans out to 1 + sub rings. One tray entry per (layout × count),
+// like the object subtype entries — counts 1..7 cover the stock GH range
+// (stock ZONE1ACT uses subs 0..6) and the 7-objects-per-tile budget.
+const RING_LAYOUTS: { id: number; base: string; desc: string }[] = [
+  { id: 0, base: 'Ring Row', desc: 'Horizontal ring line (+X)' },
+  { id: 1, base: 'Ring Column', desc: 'Vertical ring line (+Y)' },
+  { id: 63, base: 'Ring Diag -16', desc: 'Diagonal ring line (-16/+16)' },
+  { id: 64, base: 'Ring Diag +16', desc: 'Diagonal ring line (+16/+16)' },
+  { id: 65, base: 'Ring Diag +32', desc: 'Diagonal ring line (+32/+32)' },
+  { id: 66, base: 'Ring Horiz 16', desc: 'Horizontal ring line 16px steps' },
+  { id: 67, base: 'Ring Horiz 32', desc: 'Horizontal ring line 32px steps' },
+  { id: 68, base: 'Ring Vert 16', desc: 'Vertical ring line 16px steps' },
+  { id: 69, base: 'Ring Vert 32', desc: 'Vertical ring line 32px steps' },
 ];
+
+export const RING_TYPES: ObjectDef[] = [];
+for (const layout of RING_LAYOUTS) {
+  for (let n = 1; n <= 7; n++) {
+    RING_TYPES.push({
+      id: layout.id,
+      name: n === 1 ? layout.base : `${layout.base} ×${n}`,
+      desc: `${layout.desc}, ${n} ring${n === 1 ? '' : 's'}`,
+      isRing: true,
+      ringLayout: layout.id,
+      sub: n - 1,
+    });
+  }
+}
 
 export const OBJECTS: ObjectDef[] = [
   // Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
