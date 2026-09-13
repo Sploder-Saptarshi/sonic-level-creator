@@ -376,10 +376,28 @@ canvas.display { display: block; cursor: crosshair; }
 .panel-right { flex: 1; display: flex; flex-direction: column; padding: 8px;
   background: #eee; gap: 6px; max-width: 200px; }
 .panel-right h4 { margin: 0 0 2px 0; font-size: 13px; }
-.act-btn { padding: 6px 10px; border: 1px solid #888; background: #ddd;
-  cursor: pointer; font-size: 12px; width: 100%; text-align: center;
-  font-family: inherit; }
-.act-btn:hover { background: #ccc; }
+/* Options buttons: site lozenge remade in pure CSS \u2014 no image assets.
+   Extracted via Python from bg_button_span.gif (300x44: normal rows 0-21,
+   hover rows 22-43):
+   - 1px #ffa035 border on all four sides (edge rows/cols uniformly #ffa035).
+   - Body horizontally flat, near-linear vertical ramp over the inner 20
+     rows: normal #fee6ba -> #ffc376 (row 10, 47.5%) -> #ffa137; hover
+     #fdf2de -> #fece94 (47.5%) -> #ffad4f.
+   - Corner alpha-boundary circle fit: r~=6.6 top (light-matte AA fringe
+     inflates it) / r~=8.0 bottom -> 8px radius at 22px tall; buttons are
+     rendered larger (28px) with the radius scaled proportionally to 10px.
+     Box is border-box so the 26px content box stretches the %-stop ramp.
+   Shadow DOM seals out page CSS, so the rule lives here. Markup stays
+   <a class="act-btn"><span>\u2026</span></a> so [data-action] wiring is untouched. */
+.act-btn { display: block; height: 28px; margin: 0 0 6px 0;
+  background: linear-gradient(to bottom, #fee6ba 0%, #ffc376 47.5%, #ffa137 100%);
+  border: 1px solid #ffa035; border-radius: 10px;
+  color: #4c4c4c; font-weight: bold; font-size: 12px; font-family: inherit;
+  text-decoration: none; cursor: pointer; }
+.act-btn span { display: block; line-height: 11px; padding: 7px 10px 8px 16px; text-align: center; }
+.act-btn:link, .act-btn:active, .act-btn:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
+.act-btn:hover { background: linear-gradient(to bottom, #fdf2de 0%, #fece94 47.5%, #ffad4f 100%);
+  color: #4c4c4c; outline: none; }
 .status { margin-top: auto; padding: 4px; background: #fff; border: 1px solid #ccc;
   font-size: 11px; min-height: 20px; word-wrap: break-word; }
 
@@ -434,9 +452,9 @@ canvas.display { display: block; cursor: crosshair; }
       </div>
       <div class="panel-right">
         <h4>Options</h4>
-        <button class="act-btn" data-action="test">Test Level</button>
-        <button class="act-btn" data-action="save">Save</button>
-        <button class="act-btn" data-action="fullscreen">Go Fullscreen</button>
+        <a class="act-btn" data-action="test"><span>Test Level</span></a>
+        <a class="act-btn" data-action="save"><span>Save</span></a>
+        <a class="act-btn" data-action="fullscreen"><span>Go Fullscreen</span></a>
         <div class="status">Ready</div>
       </div>
     </div>
