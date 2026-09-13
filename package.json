@@ -1,0 +1,15 @@
+{
+  "name": "sonic-level-creator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sonic Level Creator editor — TypeScript sources bundled to editors/assets/editor.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "build": "esbuild ts/main.ts --bundle --format=iife --outfile=editors/assets/editor.js --log-level=info"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

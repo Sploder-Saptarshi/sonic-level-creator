@@ -1,24 +1,4 @@
 (() => {
-  var __defProp = Object.defineProperty;
-  var __defProps = Object.defineProperties;
-  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-  var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __propIsEnum = Object.prototype.propertyIsEnumerable;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __spreadValues = (a, b) => {
-    for (var prop in b || (b = {}))
-      if (__hasOwnProp.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    if (__getOwnPropSymbols)
-      for (var prop of __getOwnPropSymbols(b)) {
-        if (__propIsEnum.call(b, prop))
-          __defNormalProp(a, prop, b[prop]);
-      }
-    return a;
-  };
-  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-
   // ts/format.ts
   var BLOCK_PX = 256;
   var DEFAULT_COLS = 64;
@@ -30,10 +10,6 @@
     { id: 44, name: "Sign Post", desc: "Goal sign post (required)" },
     { id: 36, name: "Star Post", desc: "Checkpoint post" }
   ];
-  // Ring layouts: type selects the fan-out direction/steps, sub fans out
-  // to 1 + sub rings. One tray entry per (layout × count), like the
-  // object subtype entries — counts 1..7 cover the stock GH range and
-  // the 7-objects-per-tile budget.
   var RING_LAYOUTS = [
     { id: 0, base: "Ring Row", desc: "Horizontal ring line (+X)" },
     { id: 1, base: "Ring Column", desc: "Vertical ring line (+Y)" },
@@ -50,7 +26,7 @@
     for (let n = 1; n <= 7; n++) {
       RING_TYPES.push({
         id: layout.id,
-        name: n === 1 ? layout.base : `${layout.base} ×${n}`,
+        name: n === 1 ? layout.base : `${layout.base} \xD7${n}`,
         desc: `${layout.desc}, ${n} ring${n === 1 ? "" : "s"}`,
         isRing: true,
         ringLayout: layout.id,
@@ -317,12 +293,11 @@
     return c;
   }
   function findDef(typeId, variant, sub) {
-    var _a, _b;
     const pools = [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES];
     if (variant !== void 0 || sub !== void 0) {
       for (const arr of pools)
         for (const d of arr)
-          if (d.id === typeId && (variant === void 0 || ((_a = d.variant) != null ? _a : 0) === variant) && (sub === void 0 || ((_b = d.sub) != null ? _b : 0) === sub)) return d;
+          if (d.id === typeId && (variant === void 0 || (d.variant ?? 0) === variant) && (sub === void 0 || (d.sub ?? 0) === sub)) return d;
     }
     for (const arr of pools)
       for (const d of arr) if (d.id === typeId) return d;
@@ -599,9 +574,8 @@ canvas.display { display: block; cursor: crosshair; }
   }
   var ITEM_ROWS = [8, 0, 4, 3, 2, 1, 0];
   function monitorParts(sub) {
-    var _a;
     if (sub <= 0 || sub >= 7) return null;
-    const row2 = (_a = ITEM_ROWS[sub]) != null ? _a : 0;
+    const row2 = ITEM_ROWS[sub] ?? 0;
     if (row2 === 8) return [p(D + "item.png", 0, 256, 32, 16, 0, 8, "center")];
     return [
       p(D + "item.png", 0, row2 * 32, 32, 32, 0, 0, "center"),
@@ -619,28 +593,21 @@ canvas.display { display: block; cursor: crosshair; }
     }
     return parts;
   }
-  // ── Movement badges (editor-only overlay; the game draws no such marker) ──
-  // Linear shima movers (types 16/90): white ring at the origin plus
-  // direction triangles — one orange triangle for one-way movers
-  // (switch-rise UP, crumble DOWN), two for oscillators with the
-  // FIRST-move side orange and the return side white (sign of the sin
-  // amplitude in shima_nflag_move).
   var SHIMA_H_FIRST = { 1: "left", 5: "right", 12: "right" };
   var SHIMA_V_FIRST = { 2: "up", 6: "down", 11: "up", 16: "up" };
   var BADGE_ORANGE = "#ff8c00";
   var BADGE_WHITE = "#ffffff";
   var BADGE_GRAY = "#888888";
-  var BADGE_INK = "#222222";
   function badgePart(kind, dir, fill, w, h, ox, oy) {
     const part = p("", 0, 0, w, h, ox, oy, "center");
     part.badge = { kind, dir, fill };
     return part;
   }
-  function triPair(first, axis) {
-    const second = axis === "h" ? (first === "left" ? "right" : "left") : (first === "up" ? "down" : "up");
+  function triPair(first, axis, cy = 0) {
+    const second = axis === "h" ? first === "left" ? "right" : "left" : first === "up" ? "down" : "up";
     const [w, h] = axis === "h" ? [8, 12] : [12, 8];
     const [w2, h2] = [w * 0.75, h * 0.75];
-    const at = (d) => d === "left" ? [-4, 0] : d === "right" ? [4, 0] : d === "up" ? [0, -4] : [0, 4];
+    const at = (d) => d === "left" ? [-4, cy] : d === "right" ? [4, cy] : d === "up" ? [0, cy - 4] : [0, cy + 4];
     const [fx, fy] = at(first);
     const [sx, sy] = at(second);
     return [
@@ -648,15 +615,15 @@ canvas.display { display: block; cursor: crosshair; }
       badgePart("tri", second, BADGE_GRAY, w2, h2, sx, sy)
     ];
   }
-  function moveBadge(type, sub) {
+  function moveBadge(type, sub, cy = 0) {
     if (type !== 16 && type !== 90) return [];
-    const ring = badgePart("ring", void 0, BADGE_WHITE, 24, 24, 0, 0);
-    if (sub === 7) return [ring, badgePart("tri", "up", BADGE_ORANGE, 12, 8, 0, 0)];
-    if (sub === 3) return [ring, badgePart("tri", "down", BADGE_ORANGE, 12, 8, 0, 0)];
+    const ring = badgePart("ring", void 0, BADGE_WHITE, 24, 24, 0, cy);
+    if (sub === 7) return [ring, badgePart("tri", "up", BADGE_ORANGE, 12, 8, 0, cy)];
+    if (sub === 3) return [ring, badgePart("tri", "down", BADGE_ORANGE, 12, 8, 0, cy)];
     const h = SHIMA_H_FIRST[sub];
-    if (h !== void 0) return [ring, ...triPair(h, "h")];
+    if (h !== void 0) return [ring, ...triPair(h, "h", cy)];
     const v = SHIMA_V_FIRST[sub];
-    if (v !== void 0) return [ring, ...triPair(v, "v")];
+    if (v !== void 0) return [ring, ...triPair(v, "v", cy)];
     return [];
   }
   var SUBSPRITES = {
@@ -706,7 +673,6 @@ canvas.display { display: block; cursor: crosshair; }
     }
   };
   function ringParts(type, sub) {
-    var _a;
     const base = SPRITES[type][0];
     const n = 1 + Math.max(0, Math.min(127, sub));
     const steps = {
@@ -720,16 +686,15 @@ canvas.display { display: block; cursor: crosshair; }
       68: [0, 16],
       69: [0, 32]
     };
-    const [dx, dy] = (_a = steps[type]) != null ? _a : [0, 0];
+    const [dx, dy] = steps[type] ?? [0, 0];
     const parts = [];
     for (let i = 0; i < n; i++) {
-      parts.push(__spreadProps(__spreadValues({}, base), { ox: base.ox + i * dx, oy: base.oy + i * dy }));
+      parts.push({ ...base, ox: base.ox + i * dx, oy: base.oy + i * dy });
     }
     return parts;
   }
   var RING_TYPES2 = /* @__PURE__ */ new Set([0, 1, 63, 64, 65, 66, 67, 68, 69]);
   function partsFor(type, sub = 0, variant = 0) {
-    var _a, _b;
     if (!(type in SPRITES)) return null;
     if (RING_TYPES2.has(type)) return ringParts(type, sub);
     if (type === 2) return springParts(sub, variant);
@@ -738,17 +703,15 @@ canvas.display { display: block; cursor: crosshair; }
     if (type === 42 || type === 43) return monitorParts(sub);
     if (type === 45 || type === 46) {
       const table = SUBSPRITES[type];
-      return (_a = table[sub]) != null ? _a : table[2];
+      return table[sub] ?? table[2];
     }
     if (type === 16 || type === 90) {
-      if (sub === 16) {
-        const badge = moveBadge(type, sub);
-        return badge.length ? [...SUBSPRITES[type][16], ...badge] : SUBSPRITES[type][16];
-      }
-      const badge2 = moveBadge(type, sub);
-      return badge2.length ? [...SPRITES[type], ...badge2] : SPRITES[type];
+      const core = sub === 16 ? SUBSPRITES[type][16] : SPRITES[type];
+      const bb = spriteBBox(core);
+      const badge = moveBadge(type, sub, bb.y + bb.h / 2);
+      return badge.length ? [...core, ...badge] : core;
     }
-    if (type === 37) return (_b = SUBSPRITES[37][sub]) != null ? _b : SPRITES[37];
+    if (type === 37) return SUBSPRITES[37][sub] ?? SPRITES[37];
     if (type === 18) return breakableParts(sub);
     return SPRITES[type];
   }
@@ -797,9 +760,8 @@ canvas.display { display: block; cursor: crosshair; }
     }
     const pts = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]];
     return pts.map(([x, y]) => {
-      var _a;
       if (part.flip) x = -x;
-      const r = (_a = part.rot) != null ? _a : 0;
+      const r = part.rot ?? 0;
       if (r === 90) [x, y] = [-y, x];
       else if (r === 180) [x, y] = [-x, -y];
       else if (r === 270) [x, y] = [y, -x];
@@ -875,8 +837,6 @@ canvas.display { display: block; cursor: crosshair; }
       ctx.fillStyle = BADGE_WHITE;
       ctx.fill();
     } else {
-      // Center on the triangle centroid (not the cell middle), so the arrow
-      // reads as optically centered in the disc.
       let ox = 0, oy = 0;
       if (b.dir === "up") oy = -bh / 6;
       else if (b.dir === "down") oy = bh / 6;
@@ -904,7 +864,7 @@ canvas.display { display: block; cursor: crosshair; }
         ctx.lineTo(x0, y1);
       }
       ctx.closePath();
-      ctx.fillStyle = b.fill || BADGE_ORANGE;
+      ctx.fillStyle = b.fill ?? BADGE_ORANGE;
       ctx.fill();
     }
     ctx.restore();
@@ -996,7 +956,7 @@ canvas.display { display: block; cursor: crosshair; }
       for (let c = c0; c < c1; c++) {
         const id = grid[r][c];
         const dx = c * cs, dy = r * cs;
-        if (id > 0 && id < TOTAL_BLOCKS && (spritesheetImg == null ? void 0 : spritesheetImg.complete)) {
+        if (id > 0 && id < TOTAL_BLOCKS && spritesheetImg?.complete) {
           const { x: sx, y: sy } = blockSheetXY(id);
           try {
             ctx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, dx, dy, cs, cs);
@@ -1072,7 +1032,6 @@ canvas.display { display: block; cursor: crosshair; }
     }
   }
   function updateGhost(e) {
-    var _a, _b;
     const { ghostEl, spritesheetImg, activeTab } = S;
     if (!ghostEl) return;
     if (!S.paletteDrag) {
@@ -1085,7 +1044,7 @@ canvas.display { display: block; cursor: crosshair; }
     ghostEl.style.height = cs + "px";
     ghostEl.style.left = e.clientX - cs / 2 + "px";
     ghostEl.style.top = e.clientY - cs / 2 + "px";
-    if (activeTab === "tiles" && (spritesheetImg == null ? void 0 : spritesheetImg.complete)) {
+    if (activeTab === "tiles" && spritesheetImg?.complete) {
       ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
       const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
       ghostCtx.imageSmoothingEnabled = false;
@@ -1095,7 +1054,7 @@ canvas.display { display: block; cursor: crosshair; }
       ghostEl.style.display = "";
     } else if (S.paletteDragDef) {
       const def = S.paletteDragDef;
-      const dsub = (_a = def.sub) != null ? _a : 0, dvar = (_b = def.variant) != null ? _b : 0;
+      const dsub = def.sub ?? 0, dvar = def.variant ?? 0;
       const dmirror = !!def.mirror || isMirrored(def.id, dvar, dsub);
       const parts = partsFor(def.id, dsub, dvar);
       const url = spriteThumbURL(def.id, dsub, dvar, dmirror);
@@ -1145,14 +1104,12 @@ canvas.display { display: block; cursor: crosshair; }
 
   // ts/thumbnails.ts
   function updateCounter() {
-    var _a;
     if (!S.counterEl) return;
-    const totalTiles = S.grid.length * (((_a = S.grid[0]) == null ? void 0 : _a.length) || 0);
+    const totalTiles = S.grid.length * (S.grid[0]?.length || 0);
     const placedTiles = countPlacedTiles();
     S.counterEl.textContent = `${totalObjects()}/${placedTiles}`;
   }
   function buildThumbnails() {
-    var _a, _b;
     const { thumbstrip, spritesheetImg, activeTab } = S;
     if (!thumbstrip) return;
     thumbstrip.innerHTML = "";
@@ -1166,7 +1123,7 @@ canvas.display { display: block; cursor: crosshair; }
         cvs.width = BLOCK_PX;
         cvs.height = BLOCK_PX;
         const c = cvs.getContext("2d");
-        if (spritesheetImg == null ? void 0 : spritesheetImg.complete) {
+        if (spritesheetImg?.complete) {
           const { x: sx, y: sy } = blockSheetXY(i);
           c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
         }
@@ -1186,7 +1143,7 @@ canvas.display { display: block; cursor: crosshair; }
     } else {
       for (const def of defsForTab(activeTab)) {
         const el = document.createElement("div");
-        const sub = (_a = def.sub) != null ? _a : 0, variant = (_b = def.variant) != null ? _b : 0;
+        const sub = def.sub ?? 0, variant = def.variant ?? 0;
         const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
         const noArt = !partsFor(def.id, sub, variant);
         el.title = def.desc + (noArt ? " (invisible in-game: no art in this zone)" : "");
@@ -1430,7 +1387,6 @@ canvas.display { display: block; cursor: crosshair; }
     updateGhost(e);
   }
   function onDocMouseUp(e) {
-    var _a, _b;
     hideGhost();
     if (!S.paletteDrag) return;
     const { bx, by, px, py } = canvasToWorld(e);
@@ -1448,7 +1404,7 @@ canvas.display { display: block; cursor: crosshair; }
           setStatus(`Max ${MAX_OBJECTS_PER_TILE} objects per tile!`);
         } else {
           const ox = snap8(px), oy = snap8(py);
-          S.objects.push({ x: ox, y: oy, variant: (_a = def.variant) != null ? _a : 0, type: def.id, sub: (_b = def.sub) != null ? _b : 0 });
+          S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
           const buried = S.grid[by][bx] !== 0;
           setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? " \u2014 inside solid tile!" : ""));
         }
@@ -1464,7 +1420,6 @@ canvas.display { display: block; cursor: crosshair; }
     return def ? def.name : `${typeId}`;
   }
   function wireEvents() {
-    var _a;
     const { canvas, canvasWrap, shadow } = S;
     canvas.addEventListener("mousedown", onMouseDown);
     canvas.addEventListener("mousemove", onMouseMove);
@@ -1493,7 +1448,7 @@ canvas.display { display: block; cursor: crosshair; }
         else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
       });
     });
-    (_a = shadow.querySelector(".btn-clear")) == null ? void 0 : _a.addEventListener("click", doClearAll);
+    shadow.querySelector(".btn-clear")?.addEventListener("click", doClearAll);
     window.addEventListener("resize", resizeCanvas);
   }
 

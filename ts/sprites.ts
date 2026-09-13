@@ -228,7 +228,7 @@ function badgePart(
   return part;
 }
 
-function triPair(first: BadgeDir, axis: 'h' | 'v'): SpritePart[] {
+function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0): SpritePart[] {
   const second: BadgeDir =
     axis === 'h' ? (first === 'left' ? 'right' : 'left') : (first === 'up' ? 'down' : 'up');
   // Wide triangles: 1.5x base (12px) with 8px height, hugging the center
@@ -238,7 +238,7 @@ function triPair(first: BadgeDir, axis: 'h' | 'v'): SpritePart[] {
   const [w, h] = axis === 'h' ? [8, 12] : [12, 8];
   const [w2, h2] = [w * 0.75, h * 0.75];
   const at = (d: BadgeDir): [number, number] =>
-    d === 'left' ? [-4, 0] : d === 'right' ? [4, 0] : d === 'up' ? [0, -4] : [0, 4];
+    d === 'left' ? [-4, cy] : d === 'right' ? [4, cy] : d === 'up' ? [0, cy - 4] : [0, cy + 4];
   const [fx, fy] = at(first);
   const [sx, sy] = at(second);
   return [
@@ -247,16 +247,17 @@ function triPair(first: BadgeDir, axis: 'h' | 'v'): SpritePart[] {
   ];
 }
 
-/** Editor-only movement overlay for linear platform movers. */
-export function moveBadge(type: number, sub: number): SpritePart[] {
+/** Editor-only movement overlay for linear platform movers.
+ *  cy centers the badge on tall art (e.g. the pillar); movers use 0. */
+export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
   if (type !== 16 && type !== 90) return [];
-  const ring = badgePart('ring', undefined, BADGE_WHITE, 24, 24, 0, 0);
-  if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12, 8, 0, 0)];
-  if (sub === 3) return [ring, badgePart('tri', 'down', BADGE_ORANGE, 12, 8, 0, 0)];
+  const ring = badgePart('ring', undefined, BADGE_WHITE, 24, 24, 0, cy);
+  if (sub === 7) return [ring, badgePart('tri', 'up', BADGE_ORANGE, 12, 8, 0, cy)];
+  if (sub === 3) return [ring, badgePart('tri', 'down', BADGE_ORANGE, 12, 8, 0, cy)];
   const h = SHIMA_H_FIRST[sub];
-  if (h !== undefined) return [ring, ...triPair(h, 'h')];
+  if (h !== undefined) return [ring, ...triPair(h, 'h', cy)];
   const v = SHIMA_V_FIRST[sub];
-  if (v !== undefined) return [ring, ...triPair(v, 'v')];
+  if (v !== undefined) return [ring, ...triPair(v, 'v', cy)];
   return [];
 }
 
@@ -341,12 +342,12 @@ export function partsFor(type: number, sub = 0, variant = 0): SpritePart[] | nul
     return table[sub] ?? table[2]; // unknown subs share the row-24 look
   }
   if (type === 16 || type === 90) {
-    if (sub === 16) {
-      const badge = moveBadge(type, sub);
-      return badge.length ? [...SUBSPRITES[type][16], ...badge] : SUBSPRITES[type][16];
-    }
-    const badge = moveBadge(type, sub);
-    return badge.length ? [...SPRITES[type], ...badge] : SPRITES[type]; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
+    // Center the badge on the art bbox so it sits mid-pillar on tall art
+    // (pillar spans y −16..128) instead of at the origin.
+    const core = sub === 16 ? SUBSPRITES[type][16] : SPRITES[type];
+    const bb = spriteBBox(core);
+    const badge = moveBadge(type, sub, bb.y + bb.h / 2);
+    return badge.length ? [...core, ...badge] : core; // motion subs (1/2/5/6/11/12/3/7/...) share idle art
   }
   if (type === 37) return SUBSPRITES[37][sub] ?? SPRITES[37]; // gate subs -> frame 0
   if (type === 18) return breakableParts(sub);
