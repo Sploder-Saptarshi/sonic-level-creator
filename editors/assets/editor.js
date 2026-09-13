@@ -22,8 +22,10 @@
     { id: 69, base: "Ring Vert 32", desc: "Vertical ring line 32px steps" }
   ];
   var RING_TYPES = [];
-  for (const layout of RING_LAYOUTS) {
+  for (let li = 0; li < RING_LAYOUTS.length; li++) {
+    const layout = RING_LAYOUTS[li];
     for (let n = 1; n <= 7; n++) {
+      if (n === 1 && li !== 0) continue;
       RING_TYPES.push({
         id: layout.id,
         name: n === 1 ? layout.base : `${layout.base} \xD7${n}`,

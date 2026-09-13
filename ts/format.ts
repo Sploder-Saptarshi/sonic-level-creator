@@ -34,6 +34,9 @@ export const ESSENTIALS: ObjectDef[] = [
 // sub fans out to 1 + sub rings. One tray entry per (layout × count),
 // like the object subtype entries — counts 1..7 cover the stock GH range
 // (stock ZONE1ACT uses subs 0..6) and the 7-objects-per-tile budget.
+// The single-ring placement (sub 0) is kept only for the first horizontal
+// layout; all other layouts start at count 2 (sub 1+) since a lone ring is
+// directionless. 9 layouts × 7 counts − 8 removed = 55 entries.
 const RING_LAYOUTS: { id: number; base: string; desc: string }[] = [
   { id: 0, base: 'Ring Row', desc: 'Horizontal ring line (+X)' },
   { id: 1, base: 'Ring Column', desc: 'Vertical ring line (+Y)' },
@@ -47,8 +50,13 @@ const RING_LAYOUTS: { id: number; base: string; desc: string }[] = [
 ];
 
 export const RING_TYPES: ObjectDef[] = [];
-for (const layout of RING_LAYOUTS) {
+for (let li = 0; li < RING_LAYOUTS.length; li++) {
+  const layout = RING_LAYOUTS[li];
   for (let n = 1; n <= 7; n++) {
+    // Skip the single-ring placement (sub 0) for every layout except the
+    // first horizontal row — a lone ring is directionless, so only the
+    // canonical Ring Row keeps its count-1 entry.
+    if (n === 1 && li !== 0) continue;
     RING_TYPES.push({
       id: layout.id,
       name: n === 1 ? layout.base : `${layout.base} ×${n}`,
