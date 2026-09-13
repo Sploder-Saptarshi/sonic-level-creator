@@ -13,7 +13,7 @@ export const EDITOR_CSS = `
    top edge flush with the panel top, bottom border doubling as the divider
    over the canvas ── */
 .topbar { display: flex; align-items: center; justify-content: space-between;
-  margin: 0 -8px; padding: 4px 18px;
+  margin: 0; padding: 4px 10px;
   background: linear-gradient(#f4f4f4, #d9d9d9);
   border: none; border-bottom: 1px solid #c9c9c9; border-radius: 7px 7px 0 0;
   color: #555; flex-shrink: 0; }
@@ -36,14 +36,15 @@ export const EDITOR_CSS = `
 
 /* ── canvas area: white rounded panel with padding ── */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 0 8px 8px; }
+  background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 0; }
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
+  border-radius: 0 0 7px 7px;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
 .canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
 .canvas-wrap::-webkit-scrollbar-track { background: #f0f0f0; }
 .canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
   border: 2px solid #f0f0f0; }
-canvas.display { display: block; cursor: crosshair; border: 1px solid #d5d5d5; }
+canvas.display { display: block; cursor: crosshair; border: none; }
 
 /* ── bottom: tabs+strip panel + options box (30% height) ── */
 .bottom { display: flex; height: 30%; min-height: 170px; gap: 8px; flex-shrink: 0; }
