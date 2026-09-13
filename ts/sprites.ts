@@ -173,13 +173,20 @@ export function spriteBBox(parts: SpritePart[]): { x: number; y: number; w: numb
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-/** Draw parts at a game-px origin. k = canvas px per game px (uniform, no stretch). */
+/** Draw parts at a game-px origin. k = canvas px per game px (uniform, no stretch).
+ *  mirror flips the whole composition about the origin's x (TRANS_MIRROR). */
 export function drawParts(
   ctx: CanvasRenderingContext2D,
   parts: SpritePart[],
   gx: number, gy: number, k: number,
+  mirror = false,
 ) {
   ctx.imageSmoothingEnabled = false;
+  if (mirror) {
+    ctx.save();
+    ctx.translate(2 * gx * k, 0);
+    ctx.scale(-1, 1);
+  }
   for (const part of parts) {
     const img = spriteImg(part.img);
     if (!img.complete || img.naturalWidth === 0) continue;
@@ -190,6 +197,7 @@ export function drawParts(
     else if (part.anchor === 'bottomcenter') { dx = ax - dw / 2; dy = ay - dh; }
     ctx.drawImage(img, part.sx, part.sy, part.w, part.h, dx, dy, dw, dh);
   }
+  if (mirror) ctx.restore();
 }
 
 /** Game-px → canvas-px factor for the current zoom. */
@@ -199,11 +207,13 @@ export function spriteScale(cellSize: number): number {
 
 /** Paint parts at integer scale (default 3x), tightly bbox-fitted.
  *  The canvas is resized to the scaled art; callers display it at
- *  attribute size for true screen pixels (with pixelated rendering). */
+ *  attribute size for true screen pixels (with pixelated rendering).
+ *  mirror flips the composition horizontally (R-subtype thumbs). */
 export function paintThumb(
   c: CanvasRenderingContext2D,
   parts: SpritePart[],
   scale = 3,
+  mirror = false,
 ): boolean {
   for (const part of parts) {
     const img = spriteImg(part.img);
@@ -218,23 +228,40 @@ export function paintThumb(
   }
   c.clearRect(0, 0, w, h);
   // Origin rounded in scaled space so output pixels stay crisp.
+  // Mirror flips the whole fitted box (exact for symmetric art, never clips).
+  if (mirror) {
+    c.save();
+    c.translate(w, 0);
+    c.scale(-1, 1);
+  }
   drawParts(c, parts, Math.round(-bb.x * scale) / scale, Math.round(-bb.y * scale) / scale, scale);
+  if (mirror) c.restore();
   return true;
 }
 
-const thumbURLCache = new Map<number, string>();
+// Enemy types whose draw routine mirrors by facing (drawChara / hachi_draw):
+// variant byte (objectData[19]) != 0 draws TRANS_MIRRORED in-game.
+const FACING_TYPES = new Set([39, 40, 41, 57, 86]);
+
+/** True when the game draws this enemy mirrored (right-facing subtype). */
+export function isMirrored(type: number, variant: number): boolean {
+  return FACING_TYPES.has(type) && variant !== 0;
+}
+
+const thumbURLCache = new Map<string, string>();
 
 /** Cached dataURL of the 3x composite (for the drag ghost). Null until loaded. */
-export function spriteThumbURL(typeId: number): string | null {
+export function spriteThumbURL(typeId: number, mirror = false): string | null {
   const parts = partsFor(typeId, 0);
   if (!parts) return null;
-  const hit = thumbURLCache.get(typeId);
+  const key = `${typeId}:${mirror ? 1 : 0}`;
+  const hit = thumbURLCache.get(key);
   if (hit) return hit;
   const cvs = document.createElement('canvas');
   cvs.width = 256;
   cvs.height = 256;
-  if (!paintThumb(cvs.getContext('2d')!, parts)) return null;
+  if (!paintThumb(cvs.getContext('2d')!, parts, 3, mirror)) return null;
   const url = cvs.toDataURL();
-  thumbURLCache.set(typeId, url);
+  thumbURLCache.set(key, url);
   return url;
 }

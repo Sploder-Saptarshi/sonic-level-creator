@@ -2,7 +2,7 @@
 
 import { BLOCK_PX, TOTAL_BLOCKS, blockSheetXY } from './format';
 import { S, cellSize, findDef } from './state';
-import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL } from './sprites';
+import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored } from './sprites';
 
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
@@ -76,7 +76,7 @@ export function draw() {
       const bx0 = (obj.x + bb.x) * k, by0 = (obj.y + bb.y) * k;
       const bw = bb.w * k, bh = bb.h * k;
       if (bx0 + bw < scrollX || bx0 > scrollX + viewW || by0 + bh < scrollY || by0 > scrollY + viewH) continue;
-      drawParts(ctx, parts, obj.x, obj.y, k);
+      drawParts(ctx, parts, obj.x, obj.y, k, isMirrored(obj.type, obj.variant));
       if (isSel) {
         ctx.strokeStyle = '#f00';
         ctx.lineWidth = 2;
@@ -134,7 +134,7 @@ export function updateGhost(e: MouseEvent) {
     ghostEl.style.display = '';
   } else if (S.paletteDragDef) {
     const parts = partsFor(S.paletteDragDef.id, 0);
-    const url = spriteThumbURL(S.paletteDragDef.id);
+    const url = spriteThumbURL(S.paletteDragDef.id, !!S.paletteDragDef.mirror);
     if (url && parts) {
       // True-scale preview: the ghost div matches exactly what draw() will
       // paint — bbox-sized at canvas scale, offset by the bbox origin, with

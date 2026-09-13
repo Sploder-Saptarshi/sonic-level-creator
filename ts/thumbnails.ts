@@ -55,10 +55,10 @@ export function buildThumbnails() {
       el.title = def.desc + (noArt ? ' (invisible in-game: no art in this zone)' : '');
       const parts = partsFor(def.id, 0);
       if (parts) {
-        // True-sprite thumbnail (transparent bg, 3x integer scale, pixel-crisp)
+        // True-sprite thumbnail (transparent bg, 1x integer scale, pixel-crisp)
         el.className = 'thumb thumb-obj';
         const cvs = document.createElement('canvas');
-        paintThumb(cvs.getContext('2d')!, parts, 1);
+        paintThumb(cvs.getContext('2d')!, parts, 1, !!def.mirror);
         el.appendChild(cvs);
       } else {
         // Game-invisible type (no zone art / no draw routine): labeled box

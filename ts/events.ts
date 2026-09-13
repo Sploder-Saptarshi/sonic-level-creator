@@ -189,7 +189,7 @@ function onDocMouseUp(e: MouseEvent) {
         // Objects live in AIR (or straddling ground) — the per-tile count
         // is a budget, not a solidity requirement. Warn if buried solid.
         const ox = snap8(px), oy = snap8(py);
-        S.objects.push({ x: ox, y: oy, variant: 0, type: def.id, sub: 0 });
+        S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: 0 });
         const buried = S.grid[by][bx] !== 0;
         setStatus(`Placed ${def.name} at (${ox},${oy})` + (buried ? ' — inside solid tile!' : ''));
       }

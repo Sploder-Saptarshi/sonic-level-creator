@@ -14,6 +14,10 @@ export interface ObjectDef {
   desc: string;
   isRing?: boolean;
   ringLayout?: number;
+  // Subtype bytes written on placement (ACT byte 4 = variant/facing).
+  // Enemies use mirrored R-subtypes for initial direction (variant 1).
+  variant?: number;
+  mirror?: boolean;
 }
 
 export const ESSENTIALS: ObjectDef[] = [
@@ -56,11 +60,15 @@ export const OBJECTS: ObjectDef[] = [
 ];
 
 export const ENEMIES: ObjectDef[] = [
-  { id: 41, name: 'Musi', desc: 'Bug badnik (crawls on surfaces)' },
-  { id: 40, name: 'Hachi', desc: 'Bee badnik (flies in patterns)' },
+  { id: 41, name: 'Musi', desc: 'Bug badnik (crawls left)' },
+  { id: 41, name: 'Musi R', desc: 'Bug badnik (crawls right)', variant: 1, mirror: true },
+  { id: 40, name: 'Hachi', desc: 'Bee badnik (patrols left)' },
+  { id: 40, name: 'Hachi R', desc: 'Bee badnik (patrols right)', variant: 1, mirror: true },
   { id: 86, name: 'Fish Chopper', desc: 'Chopper fish (jumps from water)' },
-  { id: 39, name: 'Kamere', desc: 'Chameleon badnik (spits fireballs)' },
-  { id: 57, name: 'Kani', desc: 'Crab badnik (walks and pinches)' },
+  { id: 39, name: 'Kamere', desc: 'Chameleon badnik (faces left)' },
+  { id: 39, name: 'Kamere R', desc: 'Chameleon badnik (faces right)', variant: 1, mirror: true },
+  { id: 57, name: 'Kani', desc: 'Crab badnik (walks left)' },
+  { id: 57, name: 'Kani R', desc: 'Crab badnik (walks right)', variant: 1, mirror: true },
 ];
 
 // Per-zone enemy subsets (zone 7 / custom = Green Hill set)
