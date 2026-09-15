@@ -192,13 +192,19 @@
     const all = binBytes.concat(actBytes);
     return all.join(",");
   }
+  function isRingType(type) {
+    return type <= 1 || type >= 63 && type <= 69;
+  }
+  function objectTileCost(type, sub) {
+    return isRingType(type) ? 1 + sub : 1;
+  }
   function countObjectsInTile(objects, tileCol, tileRow) {
     let count = 0;
     for (const obj of objects) {
       const tc = Math.floor(obj.x / BLOCK_PX);
       const tr = Math.floor(obj.y / BLOCK_PX);
       if (tc === tileCol && tr === tileRow) {
-        count += obj.type <= 1 || obj.type >= 63 && obj.type <= 69 ? 1 + obj.sub : 1;
+        count += objectTileCost(obj.type, obj.sub);
       }
     }
     return count;
@@ -2015,7 +2021,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         const def = S.paletteDragDef;
         if ((def.id === 151 || def.id === 44) && S.objects.some((o) => o.type === def.id)) {
         } else if (totalObjects() >= countPlacedTiles()) {
-        } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
+        } else if (objectsInTile(bx, by) + objectTileCost(def.id, def.sub ?? 0) > MAX_OBJECTS_PER_TILE) {
         } else {
           const ox = snap8(px), oy = snap8(py);
           S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });

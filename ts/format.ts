@@ -246,6 +246,18 @@ export function toCSV(binBytes: number[], actBytes: number[]): string {
 }
 
 // --- Tile counter: count objects in a given tile ---
+// Global budget counts every ACT entry as 1 (a ring bunch is one entry).
+// Per-tile budget counts live objects: a ring bunch expands to 1 + sub
+// individual rings in its anchor tile.
+export function isRingType(type: number): boolean {
+  return type <= 1 || (type >= 63 && type <= 69);
+}
+
+/** Per-tile cost of a single ACT entry: expanded ring count, else 1. */
+export function objectTileCost(type: number, sub: number): number {
+  return isRingType(type) ? 1 + sub : 1;
+}
+
 export function countObjectsInTile(
   objects: PlacedObject[],
   tileCol: number,
@@ -256,8 +268,7 @@ export function countObjectsInTile(
     const tc = Math.floor(obj.x / BLOCK_PX);
     const tr = Math.floor(obj.y / BLOCK_PX);
     if (tc === tileCol && tr === tileRow) {
-      // rings count as 1 + sub
-      count += obj.type <= 1 || (obj.type >= 63 && obj.type <= 69) ? 1 + obj.sub : 1;
+      count += objectTileCost(obj.type, obj.sub);
     }
   }
   return count;

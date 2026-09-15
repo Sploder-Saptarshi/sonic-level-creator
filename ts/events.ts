@@ -1,6 +1,6 @@
 // ts/events.ts — All DOM event handlers
 
-import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
+import { MAX_OBJECTS_PER_TILE, objectTileCost, snap8, pixelToTile } from './format';
 import {
   S, inGrid, canvasToWorld, objectsInTile, totalObjects, countPlacedTiles,
   cellSize,
@@ -291,8 +291,10 @@ function onDocMouseUp(e: MouseEvent) {
         // Only one Sonic/Sign Post per level — drop rejected.
       } else if (totalObjects() >= countPlacedTiles()) {
         // Object budget reached — drop rejected.
-      } else if (objectsInTile(bx, by) >= MAX_OBJECTS_PER_TILE) {
-        // Per-tile cap reached — drop rejected.
+      } else if (objectsInTile(bx, by) + objectTileCost(def.id, def.sub ?? 0) > MAX_OBJECTS_PER_TILE) {
+        // Per-tile cap reached — drop rejected. A ring bunch costs its
+        // expanded 1 + sub live rings here (it still costs 1 globally),
+        // so e.g. 5 existing + a x7 bunch (5 + 7 = 12 > 7) is rejected.
       } else {
         // Free pixel placement (8px snap), like the stock levels use.
         // Objects live in AIR (or straddling ground) — the per-tile count
