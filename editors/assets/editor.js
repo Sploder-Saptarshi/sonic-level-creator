@@ -1475,7 +1475,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   var TEST_API_ID = "9f3210793951251c83ea5addaa24b963";
   var TEST_LEVEL_ID = "2914";
   var TEST_LOAD_OPTS = {
-    url: "/games/swf/52/52-test.swf",
+    url: "/games/swf/52/52.swf",
     parameters: { id: TEST_API_ID, levelid: TEST_LEVEL_ID, editortest: "1" },
     // Aspect-preserving fill of the whole editor space, centered:
     // showAll scales the stage with aspect intact, letterbox "on" draws

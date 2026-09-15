@@ -32,22 +32,24 @@ export function doSave() {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-// ── In-place test mode: one persistent 52-test.swf player ──
+// ── In-place test mode: one persistent universal-52.swf player ──
 // Created once at editor boot and kept alive muted behind the editor, so
 // opening Test skips the SWF fetch + Ruffle boot + audio load. The game
 // parks at its title screen (no synthetic clicks) — the user clicks the
 // title once, then STAGESELECT auto-loads ZONE_CUSTOM from the staged CSV.
-// 52-test.swf holds the title BGM until the Test button releases it via
-// the "editorStartAudio" ExternalInterface callback (title click is the
-// fallback), so music starts from the top on every Test with the movie
-// running unsuspended throughout. Stock 52.swf is untouched for /index.html.
+// One universal 52.swf serves both the game page and the editor: with the
+// "editortest" flashvar it holds the title BGM until the Test button
+// releases it via the "editorStartAudio" ExternalInterface callback
+// (title click is the fallback), so music starts from the top on every
+// Test with the movie running unsuspended throughout. Without the flag
+// (plain game page) it behaves exactly like stock.
 
 // Session id flashvar the game expects (resolves to /<id>.swf API stub).
 const TEST_API_ID = '9f3210793951251c83ea5addaa24b963';
 const TEST_LEVEL_ID = '2914';
 
 const TEST_LOAD_OPTS = {
-  url: '/games/swf/52/52-test.swf',
+  url: '/games/swf/52/52.swf',
   parameters: { id: TEST_API_ID, levelid: TEST_LEVEL_ID, editortest: '1' },
   // Aspect-preserving fill of the whole editor space, centered:
   // showAll scales the stage with aspect intact, letterbox "on" draws
@@ -68,8 +70,8 @@ let testBooting: Promise<void> | null = null;
 // race in the console). Cleared on stop so the background reboot is forced.
 let testReady = false;
 
-// Release the held title BGM in 52-test.swf (ExternalInterface callback
-// registered by the SWF when the "editortest" flashvar is present).
+// Release the held title BGM in the universal 52.swf (ExternalInterface
+// callback registered by the SWF when the "editortest" flashvar is present).
 // Ruffle exposes addCallback names as methods on the player element, so
 // try the element first, then the versioned ruffle() API. Best-effort:
 // if the call never lands, the title click releases the same audio.
@@ -121,8 +123,8 @@ function ensureTestPlayer(): boolean {
 // Boot (or reboot) the movie in the background, muted. Shared promise so
 // concurrent callers never double-load, plus a ready flag so Test never
 // reloads an already-warm title screen. The movie runs unsuspended —
-// 52-test.swf holds its own title BGM until Test releases it, so the
-// background stays silent without any audio plumbing.
+// the universal 52.swf holds its own title BGM until Test releases it,
+// so the background stays silent without any audio plumbing.
 function bootTestMovie(force = false): Promise<void> {
   if (testReady && !force) return Promise.resolve();
   if (testBooting) return testBooting;
