@@ -217,8 +217,15 @@ export interface PlacedObject {
 }
 
 export function encodeAct(objects: PlacedObject[]): number[] {
+  // The SWF streams objects with mono-directional cursors (objChkNum /
+  // objChkPoint in addObjectChk) that break on the first out-of-range X, so
+  // the table MUST be X-sorted like stock ZONE1ACT. Placement order is
+  // arbitrary (e.g. a pillar near Sonic placed last would sit at the end of
+  // the table and never spawn until the player scrolls forward and back), so
+  // sort a copy here and leave S.objects (selection indices) untouched.
+  const sorted = [...objects].sort((a, b) => a.x - b.x || a.y - b.y);
   const entries: number[] = [];
-  for (const obj of objects) {
+  for (const obj of sorted) {
     // ACT X/Y are raw world pixels — write through untouched (WYSIWYG).
     entries.push(
       (obj.x >>> 8) & 0xff, obj.x & 0xff,

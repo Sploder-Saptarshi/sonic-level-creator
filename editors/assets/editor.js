@@ -166,8 +166,9 @@
     return out;
   }
   function encodeAct(objects) {
+    const sorted = [...objects].sort((a, b) => a.x - b.x || a.y - b.y);
     const entries = [];
-    for (const obj of objects) {
+    for (const obj of sorted) {
       entries.push(
         obj.x >>> 8 & 255,
         obj.x & 255,
