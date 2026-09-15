@@ -6,7 +6,7 @@ import {
 } from './state';
 import { draw, updateGhost, hideGhost, ensureGlowLoop } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, doFullscreen, doClearAll, setZoom, resizeCanvas } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -281,6 +281,7 @@ export function wireEvents() {
       const a = b.getAttribute('data-action');
       if (a === 'save') doSave();
       else if (a === 'test') doTest();
+      else if (a === 'stoptest') stopTest();
       else if (a === 'fullscreen') doFullscreen();
       else if (a === 'mylevels') location.href = '/editors/?action=myLevels&gamegroupid=52';
       else if (a === 'alllevels') location.href = '/editors/?action=editorDetail&gamegroupid=52';

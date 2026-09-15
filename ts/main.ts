@@ -6,13 +6,22 @@ import { EDITOR_CSS, EDITOR_HTML } from './ui';
 import { draw, initGhostCanvas } from './render';
 import { preloadSprites } from './sprites';
 import { buildThumbnails, switchTab, updateCounter } from './thumbnails';
-import { resizeCanvas } from './actions';
+import { resizeCanvas, warmTestPlayer } from './actions';
 import { wireEvents } from './events';
 
 function boot() {
   console.log('[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)');
   const host = document.getElementById('gamecontainer');
   if (!host) return;
+
+  // Test-mode Service Worker (root scope so it sees /amfphp/gateway.php).
+  // Answers the stock game SWF's AMF calls from staged editor memory;
+  // passes everything through to the network when nothing is staged.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/test-sw.js', { scope: '/' }).catch((e) => {
+      console.warn('[editor] test Service Worker unavailable', e);
+    });
+  }
 
   const shadow = host.attachShadow({ mode: 'open' });
   S.shadow = shadow;
@@ -24,7 +33,9 @@ function boot() {
 
   // Inject HTML
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'height:100%;display:flex;flex-direction:column;';
+  // position:relative anchors the absolute test-mode overlay (and its
+  // invisible .warm pre-boot state) to the editor space.
+  wrapper.style.cssText = 'height:100%;display:flex;flex-direction:column;position:relative;';
   wrapper.innerHTML = EDITOR_HTML;
   shadow.appendChild(wrapper);
 
@@ -55,6 +66,9 @@ function boot() {
 
   // Wire all event handlers
   wireEvents();
+
+  // Boot the test player muted in the background so Test opens warm.
+  warmTestPlayer();
 
   // First paint — defer to let Shadow DOM layout compute
   requestAnimationFrame(() => {

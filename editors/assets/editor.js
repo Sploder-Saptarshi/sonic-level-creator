@@ -439,6 +439,43 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   opacity: 0.7; border: 2px dashed #fff; background-color: rgba(0,0,0,0.3);
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
+
+/* \u2500\u2500 test mode: persistent player overlaying the whole editor space \u2500\u2500
+   The player is created once at boot and kept alive (muted) behind the
+   editor so Test opens warm. .warm renders it with real dimensions but
+   invisible (display:none would leave Ruffle with nothing to boot into);
+   .active shows it. No synthetic clicks \u2014 the user clicks the title. */
+.editor.hidden { display: none; }
+.testmode { display: none; width: 100%; height: 100%; margin: 0; padding: 0;
+  position: absolute; inset: 0; z-index: 5; background: #000; overflow: hidden;
+  border-radius: 0 0 10px 10px; }
+.testmode.active { display: flex; align-items: center; justify-content: center;
+  visibility: visible; opacity: 1; pointer-events: auto; }
+/* .warm must stay truly invisible even if Ruffle forces visibility:visible
+   inside its own shadow DOM \u2014 opacity:0 on the parent cannot be overridden
+   by children, unlike visibility. Pointer events fully off so the overlay
+   never intercepts editor clicks while warming. */
+.testmode.warm { display: flex; align-items: center; justify-content: center;
+  visibility: hidden; opacity: 0 !important; pointer-events: none !important; }
+.testmode.warm * { pointer-events: none !important; }
+.ruffle-holder { position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; background: #000; }
+.ruffle-holder ruffle-player { display: block; width: 100%; height: 100%; background: #000; }
+/* Exact replica of a.lozenge1 (css/playsega.css) \u2014 the orange "Sign up!"
+   sliding doors with the real GIFs. Root-absolute paths since shadow
+   <style> URLs resolve against the document base. Only addition vs site:
+   border:none + positioning (this is a <button> pinned top-left, not an <a>).
+   Markup carries the same inner <span>; [data-action] wiring is untouched. */
+.stop-test { background: transparent url('/images/bg_button_a.gif') no-repeat scroll top right;
+  color: #4c4c4c; display: block; float: left; font-weight: bold; height: 22px;
+  margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
+  cursor: pointer; font-size: 12px; font-family: inherit;
+  position: absolute; top: 8px; left: 8px; z-index: 10; }
+.stop-test span { background: transparent url('/images/bg_button_span.gif') no-repeat;
+  display: block; line-height: 11px; padding: 5px 0 6px 16px; }
+.stop-test:link, .stop-test:active, .stop-test:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
+.stop-test:hover { background-position: bottom right; color: #4c4c4c; outline: none; }
+.stop-test:hover span { background-position: bottom left; }
 `;
   var EDITOR_HTML = `
 <div class="editor">
@@ -491,6 +528,11 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   </div>
 
   <div class="ghost" id="ghost"></div>
+</div>
+
+<div class="testmode">
+  <div class="ruffle-holder"></div>
+  <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
 </div>
 `;
 
@@ -1411,34 +1453,206 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   }
 
   // ts/actions.ts
-  function hasSonic() {
-    return S.objects.some((o) => o.type === 151);
-  }
-  function hasGoal() {
-    return S.objects.some((o) => o.type === 44);
-  }
-  async function doSave() {
+  function levelValid() {
     const sonics = S.objects.filter((o) => o.type === 151).length;
     const goals = S.objects.filter((o) => o.type === 44).length;
-    if (sonics === 0) return;
-    if (goals === 0) return;
-    if (sonics > 1) return;
-    if (goals > 1) return;
+    return sonics === 1 && goals === 1;
+  }
+  function levelCSV() {
+    return toCSV(encodeBin(S.grid), encodeAct(S.objects));
+  }
+  function doSave() {
+    if (!levelValid()) return;
+    const blob = new Blob([levelCSV()], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "custom-level.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5e3);
+  }
+  var TEST_API_ID = "9f3210793951251c83ea5addaa24b963";
+  var TEST_LEVEL_ID = "2914";
+  var TEST_LOAD_OPTS = {
+    url: "/games/swf/52/52-test.swf",
+    parameters: { id: TEST_API_ID, levelid: TEST_LEVEL_ID, editortest: "1" },
+    // Aspect-preserving fill of the whole editor space, centered:
+    // showAll scales the stage with aspect intact, letterbox "on" draws
+    // the bars even when not fullscreen (page global is "off"), and
+    // forceScale stops the game from switching its own Stage.scaleMode
+    // (e.g. exactFit/noScale) and stretching. Per-movie options only —
+    // the page global config is untouched.
+    scale: "showAll",
+    letterbox: "on",
+    forceScale: true
+  };
+  var testPlayer = null;
+  var testBooting = null;
+  var testReady = false;
+  function callEditorStartAudio() {
+    if (!testPlayer) return;
     try {
-      const bin = encodeBin(S.grid);
-      const act = encodeAct(S.objects);
-      await fetch("/editors/save.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
-        body: toCSV(bin, act)
-      });
+      if (typeof testPlayer.editorStartAudio === "function") testPlayer.editorStartAudio();
+    } catch (_) {
+    }
+    try {
+      const api = testPlayer.ruffle ? testPlayer.ruffle() : null;
+      if (api && typeof api.editorStartAudio === "function") api.editorStartAudio();
     } catch (_) {
     }
   }
-  async function doTest() {
-    if (!hasSonic() || !hasGoal()) return;
-    await doSave();
-    window.open("/", "_blank");
+  function setTestVolume(v) {
+    if (!testPlayer) return;
+    try {
+      const api = testPlayer.ruffle ? testPlayer.ruffle() : testPlayer;
+      if (api && typeof api.volume === "number") api.volume = v;
+    } catch (_) {
+    }
+    try {
+      if (typeof testPlayer.volume === "number") testPlayer.volume = v;
+    } catch (_) {
+    }
+  }
+  function ensureTestPlayer() {
+    if (testPlayer) return true;
+    const els = testEls();
+    if (!els) return false;
+    const RP = window.RufflePlayer;
+    if (!RP || !RP.newest) {
+      console.error("[editor] Ruffle not loaded \u2014 cannot start test mode");
+      return false;
+    }
+    try {
+      testPlayer = RP.newest().createPlayer();
+    } catch (e) {
+      console.error("[editor] Ruffle createPlayer failed", e);
+      testPlayer = null;
+      return false;
+    }
+    setTestVolume(0);
+    els.holder.appendChild(testPlayer);
+    setTestVolume(0);
+    return true;
+  }
+  function bootTestMovie(force = false) {
+    if (testReady && !force) return Promise.resolve();
+    if (testBooting) return testBooting;
+    const player = testPlayer;
+    if (!player) return Promise.resolve();
+    if (force) testReady = false;
+    testBooting = (async () => {
+      const api = player.ruffle ? player.ruffle() : player;
+      await api.load({ ...TEST_LOAD_OPTS });
+      testReady = true;
+      const els = testEls();
+      if (els && els.mode.classList.contains("active")) {
+        setTestVolume(1);
+        callEditorStartAudio();
+      } else {
+        setTestVolume(0);
+      }
+    })().catch((e) => {
+      testReady = false;
+      console.error("[editor] Ruffle load failed", e);
+      throw e;
+    }).finally(() => {
+      testBooting = null;
+    });
+    testBooting.catch(() => {
+    });
+    return testBooting;
+  }
+  function warmTestPlayer() {
+    const pre = testEls();
+    if (pre) pre.mode.classList.add("warm");
+    if (!ensureTestPlayer()) {
+      if (pre) pre.mode.classList.remove("warm");
+      return;
+    }
+    bootTestMovie();
+  }
+  function testEls() {
+    const sh = S.shadow;
+    if (!sh) return null;
+    const editor = sh.querySelector(".editor");
+    const mode = sh.querySelector(".testmode");
+    const holder = sh.querySelector(".ruffle-holder");
+    if (!editor || !mode || !holder) return null;
+    return { editor, mode, holder };
+  }
+  async function swWorker() {
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, rej) => setTimeout(() => rej(new Error("sw-timeout")), 5e3))
+      ]);
+      if (!reg) return null;
+      return reg.active ?? navigator.serviceWorker.controller ?? null;
+    } catch (_) {
+      return null;
+    }
+  }
+  function waitForControl(timeoutMs = 3e3) {
+    const swc = navigator.serviceWorker;
+    if (!swc || swc.controller) return Promise.resolve();
+    return new Promise((resolve) => {
+      const onChange = () => {
+        clearTimeout(t);
+        resolve();
+      };
+      const t = setTimeout(() => {
+        swc.removeEventListener("controllerchange", onChange);
+        resolve();
+      }, timeoutMs);
+      swc.addEventListener("controllerchange", onChange, { once: true });
+    });
+  }
+  function doTest() {
+    if (!levelValid()) return;
+    const els = testEls();
+    if (!els || els.mode.classList.contains("active")) return;
+    if (!ensureTestPlayer()) return;
+    const csv = levelCSV();
+    els.editor.classList.add("hidden");
+    els.mode.classList.remove("warm");
+    els.mode.classList.add("active");
+    setTestVolume(1);
+    callEditorStartAudio();
+    bootTestMovie().catch(() => {
+      stopTest();
+    });
+    (async () => {
+      const sw = await swWorker();
+      if (sw) {
+        sw.postMessage({ type: "stage-level", csv });
+        await waitForControl();
+      }
+    })();
+  }
+  function stopTest() {
+    const els = testEls();
+    if (!els) return;
+    if (els) {
+      els.mode.classList.remove("active");
+      els.editor.classList.remove("hidden");
+    }
+    swWorker().then((sw) => {
+      try {
+        sw?.postMessage({ type: "clear-level" });
+      } catch (_) {
+      }
+    });
+    if (testPlayer) {
+      els.mode.classList.add("warm");
+      setTestVolume(0);
+      bootTestMovie(true);
+    } else {
+      els.mode.classList.remove("warm");
+    }
+    resizeCanvas();
+    draw();
   }
   function doFullscreen() {
     const el = S.shadow.host;
@@ -1657,6 +1871,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         const a = b.getAttribute("data-action");
         if (a === "save") doSave();
         else if (a === "test") doTest();
+        else if (a === "stoptest") stopTest();
         else if (a === "fullscreen") doFullscreen();
         else if (a === "mylevels") location.href = "/editors/?action=myLevels&gamegroupid=52";
         else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
@@ -1673,13 +1888,18 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     console.log("[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)");
     const host = document.getElementById("gamecontainer");
     if (!host) return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/test-sw.js", { scope: "/" }).catch((e) => {
+        console.warn("[editor] test Service Worker unavailable", e);
+      });
+    }
     const shadow = host.attachShadow({ mode: "open" });
     S.shadow = shadow;
     const style = document.createElement("style");
     style.textContent = EDITOR_CSS;
     shadow.appendChild(style);
     const wrapper = document.createElement("div");
-    wrapper.style.cssText = "height:100%;display:flex;flex-direction:column;";
+    wrapper.style.cssText = "height:100%;display:flex;flex-direction:column;position:relative;";
     wrapper.innerHTML = EDITOR_HTML;
     shadow.appendChild(wrapper);
     S.canvas = shadow.querySelector("canvas.display");
@@ -1707,6 +1927,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       draw();
     });
     wireEvents();
+    warmTestPlayer();
     requestAnimationFrame(() => {
       resizeCanvas();
       updateCounter();

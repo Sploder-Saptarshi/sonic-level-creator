@@ -127,6 +127,43 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   opacity: 0.7; border: 2px dashed #fff; background-color: rgba(0,0,0,0.3);
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
+
+/* ── test mode: persistent player overlaying the whole editor space ──
+   The player is created once at boot and kept alive (muted) behind the
+   editor so Test opens warm. .warm renders it with real dimensions but
+   invisible (display:none would leave Ruffle with nothing to boot into);
+   .active shows it. No synthetic clicks — the user clicks the title. */
+.editor.hidden { display: none; }
+.testmode { display: none; width: 100%; height: 100%; margin: 0; padding: 0;
+  position: absolute; inset: 0; z-index: 5; background: #000; overflow: hidden;
+  border-radius: 0 0 10px 10px; }
+.testmode.active { display: flex; align-items: center; justify-content: center;
+  visibility: visible; opacity: 1; pointer-events: auto; }
+/* .warm must stay truly invisible even if Ruffle forces visibility:visible
+   inside its own shadow DOM — opacity:0 on the parent cannot be overridden
+   by children, unlike visibility. Pointer events fully off so the overlay
+   never intercepts editor clicks while warming. */
+.testmode.warm { display: flex; align-items: center; justify-content: center;
+  visibility: hidden; opacity: 0 !important; pointer-events: none !important; }
+.testmode.warm * { pointer-events: none !important; }
+.ruffle-holder { position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; background: #000; }
+.ruffle-holder ruffle-player { display: block; width: 100%; height: 100%; background: #000; }
+/* Exact replica of a.lozenge1 (css/playsega.css) — the orange "Sign up!"
+   sliding doors with the real GIFs. Root-absolute paths since shadow
+   <style> URLs resolve against the document base. Only addition vs site:
+   border:none + positioning (this is a <button> pinned top-left, not an <a>).
+   Markup carries the same inner <span>; [data-action] wiring is untouched. */
+.stop-test { background: transparent url('/images/bg_button_a.gif') no-repeat scroll top right;
+  color: #4c4c4c; display: block; float: left; font-weight: bold; height: 22px;
+  margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
+  cursor: pointer; font-size: 12px; font-family: inherit;
+  position: absolute; top: 8px; left: 8px; z-index: 10; }
+.stop-test span { background: transparent url('/images/bg_button_span.gif') no-repeat;
+  display: block; line-height: 11px; padding: 5px 0 6px 16px; }
+.stop-test:link, .stop-test:active, .stop-test:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
+.stop-test:hover { background-position: bottom right; color: #4c4c4c; outline: none; }
+.stop-test:hover span { background-position: bottom left; }
 `;
 
 export const EDITOR_HTML = `
@@ -180,5 +217,10 @@ export const EDITOR_HTML = `
   </div>
 
   <div class="ghost" id="ghost"></div>
+</div>
+
+<div class="testmode">
+  <div class="ruffle-holder"></div>
+  <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
 </div>
 `;
