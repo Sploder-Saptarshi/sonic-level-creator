@@ -41,6 +41,8 @@ export function buildThumbnails() {
         S.selectedTile = i;
         S.selectedObj = null;
         S.selectedObjIdx = -1;
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
         S.paletteDrag = true;
         S.paletteDragTile = i;
         updateDesc(`Block ${i} — drag onto grid to place`);
@@ -72,6 +74,8 @@ export function buildThumbnails() {
         ev.preventDefault();
         S.selectedObj = def;
         S.selectedObjIdx = -1;
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
         S.paletteDrag = true;
         S.paletteDragDef = def;
         updateDesc(`${def.name}: ${def.desc}` + (noArt ? ' (invisible in-game: no art in this zone)' : ''));
@@ -98,6 +102,8 @@ export function switchTab(tab: S['activeTab']) {
   S.activeTab = tab;
   S.selectedObj = null;
   S.selectedObjIdx = -1;
+  S.selectedTileBx = -1;
+  S.selectedTileBy = -1;
   S.shadow!.querySelectorAll('.tab').forEach(b => {
     b.classList.toggle('tab-active', b.getAttribute('data-tab') === tab);
   });

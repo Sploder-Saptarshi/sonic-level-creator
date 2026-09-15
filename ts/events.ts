@@ -3,8 +3,9 @@
 import { MAX_OBJECTS_PER_TILE, snap8, pixelToTile } from './format';
 import {
   S, inGrid, canvasToWorld, objectsInTile, totalObjects, countPlacedTiles,
+  cellSize,
 } from './state';
-import { draw, updateGhost, hideGhost, ensureGlowLoop } from './render';
+import { draw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
 import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
@@ -13,7 +14,7 @@ import { buildThumbnails, switchTab } from './thumbnails';
 
 function onMouseDown(e: MouseEvent) {
   e.preventDefault();
-  const { bx, by, px, py } = canvasToWorld(e);
+  const { bx, by, px, py, mx, my } = canvasToWorld(e);
 
   // Pan: space held or middle-click
   if (S.spaceHeld || e.button === 1) {
@@ -23,6 +24,20 @@ function onMouseDown(e: MouseEvent) {
     S.panStartSX = S.canvasWrap!.scrollLeft;
     S.panStartSY = S.canvasWrap!.scrollTop;
     S.canvas!.style.cursor = 'grabbing';
+    return;
+  }
+
+  // Remove badge (any tab, left-click): clicking the X on a selected tile
+  // clears the tile. Checked before the grid bounds so a badge hanging off
+  // the grid edge still works.
+  if (e.button === 0 && hitTileBadge(mx, my, cellSize())) {
+    S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
+    S.selectedTileBx = -1;
+    S.selectedTileBy = -1;
+    S.selectedObjIdx = -1;
+    S.dragObj = null;
+    updateCounter();
+    draw();
     return;
   }
 
@@ -46,29 +61,66 @@ function onMouseDown(e: MouseEvent) {
     }
     S.selectedObjIdx = -1;
     S.dragObj = null;
+    if (S.selectedTileBx === bx && S.selectedTileBy === by) {
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
+    }
     updateCounter();
     draw();
     return;
   }
 
-  // Object: select/drag existing
-  if (S.activeTab !== 'tiles') {
-    let found = -1;
-    for (let i = S.objects.length - 1; i >= 0; i--) {
-      const o = S.objects[i];
-      if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-        found = i;
-        break;
-      }
+  // Tiles tab: left-click selects the filled cell (empty cell deselects) —
+  // unless the click lands on actual sprite art, which selects the object.
+  // Skipped mid palette-drag so a drop never double-selects.
+  if (S.activeTab === 'tiles' && e.button === 0 && !S.paletteDrag) {
+    const hit = objectHitIndex(mx, my);
+    if (hit >= 0) {
+      S.selectedObjIdx = hit;
+      const o = S.objects[hit];
+      S.dragObj = o;
+      S.dragOffX = px - o.x;
+      S.dragOffY = py - o.y;
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
+    } else if (S.grid[by][bx] > 0) {
+      S.selectedTileBx = bx;
+      S.selectedTileBy = by;
+      S.selectedObjIdx = -1;
+      S.dragObj = null;
+    } else {
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
+      S.selectedObjIdx = -1;
+      S.dragObj = null;
     }
+    updateCounter();
+    draw();
+    return;
+  }
+
+  // Object: select/drag existing. Precise sprite hit — a click on bare tile
+  // art (even in a cell containing an object) selects the tile instead.
+  if (S.activeTab !== 'tiles') {
+    const found = objectHitIndex(mx, my);
     S.selectedObjIdx = found;
     if (found >= 0) {
       const o = S.objects[found];
       S.dragObj = o;
       S.dragOffX = px - o.x;
       S.dragOffY = py - o.y;
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
     } else {
       S.dragObj = null;
+      // No sprite here but a tile: select the tile instead.
+      if (S.grid[by][bx] > 0) {
+        S.selectedTileBx = bx;
+        S.selectedTileBy = by;
+      } else {
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
+      }
     }
     updateCounter();
     draw();
@@ -78,7 +130,7 @@ function onMouseDown(e: MouseEvent) {
 // ── Canvas: mousemove ──
 
 function onMouseMove(e: MouseEvent) {
-  const { bx, by, px, py } = canvasToWorld(e);
+  const { bx, by, px, py, mx, my } = canvasToWorld(e);
 
   // Hover highlight: track the cell under the cursor (-1 when outside grid)
   const hbx = inGrid(bx, by) ? bx : -1;
@@ -92,6 +144,10 @@ function onMouseMove(e: MouseEvent) {
     draw();
     return;
   }
+
+  // Pointer cursor over the tile remove badge, crosshair otherwise.
+  S.canvas!.style.cursor = S.spaceHeld ? 'grab'
+    : hitTileBadge(mx, my, cellSize()) ? 'pointer' : 'crosshair';
 
   // Drag existing object on canvas
   if (S.dragObj && S.selectedObjIdx >= 0) {
@@ -148,11 +204,20 @@ function onKeyDown(e: KeyboardEvent) {
     S.spaceHeld = true;
     S.canvas!.style.cursor = 'grab';
   }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && S.selectedObjIdx >= 0) {
-    S.objects.splice(S.selectedObjIdx, 1);
-    S.selectedObjIdx = -1;
-    updateCounter();
-    draw();
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (S.selectedObjIdx >= 0) {
+      S.objects.splice(S.selectedObjIdx, 1);
+      S.selectedObjIdx = -1;
+      updateCounter();
+      draw();
+    } else if (S.selectedTileBx >= 0 && S.selectedTileBy >= 0
+      && S.selectedTileBy < S.grid.length && S.selectedTileBx < S.grid[0].length) {
+      S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
+      updateCounter();
+      draw();
+    }
   }
 }
 

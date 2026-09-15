@@ -220,6 +220,10 @@
     zoom: 2,
     spaceHeld: false,
     selectedObjIdx: -1,
+    // Selected tile cell (block coords, -1 when nothing selected). Clicking a
+    // filled cell selects it: draw() outlines it + paints a remove badge.
+    selectedTileBx: -1,
+    selectedTileBy: -1,
     dragObj: null,
     dragOffX: 0,
     dragOffY: 0,
@@ -261,6 +265,8 @@
     for (let r = 0; r < rows; r++) S.grid.push(new Array(cols).fill(0));
     S.objects = [];
     S.selectedObjIdx = -1;
+    S.selectedTileBx = -1;
+    S.selectedTileBy = -1;
   }
   function inGrid(bx, by) {
     return bx >= 0 && bx < S.grid[0].length && by >= 0 && by < S.grid.length;
@@ -277,7 +283,9 @@
       bx: Math.floor(mx / cs),
       by: Math.floor(my / cs),
       px: Math.floor(mx / cs * BLOCK_PX),
-      py: Math.floor(my / cs * BLOCK_PX)
+      py: Math.floor(my / cs * BLOCK_PX),
+      mx,
+      my
     };
   }
   function defsForTab(tab) {
@@ -290,9 +298,7 @@
     return countObjectsInTile(S.objects, tc, tr);
   }
   function totalObjects() {
-    let c = 0;
-    for (const o of S.objects) c += o.type <= 1 || o.type >= 63 && o.type <= 69 ? 1 + o.sub : 1;
-    return c;
+    return S.objects.length;
   }
   function countPlacedTiles() {
     let c = 0;
@@ -1254,6 +1260,73 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         }
       }
     }
+    drawTileSelection(scrollX, scrollY, viewW, viewH, cs);
+  }
+  function objectHitIndex(mx, my) {
+    const { objects, grid } = S;
+    if (!grid.length || !grid[0].length) return -1;
+    const cs = cellSize();
+    const k = spriteScale(cs);
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const obj = objects[i];
+      const parts = partsFor(obj.type, obj.sub, obj.variant);
+      if (parts) {
+        const bb = spriteBBox(parts);
+        const bx0 = (obj.x + bb.x) * k, by0 = (obj.y + bb.y) * k;
+        if (mx >= bx0 && mx < bx0 + bb.w * k && my >= by0 && my < by0 + bb.h * k) return i;
+      } else {
+        const dx = obj.x / BLOCK_PX * cs, dy = obj.y / BLOCK_PX * cs;
+        const m = Math.max(14, Math.min(48, cs * 0.35));
+        if (mx >= dx - m / 2 && mx < dx + m / 2 && my >= dy - m / 2 && my < dy + m / 2) return i;
+      }
+    }
+    return -1;
+  }
+  function tileBadge(bx, by, cs) {
+    if (bx < 0 || by < 0 || by >= S.grid.length || bx >= S.grid[0].length) return null;
+    const r = Math.max(5, Math.min(10, cs * 0.15));
+    return { cx: (bx + 1) * cs, cy: by * cs, r };
+  }
+  function selectedTileLive() {
+    const { selectedTileBx: bx, selectedTileBy: by, grid } = S;
+    return bx >= 0 && by >= 0 && by < grid.length && bx < grid[0].length && grid[by][bx] > 0;
+  }
+  function hitTileBadge(mx, my, cs) {
+    if (!selectedTileLive()) return false;
+    const b = tileBadge(S.selectedTileBx, S.selectedTileBy, cs);
+    if (!b) return false;
+    const dx = mx - b.cx, dy = my - b.cy;
+    const rr = b.r + 2;
+    return dx * dx + dy * dy <= rr * rr;
+  }
+  function drawTileSelection(scrollX, scrollY, viewW, viewH, cs) {
+    if (!selectedTileLive()) return;
+    const bx = S.selectedTileBx, by = S.selectedTileBy;
+    const x0 = bx * cs, y0 = by * cs;
+    const b = tileBadge(bx, by, cs);
+    if (x0 - b.r > scrollX + viewW || x0 + cs + b.r < scrollX || y0 - b.r > scrollY + viewH || y0 + cs + b.r < scrollY) return;
+    const { ctx } = S;
+    if (!ctx) return;
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.strokeRect(x0, y0, cs, cs);
+    ctx.fillStyle = "#999999";
+    ctx.beginPath();
+    ctx.arc(b.cx, b.cy, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    const arm = b.r * 0.45;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = Math.max(2, b.r * 0.28);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(b.cx - arm, b.cy - arm);
+    ctx.lineTo(b.cx + arm, b.cy + arm);
+    ctx.moveTo(b.cx + arm, b.cy - arm);
+    ctx.lineTo(b.cx - arm, b.cy + arm);
+    ctx.stroke();
+    ctx.lineCap = "butt";
+    ctx.lineWidth = 1;
   }
   var GLOW_PERIOD_MS = 1600;
   function glowAlpha(now = performance.now()) {
@@ -1394,6 +1467,8 @@ canvas.display { display: block; cursor: crosshair; border: none; }
           S.selectedTile = i;
           S.selectedObj = null;
           S.selectedObjIdx = -1;
+          S.selectedTileBx = -1;
+          S.selectedTileBy = -1;
           S.paletteDrag = true;
           S.paletteDragTile = i;
           updateDesc(`Block ${i} \u2014 drag onto grid to place`);
@@ -1423,6 +1498,8 @@ canvas.display { display: block; cursor: crosshair; border: none; }
           ev.preventDefault();
           S.selectedObj = def;
           S.selectedObjIdx = -1;
+          S.selectedTileBx = -1;
+          S.selectedTileBy = -1;
           S.paletteDrag = true;
           S.paletteDragDef = def;
           updateDesc(`${def.name}: ${def.desc}` + (noArt ? " (invisible in-game: no art in this zone)" : ""));
@@ -1444,6 +1521,8 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     S.activeTab = tab;
     S.selectedObj = null;
     S.selectedObjIdx = -1;
+    S.selectedTileBx = -1;
+    S.selectedTileBy = -1;
     S.shadow.querySelectorAll(".tab").forEach((b) => {
       b.classList.toggle("tab-active", b.getAttribute("data-tab") === tab);
     });
@@ -1683,7 +1762,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   // ts/events.ts
   function onMouseDown(e) {
     e.preventDefault();
-    const { bx, by, px, py } = canvasToWorld(e);
+    const { bx, by, px, py, mx, my } = canvasToWorld(e);
     if (S.spaceHeld || e.button === 1) {
       S.panning = true;
       S.panStartX = e.clientX;
@@ -1691,6 +1770,16 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       S.panStartSX = S.canvasWrap.scrollLeft;
       S.panStartSY = S.canvasWrap.scrollTop;
       S.canvas.style.cursor = "grabbing";
+      return;
+    }
+    if (e.button === 0 && hitTileBadge(mx, my, cellSize())) {
+      S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
+      S.selectedTileBx = -1;
+      S.selectedTileBy = -1;
+      S.selectedObjIdx = -1;
+      S.dragObj = null;
+      updateCounter();
+      draw();
       return;
     }
     if (!inGrid(bx, by)) return;
@@ -1709,34 +1798,65 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       }
       S.selectedObjIdx = -1;
       S.dragObj = null;
+      if (S.selectedTileBx === bx && S.selectedTileBy === by) {
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
+      }
+      updateCounter();
+      draw();
+      return;
+    }
+    if (S.activeTab === "tiles" && e.button === 0 && !S.paletteDrag) {
+      const hit = objectHitIndex(mx, my);
+      if (hit >= 0) {
+        S.selectedObjIdx = hit;
+        const o = S.objects[hit];
+        S.dragObj = o;
+        S.dragOffX = px - o.x;
+        S.dragOffY = py - o.y;
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
+      } else if (S.grid[by][bx] > 0) {
+        S.selectedTileBx = bx;
+        S.selectedTileBy = by;
+        S.selectedObjIdx = -1;
+        S.dragObj = null;
+      } else {
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
+        S.selectedObjIdx = -1;
+        S.dragObj = null;
+      }
       updateCounter();
       draw();
       return;
     }
     if (S.activeTab !== "tiles") {
-      let found = -1;
-      for (let i = S.objects.length - 1; i >= 0; i--) {
-        const o = S.objects[i];
-        if (pixelToTile(o.x) === bx && pixelToTile(o.y) === by) {
-          found = i;
-          break;
-        }
-      }
+      const found = objectHitIndex(mx, my);
       S.selectedObjIdx = found;
       if (found >= 0) {
         const o = S.objects[found];
         S.dragObj = o;
         S.dragOffX = px - o.x;
         S.dragOffY = py - o.y;
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
       } else {
         S.dragObj = null;
+        if (S.grid[by][bx] > 0) {
+          S.selectedTileBx = bx;
+          S.selectedTileBy = by;
+        } else {
+          S.selectedTileBx = -1;
+          S.selectedTileBy = -1;
+        }
       }
       updateCounter();
       draw();
     }
   }
   function onMouseMove(e) {
-    const { bx, by, px, py } = canvasToWorld(e);
+    const { bx, by, px, py, mx, my } = canvasToWorld(e);
     const hbx = inGrid(bx, by) ? bx : -1;
     const hby = inGrid(bx, by) ? by : -1;
     S.hoverBx = hbx;
@@ -1747,6 +1867,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       draw();
       return;
     }
+    S.canvas.style.cursor = S.spaceHeld ? "grab" : hitTileBadge(mx, my, cellSize()) ? "pointer" : "crosshair";
     if (S.dragObj && S.selectedObjIdx >= 0) {
       S.dragObj.x = snap8(px - S.dragOffX);
       S.dragObj.y = snap8(py - S.dragOffY);
@@ -1784,11 +1905,19 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       S.spaceHeld = true;
       S.canvas.style.cursor = "grab";
     }
-    if ((e.key === "Delete" || e.key === "Backspace") && S.selectedObjIdx >= 0) {
-      S.objects.splice(S.selectedObjIdx, 1);
-      S.selectedObjIdx = -1;
-      updateCounter();
-      draw();
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (S.selectedObjIdx >= 0) {
+        S.objects.splice(S.selectedObjIdx, 1);
+        S.selectedObjIdx = -1;
+        updateCounter();
+        draw();
+      } else if (S.selectedTileBx >= 0 && S.selectedTileBy >= 0 && S.selectedTileBy < S.grid.length && S.selectedTileBx < S.grid[0].length) {
+        S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
+        S.selectedTileBx = -1;
+        S.selectedTileBy = -1;
+        updateCounter();
+        draw();
+      }
     }
   }
   function onKeyUp(e) {

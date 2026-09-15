@@ -17,6 +17,10 @@ export const S = {
   zoom: 2,
   spaceHeld: false,
   selectedObjIdx: -1,
+  // Selected tile cell (block coords, -1 when nothing selected). Clicking a
+  // filled cell selects it: draw() outlines it + paints a remove badge.
+  selectedTileBx: -1,
+  selectedTileBy: -1,
   dragObj: null as PlacedObject | null,
   dragOffX: 0,
   dragOffY: 0,
@@ -67,6 +71,8 @@ export function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
   for (let r = 0; r < rows; r++) S.grid.push(new Array(cols).fill(0));
   S.objects = [];
   S.selectedObjIdx = -1;
+  S.selectedTileBx = -1;
+  S.selectedTileBy = -1;
 }
 
 export function inGrid(bx: number, by: number): boolean {
@@ -82,8 +88,9 @@ export function resetInteraction() {
   S.dragObj = null;
 }
 
-/** Convert mouse event to grid + pixel coordinates (single source of truth). */
-export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: number; py: number } {
+/** Convert mouse event to grid + pixel coordinates (single source of truth).
+ *  mx/my are raw canvas-px coords (for badge hit-testing); bx/by the cell. */
+export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: number; py: number; mx: number; my: number } {
   const rect = S.canvas!.getBoundingClientRect();
   const cs = cellSize();
   const mx = e.clientX - rect.left;
@@ -93,6 +100,8 @@ export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: numb
     by: Math.floor(my / cs),
     px: Math.floor(mx / cs * BLOCK_PX),
     py: Math.floor(my / cs * BLOCK_PX),
+    mx,
+    my,
   };
 }
 
@@ -109,9 +118,10 @@ export function objectsInTile(tc: number, tr: number): number {
 }
 
 export function totalObjects(): number {
-  let c = 0;
-  for (const o of S.objects) c += (o.type <= 1 || (o.type >= 63 && o.type <= 69)) ? 1 + o.sub : 1;
-  return c;
+  // Global counter: every placed entry counts as one — a ring bunch is a
+  // single object no matter how many rings it holds. (The per-tile budget
+  // in countObjectsInTile still counts rings individually.)
+  return S.objects.length;
 }
 
 export function countPlacedTiles(): number {
