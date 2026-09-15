@@ -1,6 +1,17 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+<script>
+// Canonical directory URL: `php -S` serves editors/index.html at both
+// /editors and /editors/ without redirecting, but the two URLs have
+// different base URIs — bare-relative URLs (including gateway/asset paths
+// the SWF + Ruffle stack resolves against the page base) land on different
+// absolute URLs, so the test Service Worker fails from the slashless form.
+// Normalise to the trailing-slash form before anything else loads.
+if (window.location && location.pathname === '/editors') {
+  location.replace('/editors/' + location.search + location.hash);
+}
+</script>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=7"></meta>
 <meta name="copyright" content="Sega Europe"></meta>
