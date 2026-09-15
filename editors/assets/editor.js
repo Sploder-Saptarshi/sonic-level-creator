@@ -1667,78 +1667,21 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     if (!editor || !mode || !holder) return null;
     return { editor, mode, holder };
   }
-  async function swWorker() {
-    if (!("serviceWorker" in navigator)) return null;
+  var stagedCSV = null;
+  function publishStagedCSV(csv) {
+    stagedCSV = csv;
     try {
-      const reg = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise((_, rej) => setTimeout(() => rej(new Error("sw-timeout")), 5e3))
-      ]);
-      if (!reg) return null;
-      return reg.active ?? navigator.serviceWorker.controller ?? null;
+      window.__swfGetStagedLevel = () => stagedCSV;
     } catch (_) {
-      return null;
     }
   }
-  function waitForControl(timeoutMs = 3e3) {
-    const swc = navigator.serviceWorker;
-    if (!swc || swc.controller) return Promise.resolve();
-    return new Promise((resolve) => {
-      const onChange = () => {
-        clearTimeout(t);
-        resolve();
-      };
-      const t = setTimeout(() => {
-        swc.removeEventListener("controllerchange", onChange);
-        resolve();
-      }, timeoutMs);
-      swc.addEventListener("controllerchange", onChange, { once: true });
-    });
-  }
-  async function stageLevel(csv, attempt = 0) {
-    const sw = await swWorker();
-    if (!sw) return false;
-    let acked = false;
-    try {
-      acked = await new Promise((resolve) => {
-        const t = setTimeout(() => resolve(false), 2e3);
-        try {
-          const mc = new MessageChannel();
-          mc.port1.onmessage = () => {
-            clearTimeout(t);
-            resolve(true);
-          };
-          sw.postMessage({ type: "stage-level", csv }, [mc.port2]);
-        } catch (_) {
-          clearTimeout(t);
-          resolve(false);
-        }
-      });
-    } catch (_) {
-      acked = false;
-    }
-    if (acked) return true;
-    if (attempt === 0) {
-      try {
-        await (await navigator.serviceWorker.getRegistration("/"))?.update();
-      } catch (_) {
-      }
-      return stageLevel(csv, 1);
-    }
-    return false;
-  }
+  publishStagedCSV(null);
   var preStageTimer = null;
   function markDirty() {
     if (preStageTimer) clearTimeout(preStageTimer);
     preStageTimer = setTimeout(() => {
       preStageTimer = null;
-      if (levelValid()) stageLevel(levelCSV());
-      else swWorker().then((sw) => {
-        try {
-          sw?.postMessage({ type: "clear-level" });
-        } catch (_) {
-        }
-      });
+      publishStagedCSV(levelValid() ? levelCSV() : null);
     }, 500);
   }
   function cancelPreStage() {
@@ -1754,11 +1697,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     if (!ensureTestPlayer()) return;
     const csv = levelCSV();
     cancelPreStage();
-    await waitForControl();
-    const staged = await stageLevel(csv);
-    if (!staged) {
-      console.error("[editor] test Service Worker did not acknowledge the staged level (cold/restarting worker?) \u2014 test level may be stale; pressing Test again once the worker is warm usually succeeds");
-    }
+    publishStagedCSV(csv);
     els.editor.classList.add("hidden");
     els.mode.classList.remove("warm");
     els.mode.classList.add("active");
@@ -1775,12 +1714,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       els.mode.classList.remove("active");
       els.editor.classList.remove("hidden");
     }
-    swWorker().then((sw) => {
-      try {
-        sw?.postMessage({ type: "clear-level" });
-      } catch (_) {
-      }
-    });
+    publishStagedCSV(null);
     if (testPlayer) {
       els.mode.classList.add("warm");
       setTestVolume(0);
@@ -2081,8 +2015,12 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     const host = document.getElementById("gamecontainer");
     if (!host) return;
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/test-sw.js", { scope: "/" }).catch((e) => {
-        console.warn("[editor] test Service Worker unavailable", e);
+      navigator.serviceWorker.getRegistration("/").then((r) => {
+        try {
+          r?.unregister();
+        } catch (_) {
+        }
+      }).catch(() => {
       });
     }
     const shadow = host.attachShadow({ mode: "open" });

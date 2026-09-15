@@ -14,13 +14,13 @@ function boot() {
   const host = document.getElementById('gamecontainer');
   if (!host) return;
 
-  // Test-mode Service Worker (root scope so it sees /amfphp/gateway.php).
-  // Answers the stock game SWF's AMF calls from staged editor memory;
-  // passes everything through to the network when nothing is staged.
+  // No service worker anymore (test levels travel via the
+  // __swfGetStagedLevel JS bridge). Unregister any leftover from older
+  // builds so a stale worker can never shadow the gateway again.
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/test-sw.js', { scope: '/' }).catch((e) => {
-      console.warn('[editor] test Service Worker unavailable', e);
-    });
+    navigator.serviceWorker.getRegistration('/').then((r) => {
+      try { r?.unregister(); } catch (_) { /* ignore */ }
+    }).catch(() => {});
   }
 
   const shadow = host.attachShadow({ mode: 'open' });

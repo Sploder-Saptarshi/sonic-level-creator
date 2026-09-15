@@ -4,10 +4,9 @@
 <script>
 // Canonical directory URL: `php -S` serves editors/index.html at both
 // /editors and /editors/ without redirecting, but the two URLs have
-// different base URIs — bare-relative URLs (including gateway/asset paths
-// the SWF + Ruffle stack resolves against the page base) land on different
-// absolute URLs, so the test Service Worker fails from the slashless form.
-// Normalise to the trailing-slash form before anything else loads.
+// different base URIs — bare-relative URLs (gateway/asset paths the SWF +
+// Ruffle stack resolves against the page base) land on different absolute
+// URLs, so normalise to the trailing-slash form before anything else loads.
 if (window.location && location.pathname === '/editors') {
   location.replace('/editors/' + location.search + location.hash);
 }
