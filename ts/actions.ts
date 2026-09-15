@@ -206,7 +206,61 @@ function waitForControl(timeoutMs = 3000): Promise<void> {
   });
 }
 
-export function doTest() {
+// Stage the level in the worker and wait for its acknowledgement (with a
+// timeout fallback so Test never hangs). The worker acks from memory
+// immediately and persists in the background, so this resolves in
+// milliseconds on a warm worker. The SWF caches the first getLevel
+// answer for the whole movie load, so the CSV must be staged BEFORE the
+// title screen is shown — staging after the switch races the title click
+// and serves a stale level.
+async function stageLevel(csv: string): Promise<boolean> {
+  const sw = await swWorker();
+  if (!sw) return false;
+  try {
+    await new Promise<void>((resolve) => {
+      const done = () => resolve();
+      const t = setTimeout(done, 2000);
+      try {
+        const mc = new MessageChannel();
+        mc.port1.onmessage = () => { clearTimeout(t); done(); };
+        sw.postMessage({ type: 'stage-level', csv }, [mc.port2]);
+      } catch (_) {
+        clearTimeout(t);
+        try { sw.postMessage({ type: 'stage-level', csv }); } catch (_) {}
+        done();
+      }
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// ── Background pre-staging ──
+// Every grid/object mutation calls markDirty(). After a short idle window
+// the current level is staged in the worker ahead of time, so the worker
+// is warm (browsers stop idle workers) and its memory already holds the
+// latest CSV when Test is pressed. doTest still does a final gated stage
+// for correctness — but that resolves in milliseconds instead of waking a
+// cold worker and waiting on disk I/O.
+let preStageTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function markDirty() {
+  if (preStageTimer) clearTimeout(preStageTimer);
+  preStageTimer = setTimeout(() => {
+    preStageTimer = null;
+    // Mirror validity: never leave a stale *valid* level staged after the
+    // user deletes Sonic/goal (Test itself is validity-gated anyway).
+    if (levelValid()) stageLevel(levelCSV());
+    else swWorker().then((sw) => { try { sw?.postMessage({ type: 'clear-level' }); } catch (_) {} });
+  }, 500);
+}
+
+function cancelPreStage() {
+  if (preStageTimer) { clearTimeout(preStageTimer); preStageTimer = null; }
+}
+
+export async function doTest() {
   if (!levelValid()) return;
   const els = testEls();
   if (!els || els.mode.classList.contains('active')) return;
@@ -215,11 +269,26 @@ export function doTest() {
   // Capture synchronously — the editor hides below, so the grid can't
   // change mid-test anyway.
   const csv = levelCSV();
+  // A debounced pre-stage may be pending with an older grid — drop it; the
+  // gated stage below sends the fresh CSV (message order is FIFO, so memory
+  // always ends on the latest).
+  cancelPreStage();
 
-  // Instant switch: no awaits before these, so the warm title appears
-  // on the same frame as the click. Unmute + release the held title BGM
-  // (a click gesture, so autoplay policy allows it) — the movie itself
-  // never stopped.
+  // The worker only intercepts gateway POSTs once it controls the page
+  // (first visit: still installing/claiming). Wait for control first —
+  // otherwise the getLevel request bypasses the worker and the server
+  // answers with its stale stored blob.
+  await waitForControl();
+  // Stage before revealing: the title click leads to STAGESELECT getLevel,
+  // which must already see this CSV. Nothing is sent to or written on the
+  // server; the stock SWF's AMF call is answered locally from staged memory.
+  const staged = await stageLevel(csv);
+  if (!staged) {
+    console.error('[editor] test Service Worker unavailable — test level may be stale');
+  }
+
+  // Switch: unmute + release the held title BGM (a click gesture, so
+  // autoplay policy allows it) — the movie itself never stopped.
   els.editor.classList.add('hidden');
   els.mode.classList.remove('warm');
   els.mode.classList.add('active');
@@ -231,19 +300,6 @@ export function doTest() {
   bootTestMovie().catch(() => {
     stopTest();
   });
-
-  // Stage the level in the background — it only needs to be in the worker
-  // before the post-title-click STAGESELECT getLevel, so the user crossing
-  // the title screen covers this latency instead of blocking the switch.
-  // Nothing is sent to or written on the server; the stock SWF's AMF call
-  // is answered from staged memory.
-  (async () => {
-    const sw = await swWorker();
-    if (sw) {
-      sw.postMessage({ type: 'stage-level', csv });
-      await waitForControl();
-    }
-  })();
 }
 
 export function stopTest() {
@@ -283,6 +339,7 @@ export function doClearAll() {
   initGrid();
   S.selectedObjIdx = -1;
   updateCounter();
+  markDirty();
   draw();
 }
 

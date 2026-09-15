@@ -1688,12 +1688,66 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       swc.addEventListener("controllerchange", onChange, { once: true });
     });
   }
-  function doTest() {
+  async function stageLevel(csv) {
+    const sw = await swWorker();
+    if (!sw) return false;
+    try {
+      await new Promise((resolve) => {
+        const done = () => resolve();
+        const t = setTimeout(done, 2e3);
+        try {
+          const mc = new MessageChannel();
+          mc.port1.onmessage = () => {
+            clearTimeout(t);
+            done();
+          };
+          sw.postMessage({ type: "stage-level", csv }, [mc.port2]);
+        } catch (_) {
+          clearTimeout(t);
+          try {
+            sw.postMessage({ type: "stage-level", csv });
+          } catch (_2) {
+          }
+          done();
+        }
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+  var preStageTimer = null;
+  function markDirty() {
+    if (preStageTimer) clearTimeout(preStageTimer);
+    preStageTimer = setTimeout(() => {
+      preStageTimer = null;
+      if (levelValid()) stageLevel(levelCSV());
+      else swWorker().then((sw) => {
+        try {
+          sw?.postMessage({ type: "clear-level" });
+        } catch (_) {
+        }
+      });
+    }, 500);
+  }
+  function cancelPreStage() {
+    if (preStageTimer) {
+      clearTimeout(preStageTimer);
+      preStageTimer = null;
+    }
+  }
+  async function doTest() {
     if (!levelValid()) return;
     const els = testEls();
     if (!els || els.mode.classList.contains("active")) return;
     if (!ensureTestPlayer()) return;
     const csv = levelCSV();
+    cancelPreStage();
+    await waitForControl();
+    const staged = await stageLevel(csv);
+    if (!staged) {
+      console.error("[editor] test Service Worker unavailable \u2014 test level may be stale");
+    }
     els.editor.classList.add("hidden");
     els.mode.classList.remove("warm");
     els.mode.classList.add("active");
@@ -1702,13 +1756,6 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     bootTestMovie().catch(() => {
       stopTest();
     });
-    (async () => {
-      const sw = await swWorker();
-      if (sw) {
-        sw.postMessage({ type: "stage-level", csv });
-        await waitForControl();
-      }
-    })();
   }
   function stopTest() {
     const els = testEls();
@@ -1743,6 +1790,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     initGrid();
     S.selectedObjIdx = -1;
     updateCounter();
+    markDirty();
     draw();
   }
   function resizeCanvas() {
@@ -1803,6 +1851,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         S.selectedTileBy = -1;
       }
       updateCounter();
+      markDirty();
       draw();
       return;
     }
@@ -1910,12 +1959,14 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         S.objects.splice(S.selectedObjIdx, 1);
         S.selectedObjIdx = -1;
         updateCounter();
+        markDirty();
         draw();
       } else if (S.selectedTileBx >= 0 && S.selectedTileBy >= 0 && S.selectedTileBy < S.grid.length && S.selectedTileBx < S.grid[0].length) {
         S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
         S.selectedTileBx = -1;
         S.selectedTileBy = -1;
         updateCounter();
+        markDirty();
         draw();
       }
     }
@@ -1972,6 +2023,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         }
       }
       updateCounter();
+      markDirty();
     }
     S.paletteDrag = false;
     S.paletteDragDef = null;

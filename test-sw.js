@@ -6,17 +6,62 @@
 //     decimal bytes, same format Utilities.readStringArray expects).
 //   - PlaySEGA session calls (insertCoin/getNonce/levelUp/pause/...) ->
 //     the same stub values amfphp/gateway.php returns.
-// Everything else (including getLevel with nothing staged) passes through
-// to the network untouched, so normal site behavior is preserved.
+//   - getLevel with nothing staged -> a locally-built Green Hill fallback
+//     (same BIN+ACT the server would serve, assembled from static files).
+// Gateway traffic is ALWAYS answered locally: the server's stored blob is
+// stale relative to the editor grid, and the SWF caches the first getLevel
+// answer per movie load — so any network passthrough permanently poisons
+// the test session with a stale level.
 //
 // The editor stages/clears the level via postMessage:
 //   { type: 'stage-level', csv: '0,0,...' } / { type: 'clear-level' }
+// A stage request is acknowledged on the MessageChannel port (if any) as
+// soon as the CSV is in memory, so the editor never waits on disk I/O;
+// persistence to Cache Storage continues in the background.
 
 const te = new TextEncoder();
 const td = new TextDecoder();
 
 // Staged level CSV (editor memory -> served to the SWF, never leaves browser).
 let stagedCSV = null;
+
+// Cache Storage backing so a worker restart (browsers kill idle workers)
+// cannot revert to a stale level: memory is authoritative, the persisted
+// copy is only consulted when memory is empty.
+const STAGE_CACHE = 'test-level-v1';
+const STAGE_KEY = '/__staged-level-csv__';
+
+async function persistStaged(csv) {
+  const c = await caches.open(STAGE_CACHE);
+  if (csv === null || csv === undefined) await c.delete(STAGE_KEY);
+  else await c.put(STAGE_KEY, new Response(csv, { headers: { 'Content-Type': 'text/plain' } }));
+}
+
+async function readPersisted() {
+  const c = await caches.open(STAGE_CACHE);
+  const r = await c.match(STAGE_KEY);
+  return r ? r.text() : null;
+}
+
+// Local Green Hill fallback (mirrors amfphp/gateway.php zone_bytes('gh')),
+// assembled from static data files — no gateway.php request involved.
+let fallbackCSV = null;
+async function getFallbackCSV() {
+  if (fallbackCSV !== null) return fallbackCSV;
+  const [binRes, actRes] = await Promise.all([
+    fetch('/games/swf/52/res/data/default/mc_gh_map_data.bin'),
+    fetch('/games/swf/52/res/data/default/ZONE1ACT.act'),
+  ]);
+  if (!binRes.ok || !actRes.ok) throw new Error('fallback level files missing');
+  const [bin, act] = await Promise.all([binRes.arrayBuffer(), actRes.arrayBuffer()]);
+  const bytes = new Uint8Array(bin.byteLength + act.byteLength);
+  bytes.set(new Uint8Array(bin), 0);
+  bytes.set(new Uint8Array(act), bin.byteLength);
+  const parts = new Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) parts[i] = String(bytes[i]);
+  fallbackCSV = parts.join(',');
+  return fallbackCSV;
+}
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -29,8 +74,21 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('message', (e) => {
   const d = e.data;
   if (!d || typeof d.type !== 'string') return;
-  if (d.type === 'stage-level' && typeof d.csv === 'string') stagedCSV = d.csv;
-  else if (d.type === 'clear-level') stagedCSV = null;
+  if (d.type === 'stage-level' && typeof d.csv === 'string') {
+    stagedCSV = d.csv;
+    // Acknowledge immediately from memory: the fetch handler serves from
+    // memory, so nothing on the editor's Test path waits on disk I/O.
+    // Persistence continues in the background (waitUntil keeps the worker
+    // alive for it) and only matters for worker restarts before Test.
+    if (e.ports && e.ports[0]) { try { e.ports[0].postMessage({ type: 'staged' }); } catch (_) {} }
+    e.waitUntil((async () => {
+      try { await persistStaged(d.csv); } catch (_) { /* memory copy still serves */ }
+    })());
+  } else if (d.type === 'clear-level') {
+    stagedCSV = null;
+    if (e.ports && e.ports[0]) { try { e.ports[0].postMessage({ type: 'cleared' }); } catch (_) {} }
+    e.waitUntil((async () => { try { await persistStaged(null); } catch (_) {} })());
+  }
 });
 
 // ── AMF0 reader (mirrors amfphp/gateway.php Amf0Reader) ──
@@ -170,30 +228,34 @@ function dispatch(method, _args) {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'POST' || !url.pathname.endsWith('/amfphp/gateway.php')) return;
+  // Fully local: never forward to the server's gateway.php. Its stored
+  // blob is stale relative to the editor, and the SWF keeps the first
+  // getLevel answer for the whole movie load.
   e.respondWith((async () => {
     let msgs;
     try {
       const buf = await e.request.clone().arrayBuffer();
       msgs = parseEnvelope(buf);
     } catch (_) {
-      return fetch(e.request);
+      return new Response(new Uint8Array(0), { status: 400 });
     }
-    // getLevel with nothing staged -> let the real gateway answer.
-    if (msgs.length === 1) {
-      const m = msgs[0];
-      const method = m.tgt.slice(m.tgt.lastIndexOf('.') + 1);
-      if (method === 'getLevel' && stagedCSV === null) return fetch(e.request);
+    // Memory first, persisted copy second (covers worker restarts between
+    // staging and the title-screen click), local fallback last.
+    if (stagedCSV === null) {
+      try { stagedCSV = await readPersisted(); } catch (_) { /* fall through */ }
     }
+    const levelCSV = stagedCSV !== null ? stagedCSV : await getFallbackCSV();
     let out = new Uint8Array(0);
     for (const m of msgs) {
       const method = m.tgt.slice(m.tgt.lastIndexOf('.') + 1);
       const args = Array.isArray(m.body) ? m.body : [m.body];
-      const part = buildEnvelope(m.resp, dispatch(method, args));
+      const value = method === 'getLevel' ? levelCSV : dispatch(method, args);
+      const part = buildEnvelope(m.resp, value);
       const joined = new Uint8Array(out.length + part.length);
       joined.set(out);
       joined.set(part, out.length);
       out = joined;
     }
-    return new Response(out, { headers: { 'Content-Type': 'application/x-amf' } });
+    return new Response(out, { headers: { 'Content-Type': 'application/x-amf', 'Cache-Control': 'no-store' } });
   })());
 });

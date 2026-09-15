@@ -7,7 +7,7 @@ import {
 } from './state';
 import { draw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -66,6 +66,7 @@ function onMouseDown(e: MouseEvent) {
       S.selectedTileBy = -1;
     }
     updateCounter();
+    markDirty();
     draw();
     return;
   }
@@ -209,6 +210,7 @@ function onKeyDown(e: KeyboardEvent) {
       S.objects.splice(S.selectedObjIdx, 1);
       S.selectedObjIdx = -1;
       updateCounter();
+      markDirty();
       draw();
     } else if (S.selectedTileBx >= 0 && S.selectedTileBy >= 0
       && S.selectedTileBy < S.grid.length && S.selectedTileBx < S.grid[0].length) {
@@ -216,6 +218,7 @@ function onKeyDown(e: KeyboardEvent) {
       S.selectedTileBx = -1;
       S.selectedTileBy = -1;
       updateCounter();
+      markDirty();
       draw();
     }
   }
@@ -302,6 +305,7 @@ function onDocMouseUp(e: MouseEvent) {
       }
     }
     updateCounter();
+    markDirty();
   }
 
   S.paletteDrag = false;
