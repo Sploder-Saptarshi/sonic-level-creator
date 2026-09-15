@@ -1695,33 +1695,37 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       swc.addEventListener("controllerchange", onChange, { once: true });
     });
   }
-  async function stageLevel(csv) {
+  async function stageLevel(csv, attempt = 0) {
     const sw = await swWorker();
     if (!sw) return false;
+    let acked = false;
     try {
-      await new Promise((resolve) => {
-        const done = () => resolve();
-        const t = setTimeout(done, 2e3);
+      acked = await new Promise((resolve) => {
+        const t = setTimeout(() => resolve(false), 2e3);
         try {
           const mc = new MessageChannel();
           mc.port1.onmessage = () => {
             clearTimeout(t);
-            done();
+            resolve(true);
           };
           sw.postMessage({ type: "stage-level", csv }, [mc.port2]);
         } catch (_) {
           clearTimeout(t);
-          try {
-            sw.postMessage({ type: "stage-level", csv });
-          } catch (_2) {
-          }
-          done();
+          resolve(false);
         }
       });
-      return true;
     } catch (_) {
-      return false;
+      acked = false;
     }
+    if (acked) return true;
+    if (attempt === 0) {
+      try {
+        await (await navigator.serviceWorker.getRegistration("/"))?.update();
+      } catch (_) {
+      }
+      return stageLevel(csv, 1);
+    }
+    return false;
   }
   var preStageTimer = null;
   function markDirty() {
@@ -1753,7 +1757,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     await waitForControl();
     const staged = await stageLevel(csv);
     if (!staged) {
-      console.error("[editor] test Service Worker unavailable \u2014 test level may be stale");
+      console.error("[editor] test Service Worker did not acknowledge the staged level (cold/restarting worker?) \u2014 test level may be stale; pressing Test again once the worker is warm usually succeeds");
     }
     els.editor.classList.add("hidden");
     els.mode.classList.remove("warm");

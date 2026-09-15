@@ -213,27 +213,34 @@ function waitForControl(timeoutMs = 3000): Promise<void> {
 // answer for the whole movie load, so the CSV must be staged BEFORE the
 // title screen is shown — staging after the switch races the title click
 // and serves a stale level.
-async function stageLevel(csv: string): Promise<boolean> {
+async function stageLevel(csv: string, attempt = 0): Promise<boolean> {
   const sw = await swWorker();
   if (!sw) return false;
+  let acked = false;
   try {
-    await new Promise<void>((resolve) => {
-      const done = () => resolve();
-      const t = setTimeout(done, 2000);
+    acked = await new Promise<boolean>((resolve) => {
+      const t = setTimeout(() => resolve(false), 2000);
       try {
         const mc = new MessageChannel();
-        mc.port1.onmessage = () => { clearTimeout(t); done(); };
+        mc.port1.onmessage = () => { clearTimeout(t); resolve(true); };
         sw.postMessage({ type: 'stage-level', csv }, [mc.port2]);
       } catch (_) {
         clearTimeout(t);
-        try { sw.postMessage({ type: 'stage-level', csv }); } catch (_) {}
-        done();
+        resolve(false);
       }
     });
-    return true;
   } catch (_) {
-    return false;
+    acked = false;
   }
+  if (acked) return true;
+  if (attempt === 0) {
+    // No ack: the worker was likely cold (browsers stop idle workers and
+    // wipe its memory) or mid-update and missed the message. Nudge it awake
+    // and retry once before giving up — still bounded, so Test never hangs.
+    try { await (await navigator.serviceWorker.getRegistration('/'))?.update(); } catch (_) {}
+    return stageLevel(csv, 1);
+  }
+  return false;
 }
 
 // ── Background pre-staging ──
@@ -284,7 +291,7 @@ export async function doTest() {
   // server; the stock SWF's AMF call is answered locally from staged memory.
   const staged = await stageLevel(csv);
   if (!staged) {
-    console.error('[editor] test Service Worker unavailable — test level may be stale');
+    console.error('[editor] test Service Worker did not acknowledge the staged level (cold/restarting worker?) — test level may be stale; pressing Test again once the worker is warm usually succeeds');
   }
 
   // Switch: unmute + release the held title BGM (a click gesture, so

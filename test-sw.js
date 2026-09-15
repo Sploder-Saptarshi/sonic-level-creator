@@ -74,6 +74,13 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('message', (e) => {
   const d = e.data;
   if (!d || typeof d.type !== 'string') return;
+  if (d.type === 'ping') {
+    // Liveness probe for console diagnosis (see stageLevel retry logic):
+    // navigator.serviceWorker.controller.postMessage({type:'ping'}, [port])
+    // resolves 'pong' iff this worker is alive and receiving messages.
+    if (e.ports && e.ports[0]) { try { e.ports[0].postMessage({ type: 'pong' }); } catch (_) {} }
+    return;
+  }
   if (d.type === 'stage-level' && typeof d.csv === 'string') {
     stagedCSV = d.csv;
     // Acknowledge immediately from memory: the fetch handler serves from
