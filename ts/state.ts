@@ -63,7 +63,7 @@ export const S = {
 // ── Helpers ──
 
 export function cellSize(): number {
-  return Math.round(64 * S.zoom);
+  return Math.round(128 * S.zoom);
 }
 
 export function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
@@ -89,12 +89,15 @@ export function resetInteraction() {
 }
 
 /** Convert mouse event to grid + pixel coordinates (single source of truth).
- *  mx/my are raw canvas-px coords (for badge hit-testing); bx/by the cell. */
+ *  mx/my are absolute canvas-px coords (canvas is viewport-sized + sticky,
+ *  so the wrap scroll offset is added back); bx/by the cell; px/py world. */
 export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: number; py: number; mx: number; my: number } {
   const rect = S.canvas!.getBoundingClientRect();
   const cs = cellSize();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const sx = S.canvasWrap ? S.canvasWrap.scrollLeft : 0;
+  const sy = S.canvasWrap ? S.canvasWrap.scrollTop : 0;
+  const mx = e.clientX - rect.left + sx;
+  const my = e.clientY - rect.top + sy;
   return {
     bx: Math.floor(mx / cs),
     by: Math.floor(my / cs),
@@ -130,7 +133,18 @@ export function countPlacedTiles(): number {
   return c;
 }
 
+const defCache = new Map<string, ObjectDef | null>();
 export function findDef(typeId: number, variant?: number, sub?: number): ObjectDef | null {
+  // Memoized (pure lookup): draw() calls this per art-less object per frame.
+  const key = `${typeId}|${variant ?? ''}|${sub ?? ''}`;
+  const hit = defCache.get(key);
+  if (hit !== undefined) return hit;
+  const out = findDefUncached(typeId, variant, sub);
+  defCache.set(key, out);
+  return out;
+}
+
+function findDefUncached(typeId: number, variant?: number, sub?: number): ObjectDef | null {
   const pools = [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES];
   if (variant !== undefined || sub !== undefined) {
     for (const arr of pools)

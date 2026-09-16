@@ -265,7 +265,7 @@
     ghostEl: null
   };
   function cellSize() {
-    return Math.round(64 * S.zoom);
+    return Math.round(128 * S.zoom);
   }
   function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
     S.grid = [];
@@ -284,8 +284,10 @@
   function canvasToWorld(e) {
     const rect = S.canvas.getBoundingClientRect();
     const cs = cellSize();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const sx = S.canvasWrap ? S.canvasWrap.scrollLeft : 0;
+    const sy = S.canvasWrap ? S.canvasWrap.scrollTop : 0;
+    const mx = e.clientX - rect.left + sx;
+    const my = e.clientY - rect.top + sy;
     return {
       bx: Math.floor(mx / cs),
       by: Math.floor(my / cs),
@@ -312,7 +314,16 @@
     for (const row2 of S.grid) for (const id of row2) if (id > 0) c++;
     return c;
   }
+  var defCache = /* @__PURE__ */ new Map();
   function findDef(typeId, variant, sub) {
+    const key = `${typeId}|${variant ?? ""}|${sub ?? ""}`;
+    const hit = defCache.get(key);
+    if (hit !== void 0) return hit;
+    const out = findDefUncached(typeId, variant, sub);
+    defCache.set(key, out);
+    return out;
+  }
+  function findDefUncached(typeId, variant, sub) {
     const pools = [ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES];
     if (variant !== void 0 || sub !== void 0) {
       for (const arr of pools)
@@ -366,11 +377,15 @@
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
   border-radius: 0 0 7px 7px;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
+/* Grid-sized scroll space; the canvas itself is viewport-sized and sticky
+   (see resizeCanvas) so the backing store never exceeds the visible area. */
+.canvas-inner { position: relative; }
+canvas.display { display: block; cursor: crosshair; border: none;
+  position: sticky; top: 0; left: 0; }
 .canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
 .canvas-wrap::-webkit-scrollbar-track { background: #f0f0f0; }
 .canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
   border: 2px solid #f0f0f0; }
-canvas.display { display: block; cursor: crosshair; border: none; }
 
 /* \u2500\u2500 bottom: tabs+strip panel + options box (30% height) \u2500\u2500 */
 .bottom { display: flex; height: 25%; min-height: 170px; max-height: 750px; gap: 8px; flex-shrink: 0; }
@@ -504,7 +519,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         </div>
       </div>
       <div class="canvas-wrap">
-        <canvas class="display"></canvas>
+        <div class="canvas-inner"><canvas class="display"></canvas></div>
       </div>
     </div>
 
@@ -812,7 +827,16 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     return parts;
   }
   var RING_TYPES2 = /* @__PURE__ */ new Set([0, 1, 63, 64, 65, 66, 67, 68, 69]);
+  var partsCache = /* @__PURE__ */ new Map();
   function partsFor(type, sub = 0, variant = 0) {
+    const key = `${type}|${sub}|${variant}`;
+    const hit = partsCache.get(key);
+    if (hit !== void 0) return hit;
+    const out = partsForUncached(type, sub, variant);
+    partsCache.set(key, out);
+    return out;
+  }
+  function partsForUncached(type, sub = 0, variant = 0) {
     if (!(type in SPRITES)) return null;
     if (RING_TYPES2.has(type)) return ringParts(type, sub);
     if (type === 2) return springParts(sub, variant);
@@ -886,7 +910,10 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       return [part.ox + x, part.oy + y];
     });
   }
+  var bboxCache = /* @__PURE__ */ new WeakMap();
   function spriteBBox(parts) {
+    const hit = bboxCache.get(parts);
+    if (hit) return hit;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const part of parts) {
       for (const [px, py] of partCorners(part)) {
@@ -896,7 +923,9 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         y1 = Math.max(y1, py);
       }
     }
-    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    const out = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    bboxCache.set(parts, out);
+    return out;
   }
   function drawParts(ctx, parts, gx, gy, k, mirror = false) {
     ctx.imageSmoothingEnabled = false;
@@ -1040,6 +1069,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   var GHOST_PX = 256;
   var ghostCanvas;
   var ghostCtx;
+  var ghostKey = "";
   var thumbCache = /* @__PURE__ */ new Map();
   function thumbFor(type, sub, variant, mirror) {
     const key = `${type}:${sub}:${variant}:${mirror ? 1 : 0}`;
@@ -1082,14 +1112,24 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     ghostCanvas.height = GHOST_PX;
     ghostCtx = ghostCanvas.getContext("2d");
   }
+  var drawQueued = false;
+  function requestDraw() {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(() => {
+      drawQueued = false;
+      draw();
+    });
+  }
   function draw() {
     const { ctx, canvas: cvs, canvasWrap, grid, objects, spritesheetImg } = S;
     if (!ctx || !cvs || !canvasWrap) return;
     const W = cvs.width, H = cvs.height, cs = cellSize();
     const scrollX = canvasWrap.scrollLeft, scrollY = canvasWrap.scrollTop;
     const viewW = canvasWrap.clientWidth || W, viewH = canvasWrap.clientHeight || H;
+    ctx.setTransform(1, 0, 0, 1, -scrollX, -scrollY);
     ctx.fillStyle = "#f4f9f4";
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(scrollX, scrollY, viewW, viewH);
     const c0 = Math.max(0, Math.floor(scrollX / cs) - 1);
     const r0 = Math.max(0, Math.floor(scrollY / cs) - 1);
     const c1 = Math.min(grid[0].length, Math.ceil((scrollX + viewW) / cs) + 1);
@@ -1099,36 +1139,46 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
     const tr0 = Math.max(0, Math.floor(scrollY / tileCs) - 1);
     const tr1 = Math.min(grid.length * 16, Math.ceil((scrollY + viewH) / tileCs) + 1);
-    for (let t = tc0; t <= tc1; t++) {
-      const x = Math.round(t * tileCs) + 0.5;
-      if (t % 16 === 0) {
-        ctx.strokeStyle = "rgba(128,128,128,0.35)";
-      } else if (t % 8 === 0) {
-        ctx.strokeStyle = "rgba(128,128,128,0.18)";
-      } else {
-        ctx.strokeStyle = "rgba(128,128,128,0.08)";
-      }
-      ctx.lineWidth = 1;
+    const gx0 = scrollX, gx1 = scrollX + viewW, gy0 = scrollY, gy1 = scrollY + viewH;
+    ctx.lineWidth = 1;
+    const lineStyles = [
+      [16, "rgba(128,128,128,0.35)"],
+      [8, "rgba(128,128,128,0.18)"]
+    ];
+    for (const [mod, style] of lineStyles) {
+      ctx.strokeStyle = style;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, H);
+      for (let t = tc0; t <= tc1; t++) {
+        if (t % mod !== 0) continue;
+        if (mod === 8 && t % 16 === 0) continue;
+        const x = Math.round(t * tileCs) + 0.5;
+        ctx.moveTo(x, gy0);
+        ctx.lineTo(x, gy1);
+      }
+      for (let t = tr0; t <= tr1; t++) {
+        if (t % mod !== 0) continue;
+        if (mod === 8 && t % 16 === 0) continue;
+        const y = Math.round(t * tileCs) + 0.5;
+        ctx.moveTo(gx0, y);
+        ctx.lineTo(gx1, y);
+      }
       ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(128,128,128,0.08)";
+    ctx.beginPath();
+    for (let t = tc0; t <= tc1; t++) {
+      if (t % 8 === 0) continue;
+      const x = Math.round(t * tileCs) + 0.5;
+      ctx.moveTo(x, gy0);
+      ctx.lineTo(x, gy1);
     }
     for (let t = tr0; t <= tr1; t++) {
+      if (t % 8 === 0) continue;
       const y = Math.round(t * tileCs) + 0.5;
-      if (t % 16 === 0) {
-        ctx.strokeStyle = "rgba(128,128,128,0.35)";
-      } else if (t % 8 === 0) {
-        ctx.strokeStyle = "rgba(128,128,128,0.18)";
-      } else {
-        ctx.strokeStyle = "rgba(128,128,128,0.08)";
-      }
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-      ctx.stroke();
+      ctx.moveTo(gx0, y);
+      ctx.lineTo(gx1, y);
     }
+    ctx.stroke();
     for (let r = r0; r < r1; r++) {
       for (let c = c0; c < c1; c++) {
         const id = grid[r][c];
@@ -1373,6 +1423,18 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       S.previewOnCanvas = false;
     }
     const cs = cellSize();
+    let key;
+    if (activeTab === "tiles") {
+      key = `t:${S.paletteDragTile}|${spritesheetImg?.complete ? 1 : 0}|${cs}`;
+    } else if (S.paletteDragDef) {
+      const kd = S.paletteDragDef;
+      const ks = kd.sub ?? 0, kv = kd.variant ?? 0;
+      key = `o:${kd.id}|${ks}|${kv}|${!!kd.mirror || isMirrored(kd.id, kv, ks)}|${cs}`;
+    } else {
+      key = `x|${cs}`;
+    }
+    const rebuild = key !== ghostKey;
+    ghostKey = key;
     ghostEl.classList.add("visible");
     ghostEl.style.display = "";
     ghostEl.style.width = cs + "px";
@@ -1380,12 +1442,14 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     ghostEl.style.left = e.clientX - cs / 2 + "px";
     ghostEl.style.top = e.clientY - cs / 2 + "px";
     if (activeTab === "tiles" && spritesheetImg?.complete) {
-      ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
-      const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
-      ghostCtx.imageSmoothingEnabled = false;
-      ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
-      ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
-      ghostEl.style.backgroundSize = "100% 100%";
+      if (rebuild) {
+        ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
+        const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
+        ghostCtx.imageSmoothingEnabled = false;
+        ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
+        ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
+        ghostEl.style.backgroundSize = "100% 100%";
+      }
       ghostEl.style.display = "";
     } else if (S.paletteDragDef) {
       const def = S.paletteDragDef;
@@ -1400,8 +1464,10 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         ghostEl.style.height = Math.max(1, bb.h * k) + "px";
         ghostEl.style.left = e.clientX + bb.x * k + "px";
         ghostEl.style.top = e.clientY + bb.y * k + "px";
-        ghostEl.style.backgroundImage = `url(${url})`;
-        ghostEl.style.backgroundSize = "100% 100%";
+        if (rebuild) {
+          ghostEl.style.backgroundImage = `url(${url})`;
+          ghostEl.style.backgroundSize = "100% 100%";
+        }
         ghostEl.style.backgroundRepeat = "no-repeat";
         ghostEl.style.backgroundPosition = "center";
         ghostEl.style.backgroundColor = "rgba(0,0,0,0.3)";
@@ -1429,10 +1495,11 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       ghostEl.style.textAlign = "center";
       ghostEl.textContent = "";
     }
-    if (S.previewOnCanvas && S.activeTab !== "tiles") draw();
+    if (S.previewOnCanvas && S.activeTab !== "tiles") requestDraw();
   }
   function hideGhost() {
     const { ghostEl } = S;
+    ghostKey = "";
     S.previewOnCanvas = false;
     if (!ghostEl) return;
     ghostEl.classList.remove("visible");
@@ -1735,9 +1802,17 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     draw();
   }
   function resizeCanvas() {
-    if (!S.canvas) return;
-    S.canvas.width = S.grid[0].length * cellSize();
-    S.canvas.height = S.grid.length * cellSize();
+    if (!S.canvas || !S.canvasWrap || !S.grid.length) return;
+    const viewW = S.canvasWrap.clientWidth, viewH = S.canvasWrap.clientHeight;
+    if (viewW > 0 && viewH > 0) {
+      S.canvas.width = viewW;
+      S.canvas.height = viewH;
+      const inner = S.shadow.querySelector(".canvas-inner");
+      if (inner) {
+        inner.style.width = S.grid[0].length * cellSize() + "px";
+        inner.style.height = S.grid.length * cellSize() + "px";
+      }
+    }
     draw();
   }
   function setZoom(z) {
@@ -1854,7 +1929,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     if (S.panning) {
       S.canvasWrap.scrollLeft = S.panStartSX - (e.clientX - S.panStartX);
       S.canvasWrap.scrollTop = S.panStartSY - (e.clientY - S.panStartY);
-      draw();
+      requestDraw();
       return;
     }
     S.canvas.style.cursor = S.spaceHeld ? "grab" : hitTileBadge(mx, my, cellSize()) ? "pointer" : "crosshair";
@@ -1868,7 +1943,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
       S.previewPX = snap8(px);
       S.previewPY = snap8(py);
     }
-    draw();
+    requestDraw();
     ensureGlowLoop();
   }
   function onMouseUp(_e) {
@@ -1942,8 +2017,18 @@ canvas.display { display: block; cursor: crosshair; border: none; }
     const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     S.thumbstrip.scrollLeft += d;
   }
+  var ghostEvent = null;
+  var ghostQueued = false;
   function onDocMouseMove(e) {
-    updateGhost(e);
+    ghostEvent = e;
+    if (ghostQueued) return;
+    ghostQueued = true;
+    requestAnimationFrame(() => {
+      ghostQueued = false;
+      const ev = ghostEvent;
+      ghostEvent = null;
+      if (ev) updateGhost(ev);
+    });
   }
   function onDocMouseUp(e) {
     hideGhost();

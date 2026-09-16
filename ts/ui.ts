@@ -41,11 +41,15 @@ export const EDITOR_CSS = `
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
   border-radius: 0 0 7px 7px;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
+/* Grid-sized scroll space; the canvas itself is viewport-sized and sticky
+   (see resizeCanvas) so the backing store never exceeds the visible area. */
+.canvas-inner { position: relative; }
+canvas.display { display: block; cursor: crosshair; border: none;
+  position: sticky; top: 0; left: 0; }
 .canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
 .canvas-wrap::-webkit-scrollbar-track { background: #f0f0f0; }
 .canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
   border: 2px solid #f0f0f0; }
-canvas.display { display: block; cursor: crosshair; border: none; }
 
 /* ── bottom: tabs+strip panel + options box (30% height) ── */
 .bottom { display: flex; height: 25%; min-height: 170px; max-height: 750px; gap: 8px; flex-shrink: 0; }
@@ -180,7 +184,7 @@ export const EDITOR_HTML = `
         </div>
       </div>
       <div class="canvas-wrap">
-        <canvas class="display"></canvas>
+        <div class="canvas-inner"><canvas class="display"></canvas></div>
       </div>
     </div>
 

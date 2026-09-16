@@ -300,9 +300,21 @@ export function doClearAll() {
 // ── Resize / Zoom ──
 
 export function resizeCanvas() {
-  if (!S.canvas) return;
-  S.canvas.width = S.grid[0].length * cellSize();
-  S.canvas.height = S.grid.length * cellSize();
+  if (!S.canvas || !S.canvasWrap || !S.grid.length) return;
+  // Viewport-sized backing store: a full-grid canvas (16384x3072, ~192 MiB
+  // at 100%) falls off GPU acceleration and every paint goes through the
+  // CPU compositor. The grid-sized .canvas-inner keeps the scroll range;
+  // the sticky canvas only ever holds the visible viewport (see draw()).
+  const viewW = S.canvasWrap.clientWidth, viewH = S.canvasWrap.clientHeight;
+  if (viewW > 0 && viewH > 0) {
+    S.canvas.width = viewW;
+    S.canvas.height = viewH;
+    const inner = S.shadow!.querySelector('.canvas-inner') as HTMLElement | null;
+    if (inner) {
+      inner.style.width = S.grid[0].length * cellSize() + 'px';
+      inner.style.height = S.grid.length * cellSize() + 'px';
+    }
+  }
   draw();
 }
 

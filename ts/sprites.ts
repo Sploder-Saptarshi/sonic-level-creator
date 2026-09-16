@@ -357,8 +357,21 @@ const RING_TYPES = new Set([0, 1, 63, 64, 65, 66, 67, 68, 69]);
 
 /** Full part list for a placed object (with ring expansion + sub/variant art).
  *  Returns null when the game itself draws nothing for the combination
- *  (dead type, spent monitor, out-of-range sub) so callers show a marker. */
+ *  (dead type, spent monitor, out-of-range sub) so callers show a marker.
+ *  Memoized: pure function of (type, sub, variant), and no caller mutates
+ *  the result — builders only push into fresh locals. Kills per-draw,
+ *  per-object array churn (ring bunches expand to dozens of parts). */
+const partsCache = new Map<string, SpritePart[] | null>();
 export function partsFor(type: number, sub = 0, variant = 0): SpritePart[] | null {
+  const key = `${type}|${sub}|${variant}`;
+  const hit = partsCache.get(key);
+  if (hit !== undefined) return hit;
+  const out = partsForUncached(type, sub, variant);
+  partsCache.set(key, out);
+  return out;
+}
+
+function partsForUncached(type: number, sub = 0, variant = 0): SpritePart[] | null {
   if (!(type in SPRITES)) return null;
   if (RING_TYPES.has(type)) return ringParts(type, sub);
   if (type === 2) return springParts(sub, variant);
@@ -435,8 +448,13 @@ function partCorners(part: SpritePart): [number, number][] {
   });
 }
 
-/** Bounding box of parts in game px, relative to object origin. */
+/** Bounding box of parts in game px, relative to object origin.
+ *  Memoized by array identity — partsFor shares refs, so this hits after
+ *  warmup and skips re-walking dozens of ring parts per object per frame. */
+const bboxCache = new WeakMap<SpritePart[], { x: number; y: number; w: number; h: number }>();
 export function spriteBBox(parts: SpritePart[]): { x: number; y: number; w: number; h: number } {
+  const hit = bboxCache.get(parts);
+  if (hit) return hit;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const part of parts) {
     for (const [px, py] of partCorners(part)) {
@@ -444,7 +462,9 @@ export function spriteBBox(parts: SpritePart[]): { x: number; y: number; w: numb
       x1 = Math.max(x1, px); y1 = Math.max(y1, py);
     }
   }
-  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  const out = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  bboxCache.set(parts, out);
+  return out;
 }
 
 /** Draw parts at a game-px origin. k = canvas px per game px (uniform, no stretch).

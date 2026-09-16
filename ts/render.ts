@@ -7,6 +7,11 @@ import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrore
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
 let ghostCtx: CanvasRenderingContext2D;
+// Identity of the carried art behind the ghost bitmap (tile id or object
+// def + mirror + zoom). Bitmap work (tile redraw + toDataURL, object image
+// assignment) reruns only when this changes; follow position updates run
+// every mousemove.
+let ghostKey = '';
 
 // 1x bbox-fitted thumb cache: the canvas blits the exact same paintThumb
 // output the tray shows, so tray and canvas can never diverge.
@@ -62,19 +67,34 @@ export function initGhostCanvas() {
 
 // ── Main draw ──
 
+// Mousemove storms (100+ events/sec) must never paint synchronously —
+// coalesce them into one paint per frame. Discrete actions (clicks, drops)
+// keep calling draw() directly for instant feedback.
+let drawQueued = false;
+export function requestDraw() {
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; draw(); });
+}
+
 export function draw() {
   const { ctx, canvas: cvs, canvasWrap, grid, objects, spritesheetImg } = S;
   if (!ctx || !cvs || !canvasWrap) return;
 
   const W = cvs.width, H = cvs.height, cs = cellSize();
-  // NOTE: the canvas is full-grid sized and natively scrolled by the browser
-  // via overflow:auto, so all drawing uses absolute canvas coords (no scroll offset).
-  // Scroll is only used for viewport culling.
+  // NOTE: the canvas is viewport-sized and sticky inside the grid-sized
+  // .canvas-inner (see resizeCanvas); the browser scrolls .canvas-wrap.
+  // All drawing below uses absolute grid coords under a scroll translation,
+  // and culling keeps every paint viewport-proportional at any zoom.
   const scrollX = canvasWrap.scrollLeft, scrollY = canvasWrap.scrollTop;
   const viewW = canvasWrap.clientWidth || W, viewH = canvasWrap.clientHeight || H;
+  ctx.setTransform(1, 0, 0, 1, -scrollX, -scrollY);
 
   ctx.fillStyle = '#f4f9f4';
-  ctx.fillRect(0, 0, W, H);
+  // Viewport-only background: the cell/object loops below repaint every
+  // visible cell, so filling the whole backing store (50M px at 100% zoom)
+  // would just burn fill-rate for pixels the wrap clips away.
+  ctx.fillRect(scrollX, scrollY, viewW, viewH);
 
   const c0 = Math.max(0, Math.floor(scrollX / cs) - 1);
   const r0 = Math.max(0, Math.floor(scrollY / cs) - 1);
@@ -85,28 +105,50 @@ export function draw() {
   // or sprites). 16 sub-divisions per block (one per tile): 15 thin lines
   // inside each block, bold at the boundary. All 1px; opacity hierarchy —
   // faint on the near-white canvas: 35% at block boundaries (max), 18% at
-  // every 8th tile, 8% per-tile.
+  // every 8th tile, 8% per-tile. Batched by style (6 strokes total) and
+  // clipped to the viewport — one full-grid-span stroke per line used to
+  // cost a ~16k-px stroke each, on every mousemove.
   const tileCs = cs / 16;
   const tc0 = Math.max(0, Math.floor(scrollX / tileCs) - 1);
   const tc1 = Math.min(grid[0].length * 16, Math.ceil((scrollX + viewW) / tileCs) + 1);
   const tr0 = Math.max(0, Math.floor(scrollY / tileCs) - 1);
   const tr1 = Math.min(grid.length * 16, Math.ceil((scrollY + viewH) / tileCs) + 1);
+  const gx0 = scrollX, gx1 = scrollX + viewW, gy0 = scrollY, gy1 = scrollY + viewH;
+  ctx.lineWidth = 1;
+  const lineStyles: Array<[number, string]> = [
+    [16, 'rgba(128,128,128,0.35)'],
+    [8, 'rgba(128,128,128,0.18)'],
+  ];
+  for (const [mod, style] of lineStyles) {
+    ctx.strokeStyle = style;
+    ctx.beginPath();
+    for (let t = tc0; t <= tc1; t++) {
+      if (t % mod !== 0) continue;
+      if (mod === 8 && t % 16 === 0) continue; // boundary style wins
+      const x = Math.round(t * tileCs) + 0.5;
+      ctx.moveTo(x, gy0); ctx.lineTo(x, gy1);
+    }
+    for (let t = tr0; t <= tr1; t++) {
+      if (t % mod !== 0) continue;
+      if (mod === 8 && t % 16 === 0) continue;
+      const y = Math.round(t * tileCs) + 0.5;
+      ctx.moveTo(gx0, y); ctx.lineTo(gx1, y);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(128,128,128,0.08)';
+  ctx.beginPath();
   for (let t = tc0; t <= tc1; t++) {
+    if (t % 8 === 0) continue;
     const x = Math.round(t * tileCs) + 0.5;
-    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.35)'; }
-    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.18)'; }
-    else { ctx.strokeStyle = 'rgba(128,128,128,0.08)'; }
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    ctx.moveTo(x, gy0); ctx.lineTo(x, gy1);
   }
   for (let t = tr0; t <= tr1; t++) {
+    if (t % 8 === 0) continue;
     const y = Math.round(t * tileCs) + 0.5;
-    if (t % 16 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.35)'; }
-    else if (t % 8 === 0) { ctx.strokeStyle = 'rgba(128,128,128,0.18)'; }
-    else { ctx.strokeStyle = 'rgba(128,128,128,0.08)'; }
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    ctx.moveTo(gx0, y); ctx.lineTo(gx1, y);
   }
+  ctx.stroke();
 
   // blocks
   for (let r = r0; r < r1; r++) {
@@ -413,6 +455,21 @@ export function updateGhost(e: MouseEvent) {
     S.previewOnCanvas = false;
   }
   const cs = cellSize();
+  // Bitmap identity: rebuild the ghost image only when the carried art (or
+  // zoom) changes — toDataURL + image assignment every mousemove was a
+  // major drag cost. Position/size below still update on every move.
+  let key: string;
+  if (activeTab === 'tiles') {
+    key = `t:${S.paletteDragTile}|${spritesheetImg?.complete ? 1 : 0}|${cs}`;
+  } else if (S.paletteDragDef) {
+    const kd = S.paletteDragDef;
+    const ks = kd.sub ?? 0, kv = kd.variant ?? 0;
+    key = `o:${kd.id}|${ks}|${kv}|${!!kd.mirror || isMirrored(kd.id, kv, ks)}|${cs}`;
+  } else {
+    key = `x|${cs}`;
+  }
+  const rebuild = key !== ghostKey;
+  ghostKey = key;
   ghostEl.classList.add('visible');
   ghostEl.style.display = '';
   ghostEl.style.width = cs + 'px';
@@ -420,12 +477,14 @@ export function updateGhost(e: MouseEvent) {
   ghostEl.style.left = (e.clientX - cs / 2) + 'px';
   ghostEl.style.top = (e.clientY - cs / 2) + 'px';
   if (activeTab === 'tiles' && spritesheetImg?.complete) {
-    ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
-    const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
-    ghostCtx.imageSmoothingEnabled = false;
-    ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
-    ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
-    ghostEl.style.backgroundSize = '100% 100%';
+    if (rebuild) {
+      ghostCtx.clearRect(0, 0, GHOST_PX, GHOST_PX);
+      const { x: sx, y: sy } = blockSheetXY(S.paletteDragTile);
+      ghostCtx.imageSmoothingEnabled = false;
+      ghostCtx.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, GHOST_PX, GHOST_PX);
+      ghostEl.style.backgroundImage = `url(${ghostCanvas.toDataURL()})`;
+      ghostEl.style.backgroundSize = '100% 100%';
+    }
     ghostEl.style.display = '';
   } else if (S.paletteDragDef) {
     const def = S.paletteDragDef;
@@ -441,8 +500,10 @@ export function updateGhost(e: MouseEvent) {
       ghostEl.style.height = Math.max(1, bb.h * k) + 'px';
       ghostEl.style.left = (e.clientX + bb.x * k) + 'px';
       ghostEl.style.top = (e.clientY + bb.y * k) + 'px';
-      ghostEl.style.backgroundImage = `url(${url})`;
-      ghostEl.style.backgroundSize = '100% 100%';
+      if (rebuild) {
+        ghostEl.style.backgroundImage = `url(${url})`;
+        ghostEl.style.backgroundSize = '100% 100%';
+      }
       ghostEl.style.backgroundRepeat = 'no-repeat';
       ghostEl.style.backgroundPosition = 'center';
       ghostEl.style.backgroundColor = 'rgba(0,0,0,0.3)';
@@ -473,11 +534,12 @@ export function updateGhost(e: MouseEvent) {
   // Over the grid the canvas paints the snapped object drop preview (+
   // extremes for two-direction movers) underneath the HTML carry ghost.
   // Tiles stay HTML-only, so no canvas redraw for them.
-  if (S.previewOnCanvas && S.activeTab !== 'tiles') draw();
+  if (S.previewOnCanvas && S.activeTab !== 'tiles') requestDraw();
 }
 
 export function hideGhost() {
   const { ghostEl } = S;
+  ghostKey = '';
   S.previewOnCanvas = false;
   if (!ghostEl) return;
   ghostEl.classList.remove('visible');

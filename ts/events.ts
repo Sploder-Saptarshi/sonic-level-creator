@@ -5,7 +5,7 @@ import {
   S, inGrid, canvasToWorld, objectsInTile, totalObjects, countPlacedTiles,
   cellSize,
 } from './state';
-import { draw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
+import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
 import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
@@ -142,7 +142,7 @@ function onMouseMove(e: MouseEvent) {
   if (S.panning) {
     S.canvasWrap!.scrollLeft = S.panStartSX - (e.clientX - S.panStartX);
     S.canvasWrap!.scrollTop = S.panStartSY - (e.clientY - S.panStartY);
-    draw();
+    requestDraw();
     return;
   }
 
@@ -166,7 +166,9 @@ function onMouseMove(e: MouseEvent) {
     S.previewPY = snap8(py);
   }
 
-  draw();
+  // Paint coalesced to one frame (see requestDraw): mousemove storms must
+  // not synchronously repaint the full grid each.
+  requestDraw();
   ensureGlowLoop();
 }
 
@@ -270,9 +272,23 @@ function onThumbstripWheel(e: WheelEvent) {
 }
 
 // ── Document-level: palette drag ──
+// Ghost updates coalesced to one per frame: raw mousemove storms (100+/s)
+// must not each touch the DOM. Preview sync for draw() rides along (≤1
+// frame stale); drop cleanup on mouseup stays synchronous.
+
+let ghostEvent: MouseEvent | null = null;
+let ghostQueued = false;
 
 function onDocMouseMove(e: MouseEvent) {
-  updateGhost(e);
+  ghostEvent = e;
+  if (ghostQueued) return;
+  ghostQueued = true;
+  requestAnimationFrame(() => {
+    ghostQueued = false;
+    const ev = ghostEvent;
+    ghostEvent = null;
+    if (ev) updateGhost(ev);
+  });
 }
 
 function onDocMouseUp(e: MouseEvent) {
