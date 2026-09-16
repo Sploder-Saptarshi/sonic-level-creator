@@ -64,7 +64,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .tab-active, .tab-active:hover { background: linear-gradient(#f4f4f4, #d9d9d9); }
 .thumbstrip { flex: 1; display: flex; gap: 4px; padding: 6px;
   background: #f0f0f0; overflow-x: auto; overflow-y: hidden; align-items: stretch; }
-.thumb { height: 100%; aspect-ratio: 1; border: none; border-radius: 5px; cursor: pointer;
+.thumb { height: 100%; aspect-ratio: 1; border: none; border-radius: 10px; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
 /* Tray art lives in an 80%-of-box bounding box: natural size, shrinking
