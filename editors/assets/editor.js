@@ -1948,8 +1948,10 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   function onDocMouseUp(e) {
     hideGhost();
     if (!S.paletteDrag) return;
+    const path = typeof e.composedPath === "function" ? e.composedPath() : null;
+    const releasedOnCanvas = (path && path.length > 0 ? path[0] : e.target) === S.canvas;
     const { bx, by, px, py } = canvasToWorld(e);
-    if (inGrid(bx, by)) {
+    if (releasedOnCanvas && inGrid(bx, by)) {
       if (S.activeTab === "tiles") {
         S.grid[by][bx] = S.paletteDragTile;
       } else if (S.paletteDragDef) {

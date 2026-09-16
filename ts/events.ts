@@ -279,10 +279,19 @@ function onDocMouseUp(e: MouseEvent) {
   hideGhost();
   if (!S.paletteDrag) return;
 
+  // A drop only counts when released over the canvas element itself. The
+  // tray sits in the same x-range, so a tray release would otherwise map to
+  // canvas coords and place under the tray. NOTE: this listener lives on
+  // `document`, outside the editor shadow root, so e.target is retargeted
+  // to the shadow host — read the real target from composedPath() instead.
+  // (The carry ghost is pointer-events:none, so it never becomes a target.)
+  const path = typeof e.composedPath === 'function' ? e.composedPath() : null;
+  const releasedOnCanvas = (path && path.length > 0 ? path[0] : e.target) === S.canvas;
+
   // Fresh coords from the release event (hover state can be stale if the
   // user wheel-scrolled without moving the mouse).
   const { bx, by, px, py } = canvasToWorld(e);
-  if (inGrid(bx, by)) {
+  if (releasedOnCanvas && inGrid(bx, by)) {
     if (S.activeTab === 'tiles') {
       S.grid[by][bx] = S.paletteDragTile;
     } else if (S.paletteDragDef) {
