@@ -464,6 +464,68 @@ canvas.display { display: block; cursor: crosshair; border: none;
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
 
+/* \u2500\u2500 object tooltip (replaces native title) \u2014 1:1 with reference \u2500\u2500
+   White up-top with blue text, thin bottom gray gradient (same as
+   Options header), no border, soft bottom shadow, pointer at 30% from
+   left with a small left gap. Hidden by default; toggled .visible by
+   JS after a hover delay. Fixed so it escapes the thumbstrip's overflow
+   clip. Arrow is a downward-pointing white triangle, not a centered
+   diamond. */
+.obj-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: 360px;
+  background: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+  /* single drop-shadow that wraps bubble + diamond stem as one shape,
+     so there's no seam between the gray footer and the point */
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.16));
+}
+.obj-tooltip.visible { opacity: 1; visibility: visible; }
+.obj-tooltip .tip-text {
+  padding: 8px 14px 7px;
+  color: #1767c9;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+  word-wrap: break-word;
+  background: #ffffff;
+  border-radius: 6px 6px 0 0;
+}
+.obj-tooltip .tip-bottom {
+  height: 18px;
+  background: linear-gradient(#d9d9d9, #f4f4f4);
+  border-radius: 0 0 6px 6px;
+}
+.obj-tooltip::after {
+  content: "";
+  position: absolute;
+  /* start of tooltip with a small left gap; offset keeps the stem glued
+     to the thumb's 30% point when the bubble is viewport-clamped.
+     Flat-top triangle flush to the gray footer so the gradient flows
+     into the point with no diamond notch or seam. */
+  left: calc(22px + var(--tip-arrow-offset, 0px));
+  bottom: -8px;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #f4f4f4;
+  transform: translateX(-50%);
+  box-shadow: none;
+}
+
 /* \u2500\u2500 test mode: persistent player overlaying the whole editor space \u2500\u2500
    The player is created once at boot and kept alive (muted) behind the
    editor so Test opens warm. .warm renders it with real dimensions but
@@ -1507,6 +1569,79 @@ canvas.display { display: block; cursor: crosshair; border: none;
   }
 
   // ts/thumbnails.ts
+  var tipEl = null;
+  var tipTimer = null;
+  var tipAnchor = null;
+  function ensureTip() {
+    if (tipEl && tipEl.isConnected) return tipEl;
+    tipEl = document.createElement("div");
+    tipEl.className = "obj-tooltip";
+    tipEl.setAttribute("role", "tooltip");
+    const text = document.createElement("div");
+    text.className = "tip-text";
+    const bottom = document.createElement("div");
+    bottom.className = "tip-bottom";
+    tipEl.appendChild(text);
+    tipEl.appendChild(bottom);
+    const host = S.shadow;
+    if (host && host.appendChild) {
+      S.shadow.appendChild(tipEl);
+    } else {
+      document.body.appendChild(tipEl);
+    }
+    return tipEl;
+  }
+  function tipTextEl() {
+    const el = ensureTip();
+    return el.querySelector(".tip-text");
+  }
+  function hideTip() {
+    if (tipTimer) {
+      clearTimeout(tipTimer);
+      tipTimer = null;
+    }
+    tipAnchor = null;
+    if (tipEl) tipEl.classList.remove("visible");
+  }
+  function positionTip(anchor) {
+    const el = ensureTip();
+    const r = anchor.getBoundingClientRect();
+    el.style.left = "0";
+    el.style.top = "-9999px";
+    el.classList.add("visible");
+    el.style.visibility = "hidden";
+    const tr = el.getBoundingClientRect();
+    el.style.visibility = "";
+    el.classList.remove("visible");
+    const gap = 2;
+    const ARROW_GAP = 30;
+    const thumbArrowX = r.left + r.width * 0.3;
+    let left = thumbArrowX - ARROW_GAP;
+    let top = r.top - tr.height - gap;
+    const pad = 4;
+    left = Math.max(pad, Math.min(left, window.innerWidth - tr.width - pad));
+    if (top < pad) top = r.bottom + gap;
+    el.style.left = Math.round(left) + "px";
+    el.style.top = Math.round(top) + "px";
+    const arrowOffset = thumbArrowX - (left + ARROW_GAP);
+    el.style.setProperty("--tip-arrow-offset", arrowOffset + "px");
+    requestAnimationFrame(() => el.classList.add("visible"));
+  }
+  function scheduleTip(text, anchor) {
+    hideTip();
+    tipAnchor = anchor;
+    tipTextEl().textContent = text;
+    tipTimer = setTimeout(() => {
+      if (tipAnchor !== anchor) return;
+      positionTip(anchor);
+    }, 450);
+  }
+  function attachTip(el, text) {
+    el.addEventListener("mouseenter", () => scheduleTip(text, el));
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("mousedown", hideTip);
+    el.addEventListener("wheel", hideTip, { passive: true });
+  }
   function updateCounter() {
     if (!S.counterEl) return;
     const totalTiles = S.grid.length * (S.grid[0]?.length || 0);
@@ -1514,6 +1649,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     S.counterEl.textContent = `${totalObjects()}/${placedTiles}`;
   }
   function buildThumbnails() {
+    hideTip();
     const { thumbstrip, spritesheetImg, activeTab } = S;
     if (!thumbstrip) return;
     thumbstrip.innerHTML = "";
@@ -1522,7 +1658,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
         if (i === 7) continue;
         const el = document.createElement("div");
         el.className = "thumb";
-        el.title = `Block ${i}`;
+        attachTip(el, `Block ${i}`);
         const cvs = document.createElement("canvas");
         cvs.width = BLOCK_PX;
         cvs.height = BLOCK_PX;
@@ -1552,7 +1688,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
         const sub = def.sub ?? 0, variant = def.variant ?? 0;
         const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
         const noArt = !partsFor(def.id, sub, variant);
-        el.title = def.desc + (noArt ? " (invisible in-game: no art in this zone)" : "");
+        const tipText = `${def.name}: ${def.desc}` + (noArt ? " (invisible in-game: no art in this zone)" : "");
+        attachTip(el, tipText);
         const parts = partsFor(def.id, sub, variant);
         let cvs = null;
         if (parts) {

@@ -128,6 +128,68 @@ canvas.display { display: block; cursor: crosshair; border: none;
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
 
+/* ── object tooltip (replaces native title) — 1:1 with reference ──
+   White up-top with blue text, thin bottom gray gradient (same as
+   Options header), no border, soft bottom shadow, pointer at 30% from
+   left with a small left gap. Hidden by default; toggled .visible by
+   JS after a hover delay. Fixed so it escapes the thumbstrip's overflow
+   clip. Arrow is a downward-pointing white triangle, not a centered
+   diamond. */
+.obj-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: 360px;
+  background: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+  /* single drop-shadow that wraps bubble + diamond stem as one shape,
+     so there's no seam between the gray footer and the point */
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.16));
+}
+.obj-tooltip.visible { opacity: 1; visibility: visible; }
+.obj-tooltip .tip-text {
+  padding: 8px 14px 7px;
+  color: #1767c9;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: left;
+  white-space: normal;
+  word-wrap: break-word;
+  background: #ffffff;
+  border-radius: 6px 6px 0 0;
+}
+.obj-tooltip .tip-bottom {
+  height: 18px;
+  background: linear-gradient(#d9d9d9, #f4f4f4);
+  border-radius: 0 0 6px 6px;
+}
+.obj-tooltip::after {
+  content: "";
+  position: absolute;
+  /* start of tooltip with a small left gap; offset keeps the stem glued
+     to the thumb's 30% point when the bubble is viewport-clamped.
+     Flat-top triangle flush to the gray footer so the gradient flows
+     into the point with no diamond notch or seam. */
+  left: calc(22px + var(--tip-arrow-offset, 0px));
+  bottom: -8px;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #f4f4f4;
+  transform: translateX(-50%);
+  box-shadow: none;
+}
+
 /* ── test mode: persistent player overlaying the whole editor space ──
    The player is created once at boot and kept alive (muted) behind the
    editor so Test opens warm. .warm renders it with real dimensions but
