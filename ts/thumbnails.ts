@@ -83,11 +83,12 @@ export function buildThumbnails() {
       });
       thumbstrip.appendChild(el);
       if (cvs) {
-        // Deterministic 1x sizing with proportional shrink-only, measured
-        // from the live box (post-append, so layout is real): immune to
+        // Deterministic 1x sizing with proportional shrink-only into the
+        // 80% bounding box (see .thumb canvas CSS), measured from the live
+        // box (post-append, so layout is real): immune to
         // flex/aspect-ratio/max-clamp quirks, so art can never be
         // squeezed on one axis.
-        const boxH = el.clientHeight - 2, boxW = el.clientWidth - 2;
+        const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
         if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
           const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
           cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + 'px';

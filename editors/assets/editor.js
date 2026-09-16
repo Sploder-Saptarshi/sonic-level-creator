@@ -382,20 +382,16 @@ canvas.display { display: block; cursor: crosshair; border: none; }
   background: transparent; color: #3d2c00; cursor: pointer;
   font-size: 12px; font-weight: bold; font-family: inherit; }
 .tab:hover { background: rgba(255,255,255,0.35); }
-.tab-active, .tab-active:hover { background: #fff; }
+.tab-active, .tab-active:hover { background: linear-gradient(#f4f4f4, #d9d9d9); }
 .thumbstrip { flex: 1; display: flex; gap: 4px; padding: 6px;
-  background: #fff; overflow-x: auto; overflow-y: hidden; align-items: stretch; }
-.thumb { height: 100%; aspect-ratio: 1; border: 1px solid #b5b5b5; cursor: pointer;
+  background: #f0f0f0; overflow-x: auto; overflow-y: hidden; align-items: stretch; }
+.thumb { height: 100%; aspect-ratio: 1; border: none; border-radius: 5px; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
-.thumb:hover { border-color: #f00; }
-.thumb canvas { display: block; width: 80%; height: 80%; image-rendering: pixelated;
-  image-rendering: crisp-edges; }
-/* Object thumbs: same forced-square box as tiles, but art inside stays at
-   original 1x pixels (attribute size from paintThumb scale=1), centered,
-   shrinking only if larger than the box. */
-.thumb-obj canvas { width: auto; height: auto; max-width: 100%; max-height: 100%;
-  object-fit: contain; }
+/* Tray art lives in an 80%-of-box bounding box: natural size, shrinking
+   only when larger than the box (tiles and objects alike). */
+.thumb canvas { display: block; width: auto; height: auto; max-width: 80%; max-height: 80%;
+  image-rendering: pixelated; image-rendering: crisp-edges; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
   text-align: center; line-height: 1.2; }
 
@@ -1514,7 +1510,7 @@ canvas.display { display: block; cursor: crosshair; border: none; }
         });
         thumbstrip.appendChild(el);
         if (cvs) {
-          const boxH = el.clientHeight - 2, boxW = el.clientWidth - 2;
+          const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
           if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
             const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
             cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + "px";
