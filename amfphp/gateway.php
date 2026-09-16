@@ -124,37 +124,51 @@ function amf0_envelope(string $respId, $value): string {
 // ---------------------------------------------------------------------------
 // Service implementation (mirrors the Python stub)
 // ---------------------------------------------------------------------------
-function zone_bytes(string $key): string {
+// Level sources: on-disk (pristine zone1 stock) vs future database rows.
+// ---------------------------------------------------------------------------
+
+// Directory holding the pristine zone1 (Green Hill) stock files. Editor saves
+// overwrite the live copies under res/data/default/, so the on-disk path
+// reads here instead — zone1 tiles, always.
+const STOCK_DATA_DIR = '/../games/swf/52/res/data/stock';
+
+// Level source selector. 'disk' serves the stock zone1 pair below; a future
+// 'database' source will serve per-level rows and fall back to disk.
+const LEVEL_SOURCE = 'disk';
+
+/** @return string comma-separated decimal byte string (BIN+ACT) */
+function level_bytes_from_disk(?string $levelId): string {
+    // $levelId is reserved for per-level routing once the database path lands.
+    // Today every level resolves to the zone1 stock pair.
+    // onGetLevel feeds ONE ByteArray into parseBinFile (3D-int blockData)
+    // immediately followed by parseActFile (4 shorts + byte tables), so a
+    // BIN-only blob starves the ACT parser -> black screen. Concatenate.
     // onGetLevel expects a comma-separated decimal byte STRING
     // (Utilities.readStringArray does param.split(",")), not a strict array.
-    static $cache = [];
-    if (!isset($cache[$key])) {
-        // onGetLevel feeds ONE ByteArray into parseBinFile (3D-int blockData)
-        // immediately followed by parseActFile (4 shorts + byte tables), so a
-        // BIN-only blob starves the ACT parser -> black screen. Concatenate.
-        $map = [
-            'gh' => ['/../games/swf/52/res/data/default/mc_gh_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-            'la' => ['/../games/swf/52/res/data/default/mc_la_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-            'ma' => ['/../games/swf/52/res/data/default/mc_ma_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-            'sb' => ['/../games/swf/52/res/data/default/mc_sb_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-            'sl' => ['/../games/swf/52/res/data/default/mc_sl_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-            'sy' => ['/../games/swf/52/res/data/default/mc_sy_map_data.bin',
-                     '/../games/swf/52/res/data/default/ZONE1ACT.act'],
-        ];
-        $pair = $map[$key] ?? $map['gh'];
-        $bin = '';
-        foreach ($pair as $rel) {
-            $f = __DIR__ . $rel;
-            if (is_file($f)) $bin .= file_get_contents($f);
-        }
-        $cache[$key] = $bin !== '' ? implode(',', unpack('C*', $bin)) : '';
+    static $cache = null;
+    if ($cache === null) {
+        $bin = @file_get_contents(__DIR__ . STOCK_DATA_DIR . '/mc_gh_map_data.bin');
+        $act = @file_get_contents(__DIR__ . STOCK_DATA_DIR . '/ZONE1ACT.act');
+        $raw = (is_string($bin) ? $bin : '') . (is_string($act) ? $act : '');
+        $cache = $raw !== '' ? implode(',', unpack('C*', $raw)) : '';
     }
-    return $cache[$key];
+    return $cache;
+}
+
+/** @return ?string null until the database path is implemented */
+function level_bytes_from_database(?string $levelId): ?string {
+    return null;
+}
+
+/** @param mixed[] $args @return string */
+function get_level_bytes(array $args): string {
+    $levelId = (isset($args[0]) && is_string($args[0])) ? $args[0] : null;
+    if (LEVEL_SOURCE === 'database') {
+        $db = level_bytes_from_database($levelId);
+        if ($db !== null && $db !== '') return $db;
+    }
+    // Regular path: on-disk zone1 tiles.
+    return level_bytes_from_disk($levelId);
 }
 
 /** @param mixed[] $args @return mixed */
@@ -170,7 +184,7 @@ function playsega_call(string $method, array $args) {
         case 'getNumRings': return 0;
         case 'getUsername': return 'Guest';
         case 'debit':       return true;
-        case 'getLevel':    return zone_bytes('gh');
+        case 'getLevel':    return get_level_bytes($args);
         default:            return null;
     }
 }
