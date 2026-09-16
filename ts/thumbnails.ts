@@ -7,6 +7,7 @@ import {
 } from './state';
 import { draw } from './render';
 import { partsFor, paintThumb, isMirrored } from './sprites';
+import { TOOLTIPS } from './tooltipTexts';
 
 // ── Custom tooltip (replaces native title) ──
 let tipEl: HTMLElement | null = null;
@@ -59,9 +60,8 @@ function positionTip(anchor: HTMLElement) {
   el.classList.remove('visible');
   const gap = 2;
   // Arrow's thumb anchor stays at 30% of the square from its left; the
-  // tooltip's arrow sits with a small left gap from tooltip left.
-  // Keep that anchor even when the bubble is viewport-clamped. Arrow
-  // nudged slightly right per request while anchor stays fixed.
+  // tooltip's arrow sits with a small left gap (30px from tooltip left).
+  // Keep that anchor even when the bubble is viewport-clamped.
   const ARROW_GAP = 30;
   const thumbArrowX = r.left + r.width * 0.30;
   let left = thumbArrowX - ARROW_GAP;
@@ -94,6 +94,22 @@ function attachTip(el: HTMLElement, text: string) {
   el.addEventListener('wheel', hideTip, { passive: true } as any);
 }
 
+function findTip(id: number, variant = 0, sub = 0): { name: string; desc: string } | undefined {
+  return TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant && (t.sub ?? 0) === sub)
+      ?? TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant)
+      ?? TOOLTIPS.find(t => t.id === id);
+}
+
+function tooltipForTile(blockId: number): string {
+  const t = TOOLTIPS.find(e => e.id === -1 && (e.sub ?? 0) === blockId);
+  return t ? `${t.name}: ${t.desc}` : "";
+}
+
+function tooltipForDef(def: { id: number; name: string; desc: string; variant?: number; sub?: number }): string {
+  const t = findTip(def.id, def.variant ?? 0, def.sub ?? 0);
+  return t ? `${t.name}: ${t.desc}` : "";
+}
+
 export function updateCounter() {
   if (!S.counterEl) return;
   const totalTiles = S.grid.length * (S.grid[0]?.length || 0);
@@ -113,7 +129,7 @@ export function buildThumbnails() {
       if (i === 7) continue;
       const el = document.createElement('div');
       el.className = 'thumb';
-      attachTip(el, `Block ${i}`);
+      attachTip(el, tooltipForTile(i));
       const cvs = document.createElement('canvas');
       cvs.width = BLOCK_PX;
       cvs.height = BLOCK_PX;
@@ -143,7 +159,8 @@ export function buildThumbnails() {
       const sub = def.sub ?? 0, variant = def.variant ?? 0;
       const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
       const noArt = !partsFor(def.id, sub, variant);
-      const tipText = `${def.name}: ${def.desc}` + (noArt ? ' (invisible in-game: no art in this zone)' : '');
+      const baseTip = tooltipForDef(def);
+      const tipText = baseTip + (noArt ? ' (invisible in-game: no art in this zone)' : '');
       attachTip(el, tipText);
       const parts = partsFor(def.id, sub, variant);
       let cvs: HTMLCanvasElement | null = null;
