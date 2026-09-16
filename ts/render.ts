@@ -341,7 +341,9 @@ export function objectHitIndex(mx: number, my: number): number {
 export function tileBadge(bx: number, by: number, cs: number): { cx: number; cy: number; r: number } | null {
   if (bx < 0 || by < 0 || by >= S.grid.length || bx >= S.grid[0].length) return null;
   const r = Math.max(5, Math.min(10, cs * 0.15));
-  return { cx: (bx + 1) * cs, cy: by * cs, r };
+  // Badge sits one smallest grid unit (one tile = cs/16) below the
+  // corner — shared by draw + hit-test so visuals and clicks agree.
+  return { cx: (bx + 1) * cs, cy: by * cs + cs / 16, r };
 }
 
 /** True when the selected tile is still filled (selection is live). */

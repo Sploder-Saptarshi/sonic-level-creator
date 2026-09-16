@@ -1338,7 +1338,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
   function tileBadge(bx, by, cs) {
     if (bx < 0 || by < 0 || by >= S.grid.length || bx >= S.grid[0].length) return null;
     const r = Math.max(5, Math.min(10, cs * 0.15));
-    return { cx: (bx + 1) * cs, cy: by * cs, r };
+    return { cx: (bx + 1) * cs, cy: by * cs + cs / 16, r };
   }
   function selectedTileLive() {
     const { selectedTileBx: bx, selectedTileBy: by, grid } = S;
