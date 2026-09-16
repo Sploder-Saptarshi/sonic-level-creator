@@ -124,12 +124,12 @@ export function buildThumbnails() {
   thumbstrip.innerHTML = '';
 
   if (activeTab === 'tiles') {
-    // Palette: blocks 1–107 only (108+ unused), excluding block 7.
+    // Palette: blocks 1–107 only (108+ unused), excluding blocks 7, 35, 71.
     for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
-      if (i === 7) continue;
+      if (i === 7 || i === 35 || i === 71) continue;
       const el = document.createElement('div');
       el.className = 'thumb';
-      attachTip(el, tooltipForTile(i));
+      // no tooltip for tiles tray per request
       const cvs = document.createElement('canvas');
       cvs.width = BLOCK_PX;
       cvs.height = BLOCK_PX;

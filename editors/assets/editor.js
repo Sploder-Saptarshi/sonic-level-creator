@@ -474,7 +474,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .obj-tooltip {
   position: fixed;
   z-index: 10000;
-  max-width: 360px;
+  max-width: 250px;
   background: #ffffff;
   border: none;
   border-radius: 6px;
@@ -1889,10 +1889,6 @@ canvas.display { display: block; cursor: crosshair; border: none;
   function findTip(id, variant = 0, sub = 0) {
     return TOOLTIPS.find((t) => t.id === id && (t.variant ?? 0) === variant && (t.sub ?? 0) === sub) ?? TOOLTIPS.find((t) => t.id === id && (t.variant ?? 0) === variant) ?? TOOLTIPS.find((t) => t.id === id);
   }
-  function tooltipForTile(blockId) {
-    const t = TOOLTIPS.find((e) => e.id === -1 && (e.sub ?? 0) === blockId);
-    return t ? `${t.name}: ${t.desc}` : "";
-  }
   function tooltipForDef(def) {
     const t = findTip(def.id, def.variant ?? 0, def.sub ?? 0);
     return t ? `${t.name}: ${t.desc}` : "";
@@ -1910,10 +1906,9 @@ canvas.display { display: block; cursor: crosshair; border: none;
     thumbstrip.innerHTML = "";
     if (activeTab === "tiles") {
       for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
-        if (i === 7) continue;
+        if (i === 7 || i === 35 || i === 71) continue;
         const el = document.createElement("div");
         el.className = "thumb";
-        attachTip(el, tooltipForTile(i));
         const cvs = document.createElement("canvas");
         cvs.width = BLOCK_PX;
         cvs.height = BLOCK_PX;

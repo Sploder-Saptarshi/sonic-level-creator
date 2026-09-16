@@ -138,7 +138,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .obj-tooltip {
   position: fixed;
   z-index: 10000;
-  max-width: 360px;
+  max-width: 250px;
   background: #ffffff;
   border: none;
   border-radius: 6px;
