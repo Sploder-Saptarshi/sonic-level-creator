@@ -50,6 +50,24 @@ no extra cost; replicas only serve reads via the Sessions API
 (`env.DB.withSession(...)`) in deployed Workers — plain queries always hit
 the primary. No replicas exist locally; dev against remote or miniflare.
 
+## Auth (Better Auth + Drizzle + Argon2id)
+
+- `server/auth/config.ts` — per-request `betterAuth()` (username plugin,
+  custom Argon2id hasher, 7d server-side sessions). D1 on Workers via
+  `drizzle-orm/d1`, local `./data/auth.db` (gitignored) via better-sqlite3.
+- `server/auth/argon2.ts` — thin wrapper over `argon2-wasm-edge`; WASM
+  arrives via `?module` imports (real Modules — the only Workers-legal
+  path). Params: m=8192, t=2, p=1 (~40ms hash on workerd; needs Paid CPU).
+- `server/db/schema.ts` + `drizzle/` migrations — `user/session/account/`
+  `verification` tables; every hot lookup indexed (username/email/token
+  unique, FK + identifier indexes). Apply: `wrangler d1 migrations apply
+  sonic-level-creator --local|--remote`. Never hand-edit applied migrations.
+- Forms POST to `/member/signin|signup` (server-side API calls, cookies +
+  redirects, `formError` re-render). Raw Better Auth endpoints at
+  `/api/auth/*`. Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
+  put` (+ `BETTER_AUTH_URL` env var); local dev falls back to an insecure
+  default — never deploy it.
+
 ## Workflow
 
 After editing any `ts/*.ts` file, run `npm run build:editor`, then

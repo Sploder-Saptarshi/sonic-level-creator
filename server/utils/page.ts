@@ -6,6 +6,23 @@ import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
+import { escapeHtml } from "./session";
+
+// Logged-in header: same lozenges, signed-in name + sign-out (username is
+// escaped here — the layout slot is raw).
+export function userLanguageBar(username: string): string {
+  const name = escapeHtml(username);
+  return `<div id="languagebar" class="loggedin">  <span>Signed in as <b>${name}</b></span> <a class="lozenge1" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
+  <form name="signoutForm" action="/member/signout" method="post" style="display:none"></form>
+  </div>
+`;
+}
+
+export interface PageView {
+  username?: string;
+  languagebar?: string;
+  formError?: string;
+}
 
 // Shared-chrome variants (verbatim archive markup; layout holds the slots).
 // Logged-in chrome (game + editor pages).
@@ -124,8 +141,8 @@ function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-export function renderGamePage(query: PageQuery): string {
-  const username = cleanUsername(query.user);
+export function renderGamePage(query: PageQuery, view: PageView = {}): string {
+  const username = view.username ?? cleanUsername(query.user);
   const sessionId = cleanSession(query.session);
   const levelId = cleanLevelId(query.levelid);
   const data = {
@@ -140,7 +157,7 @@ export function renderGamePage(query: PageQuery): string {
   const body = render(gameBodyTemplate, data);
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
-    languagebar: NAV_LANGUAGEBAR,
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: "",
     domloadExtra: gameDomloadExtra,
@@ -149,8 +166,8 @@ export function renderGamePage(query: PageQuery): string {
   });
 }
 
-export function renderEditorPage(query: PageQuery): string {
-  const username = cleanUsername(query.user);
+export function renderEditorPage(query: PageQuery, view: PageView = {}): string {
+  const username = view.username ?? cleanUsername(query.user);
   const sessionId = cleanSession(query.session);
   const levelId = cleanLevelId(query.levelid);
   const body = render(editorBodyTemplate, {
@@ -161,7 +178,7 @@ export function renderEditorPage(query: PageQuery): string {
   });
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
-    languagebar: NAV_LANGUAGEBAR,
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: editorHeadExtra,
     domloadExtra: "",
@@ -174,8 +191,10 @@ const memberHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="tex
 `;
 const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
 
-export function renderSigninPage(query: PageQuery): string {
-  const body = render(signinBodyTemplate, { formError: "" });
+export function renderSigninPage(query: PageQuery, view: PageView = {}): string {
+  const body = render(signinBodyTemplate, {
+    formError: view.formError ?? "",
+  });
   return render(layoutTemplate, {
     title: "Member Sign-in | PlaySEGA",
     languagebar: NAV_LANGUAGEBAR,
@@ -187,8 +206,10 @@ export function renderSigninPage(query: PageQuery): string {
   });
 }
 
-export function renderSignupPage(query: PageQuery): string {
-  const body = render(signupBodyTemplate, { formError: "" });
+export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
+  const body = render(signupBodyTemplate, {
+    formError: view.formError ?? "",
+  });
   return render(layoutTemplate, {
     title: "Member Sign-up | PlaySEGA",
     languagebar: NAV_LANGUAGEBAR,

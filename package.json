@@ -16,6 +16,8 @@
     "lint": "node --check public/editors/assets/editor.js"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260917.1",
+    "@types/better-sqlite3": "^9.6.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "0.28.2",
     "nitro": "^3.0.260903-beta",
@@ -25,6 +27,7 @@
   "dependencies": {
     "argon2-wasm-edge": "^1.0.23",
     "better-auth": "^1.7.5",
+    "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2"
   }
 }
