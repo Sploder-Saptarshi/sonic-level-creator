@@ -3,14 +3,15 @@
 ## Build & Lint
 
 The editor is a single-file IIFE bundle built from `ts/` sources via esbuild.
+The web document root is `public/` (Nitro serves it as static).
 
-| Command         | What it does                                    |
-| --------------- | ----------------------------------------------- |
-| `npm run build` | Bundles `ts/main.ts` → `editors/assets/editor.js` |
-| `npm run lint`  | `node --check` on the compiled `editor.js`       |
+| Command         | What it does                                            |
+| --------------- | ------------------------------------------------------- |
+| `npm run build` | Bundles `ts/main.ts` → `public/editors/assets/editor.js` |
+| `npm run lint`  | `node --check` on the compiled `editor.js`               |
 
-Source is TypeScript in `ts/`; the compiled bundle is `editors/assets/editor.js`,
-loaded as a plain `<script>` (no module type) from `editors/index.html:213`.
+Source is TypeScript in `ts/`; the compiled bundle is `public/editors/assets/editor.js`,
+loaded as a plain `<script>` (no module type) from `public/editors/index.html:213`.
 
 ## Workflow
 

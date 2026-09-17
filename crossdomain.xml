@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<!-- https://secure.playsega.co.uk/crossdomain.xml -->
-<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">
-<cross-domain-policy>
-  <allow-access-from domain="*.playsega.com" secure="false" />
-  <allow-access-from domain="*.playsega.co.uk" secure="false" />
-</cross-domain-policy>
