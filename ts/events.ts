@@ -7,7 +7,7 @@ import {
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -202,6 +202,8 @@ function onContextMenu(e: MouseEvent) {
 // ── Keyboard ──
 
 function onKeyDown(e: KeyboardEvent) {
+  // Typing in the start-screen name field must not drive the editor.
+  if ((e.target as HTMLElement | null)?.classList?.contains('start-name')) return;
   if (e.code === 'Space' && !S.spaceHeld) {
     e.preventDefault();
     S.spaceHeld = true;
@@ -227,6 +229,7 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 function onKeyUp(e: KeyboardEvent) {
+  if ((e.target as HTMLElement | null)?.classList?.contains('start-name')) return;
   if (e.code === 'Space') {
     S.spaceHeld = false;
     S.canvas!.style.cursor = 'crosshair';
@@ -381,7 +384,13 @@ export function wireEvents() {
       else if (a === 'fullscreen') doFullscreen();
       else if (a === 'mylevels') location.href = '/editors/?action=myLevels&gamegroupid=52';
       else if (a === 'alllevels') location.href = '/editors/?action=editorDetail&gamegroupid=52';
+      else if (a === 'startcreating') doStartCreating();
     });
+  });
+
+  // Start screen: Enter in the name field starts creating too.
+  shadow!.querySelector('.start-name')?.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') doStartCreating();
   });
 
   // Clear button

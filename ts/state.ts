@@ -14,6 +14,8 @@ export const S = {
   activeTab: 'tiles' as TabType,
   selectedTile: 1,
   selectedObj: null as ObjectDef | null,
+  // Chosen on the "Start a new level" screen; used for the save filename.
+  levelName: 'The Guide Zone',
   zoom: 2,
   spaceHeld: false,
   selectedObjIdx: -1,

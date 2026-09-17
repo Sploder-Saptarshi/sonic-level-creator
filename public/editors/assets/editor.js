@@ -225,6 +225,8 @@
     activeTab: "tiles",
     selectedTile: 1,
     selectedObj: null,
+    // Chosen on the "Start a new level" screen; used for the save filename.
+    levelName: "The Guide Zone",
     zoom: 2,
     spaceHeld: false,
     selectedObjIdx: -1,
@@ -527,6 +529,37 @@ canvas.display { display: block; cursor: crosshair; border: none;
   box-shadow: none;
 }
 
+/* \u2500\u2500 start screen: opaque overlay so the editor is not visible behind \u2500\u2500
+   White card, blue headings, pale input, green pill button, Sonic right.
+   Root-absolute img path since shadow URLs resolve against document base. */
+.start-overlay { position: absolute; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff; border-radius: 0 0 10px 10px; }
+.start-overlay.hidden { display: none; }
+.start-card { position: relative; background: #fff; border: 1px solid #b5b5b5;
+  border-radius: 10px; padding: 12px 12px 24px; width: 420px;
+  max-width: calc(100% - 32px); min-height: 330px; text-align: left; }
+/* Pinned bottom-right, out of flow: zero reflow when the PNG arrives. */
+.start-sonic { position: absolute; right: 16px; bottom: 12px; height: 224px; width: auto; }
+.start-card h2 { color: #1767c9; font-size: 26px; font-weight: bold;
+  margin: 0 0 4px; }
+.start-card p { color: #1767c9; font-size: 15px; font-weight: bold;
+  line-height: 1.35; margin: 0 0 34px; }
+.start-card label { display: block; color: #222; font-size: 16px;
+  font-weight: bold; margin: 0 190px 8px 0; }
+.start-row { display: block; margin-right: 190px; }
+.start-name { display: block; width: 125%; padding: 3px 8px; font-size: 11px;
+  font-family: inherit; color: #333; background: #e9e9e9;
+  border: 1px solid #c4c4c4; border-radius: 3px; outline: none; }
+.start-name:focus { border-color: #1767c9; background: #fff; }
+.start-go { flex-shrink: 0; margin-top: 22px; padding: 4px 20px; border: 1px solid #8ab53f;
+  border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;
+  font-family: inherit; color: #3f5a12;
+  background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
+.start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
+*/
+
 /* \u2500\u2500 test mode: persistent player overlaying the whole editor space \u2500\u2500
    The player is created once at boot and kept alive (muted) behind the
    editor so Test opens warm. .warm renders it with real dimensions but
@@ -620,6 +653,19 @@ canvas.display { display: block; cursor: crosshair; border: none;
 <div class="testmode">
   <div class="ruffle-holder"></div>
   <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
+</div>
+
+<div class="start-overlay">
+  <div class="start-card">
+    <h2>Start a new level</h2>
+    <p>Ready to start creating a new level? Choose a level name to get started! Be creative!</p>
+    <label for="start-name">Level Name</label>
+    <div class="start-row">
+      <input class="start-name" id="start-name" type="text" value="The Guide Zone" maxlength="60" />
+      <button class="start-go" data-action="startcreating">Start creating...</button>
+    </div>
+    <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
+  </div>
 </div>
 `;
 
@@ -1903,12 +1949,21 @@ canvas.display { display: block; cursor: crosshair; border: none;
   function levelCSV() {
     return toCSV(encodeBin(S.grid), encodeAct(S.objects));
   }
+  function doStartCreating() {
+    const input = S.shadow.querySelector(".start-name");
+    const name = (input?.value ?? "").trim();
+    S.levelName = name || "The Guide Zone";
+    S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
+    input?.blur();
+    resizeCanvas();
+  }
   function doSave() {
     if (!levelValid()) return;
     const blob = new Blob([levelCSV()], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "custom-level.csv";
+    const slug = S.levelName.trim().replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-");
+    a.download = (slug || "custom-level") + ".csv";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2258,6 +2313,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     e.preventDefault();
   }
   function onKeyDown(e) {
+    if (e.target?.classList?.contains("start-name")) return;
     if (e.code === "Space" && !S.spaceHeld) {
       e.preventDefault();
       S.spaceHeld = true;
@@ -2281,6 +2337,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     }
   }
   function onKeyUp(e) {
+    if (e.target?.classList?.contains("start-name")) return;
     if (e.code === "Space") {
       S.spaceHeld = false;
       S.canvas.style.cursor = "crosshair";
@@ -2377,7 +2434,11 @@ canvas.display { display: block; cursor: crosshair; border: none;
         else if (a === "fullscreen") doFullscreen();
         else if (a === "mylevels") location.href = "/editors/?action=myLevels&gamegroupid=52";
         else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
+        else if (a === "startcreating") doStartCreating();
       });
+    });
+    shadow.querySelector(".start-name")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doStartCreating();
     });
     shadow.querySelector(".btn-clear")?.addEventListener("click", doClearAll);
     window.addEventListener("resize", resizeCanvas);
@@ -2452,6 +2513,9 @@ canvas.display { display: block; cursor: crosshair; border: none;
       draw();
     });
     wireEvents();
+    const nameInput = shadow.querySelector(".start-name");
+    nameInput?.focus();
+    nameInput?.select();
     requestAnimationFrame(() => {
       resizeCanvas();
       updateCounter();

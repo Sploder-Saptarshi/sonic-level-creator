@@ -96,6 +96,11 @@ function boot() {
   // Wire all event handlers
   wireEvents();
 
+  // Start screen is up: focus the name field, text selected, ready to type.
+  const nameInput = shadow.querySelector('.start-name') as HTMLInputElement | null;
+  nameInput?.focus();
+  nameInput?.select();
+
   // First paint — defer to let Shadow DOM layout compute
   requestAnimationFrame(() => {
     resizeCanvas();

@@ -19,13 +19,26 @@ function levelCSV(): string {
 
 // ── Actions ──
 
+// "Start a new level" screen: take the chosen name (fall back to the
+// default when blank) and reveal the editor underneath.
+export function doStartCreating() {
+  const input = S.shadow!.querySelector('.start-name') as HTMLInputElement | null;
+  const name = (input?.value ?? '').trim();
+  S.levelName = name || 'The Guide Zone';
+  S.shadow!.querySelector('.start-overlay')?.classList.add('hidden');
+  input?.blur();
+  resizeCanvas();
+}
+
 // Local-only save: downloads the level CSV. Never writes to the server.
 export function doSave() {
   if (!levelValid()) return;
   const blob = new Blob([levelCSV()], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'custom-level.csv';
+  // Filename from the level name; strip anything the filesystem dislikes.
+  const slug = S.levelName.trim().replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-');
+  a.download = (slug || 'custom-level') + '.csv';
   document.body.appendChild(a);
   a.click();
   a.remove();
