@@ -1,4 +1,4 @@
-// GET /member/signin — member sign-in page (SSR, signed-out chrome).
+// GET /member/signin — member sign-in page (SSR).
 import { defineHandler } from "nitro";
 import { getQuery, setResponseHeader } from "nitro/h3";
 import { renderSigninPage } from "../../utils/page";

@@ -2156,7 +2156,7 @@ a.btn_signupnow:hover {background-position: bottom right}
 .freejoypad {background: url('../images/signinoruporguest/joypad_panel.gif') no-repeat; width: 232px; height: 276px}
 
 .newformholdersignup {background: transparent url('../images/sonic_side_sml.jpg') no-repeat top left; border: 1px solid #FFF; padding: 0 0 0 200px; height: 440px}
-.welcomeback {background: url('../images/welcomeback.gif') no-repeat; width: 222px; height: 80px; margin: 50px 0 20px 150px}
+.welcomeback {background: url('../images/welcome_back.png') no-repeat; width: 243px; height: 80px; margin: 50px 0 20px 150px}
 .rightBoxes {float: right; width: 240px}
 .notyetmember {background: url('../images/notyetmember.gif') no-repeat; width: 231px; height: 85px; float: left; margin: 10px 10px 0 0}
 .notyetmember .lozenge2 {float: right; margin: 50px 15px 0 0}

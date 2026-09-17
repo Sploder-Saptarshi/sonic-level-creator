@@ -5,11 +5,13 @@ import layoutTemplate from "../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
+import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
 
 // Shared-chrome variants (verbatim archive markup; layout holds the slots).
 // Logged-in chrome (game + editor pages).
-const NAV_LOGGED_IN_LANGUAGEBAR = `<div id="languagebar" class="loggedin">  <a class="lozenge1" href="/member/?action=signUp" rel="nofollow"><span>Sign up!</span></a>
-  </div>
+const NAV_LANGUAGEBAR = `<div id="languagebar">  <a class="lozenge1" href="/member/signup" rel="nofollow"><span>Quick Sign-up</span></a>
+    <a class="lozenge1" href="/member/signin" rel="nofollow"><span>Sign-in</span></a>
+</div>
 `;
 const NAV_LOGGED_IN_TOPNAV = `<ul id="topnav_in" class="loggedin">
   <li class="one"><a href="/games/" class="on">Play Games</a></li>
@@ -138,7 +140,7 @@ export function renderGamePage(query: PageQuery): string {
   const body = render(gameBodyTemplate, data);
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
-    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    languagebar: NAV_LANGUAGEBAR,
     topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: "",
     domloadExtra: gameDomloadExtra,
@@ -159,7 +161,7 @@ export function renderEditorPage(query: PageQuery): string {
   });
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
-    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    languagebar: NAV_LANGUAGEBAR,
     topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: editorHeadExtra,
     domloadExtra: "",
@@ -168,7 +170,7 @@ export function renderEditorPage(query: PageQuery): string {
   });
 }
 
-const signinHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="text/css" media="screen" />
+const memberHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="text/css" media="screen" />
 `;
 const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
 
@@ -176,9 +178,22 @@ export function renderSigninPage(query: PageQuery): string {
   const body = render(signinBodyTemplate, { formError: "" });
   return render(layoutTemplate, {
     title: "Member Sign-in | PlaySEGA",
-    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    languagebar: NAV_LANGUAGEBAR,
     topnav: NAV_LOGGED_IN_TOPNAV,
-    headExtra: signinHeadExtra,
+    headExtra: memberHeadExtra,
+    domloadExtra: signinDomloadExtra,
+    bootstrap: bootstrap({ username: "Guest" }),
+    body,
+  });
+}
+
+export function renderSignupPage(query: PageQuery): string {
+  const body = render(signupBodyTemplate, { formError: "" });
+  return render(layoutTemplate, {
+    title: "Member Sign-up | PlaySEGA",
+    languagebar: NAV_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
+    headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
     body,
