@@ -6,9 +6,11 @@ Nitro 3 server (`nitro.config.ts`, `server/`) + Eta templates + esbuild editor
 bundle. Web document root is `public/` (Nitro serves it as static);
 `/` and `/editors/` are SSR routes, everything else static.
 
-- `server/templates/` — hand-written Eta `.html` templates (`<%= %>` escaped,
-  `<%~ %>` raw for trusted markup only), inlined via `with { type: "text" }`.
-  No fs reads (Workers-safe).
+- `server/templates/` — hand-written Eta-syntax `.html` templates
+  (`<%= %>` escaped, `<%~ %>` raw for trusted markup only), inlined via
+  `with { type: "text" }` and rendered by a minimal eval-free interpolator
+  in `server/utils/page.ts` (the Eta package itself was dropped: its
+  `new Function` compile is banned on Workers). No fs reads (Workers-safe).
 - `server/routes/index.get.ts` → game page, `server/routes/editors/index.get.ts`
   → editor page. Query stubs `?user= ?session= ?levelid= ?territory= ?title=`
   until auth lands (see `server/utils/page.ts`).
@@ -23,6 +25,7 @@ bundle. Web document root is `public/` (Nitro serves it as static);
 | `npm run build:editor` | Bundles `ts/main.ts` → `public/editors/assets/editor.js` |
 | `npm run lint`       | `node --check` on the compiled `editor.js`                |
 | `npm run serve`      | Run the production build (`.output/server/index.mjs`)     |
+| `npm run deploy:pages` | Build `cloudflare_pages` preset + deploy `dist/` to `sonicrelvl.pages.dev` |
 
 > `dev` strips `Accept-Encoding` via a dev-only middleware (nitro dev
 > would otherwise brotli statics on the fly at max quality — ~8s for the
@@ -30,6 +33,22 @@ bundle. Web document root is `public/` (Nitro serves it as static);
 
 Workers deploy: `NITRO_PRESET=cloudflare_module npm run build`.
 Needs Node >= 20.19.
+
+## Cloudflare D1
+
+DB `sonic-level-creator` (primary WEUR), binding `DB`. `wrangler.toml` is the
+source of truth — Nitro's `cloudflare_module` build merges it automatically
+(see `.output/server/wrangler.json`).
+
+| Command                                                            | What it does              |
+| ------------------------------------------------------------------ | ------------------------- |
+| `npx wrangler d1 execute sonic-level-creator --remote --command …` | Run SQL on remote primary |
+| `npx wrangler d1 info sonic-level-creator`                         | Size, counters, replica mode |
+
+Read replication is enabled per-database (dashboard: D1 > db > Settings) at
+no extra cost; replicas only serve reads via the Sessions API
+(`env.DB.withSession(...)`) in deployed Workers — plain queries always hit
+the primary. No replicas exist locally; dev against remote or miniflare.
 
 ## Workflow
 

@@ -1,0 +1,10 @@
+# Cloudflare Workers config (Wrangler). Source of truth for remote bindings.
+# Nitro's cloudflare_module preset merges this at build/deploy time;
+# `wrangler d1` commands below also read the binding from here.
+name = "sonic-level-creator"
+compatibility_date = "2026-09-17"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sonic-level-creator"
+database_id = "7112ad7b-4fb4-4f75-b32a-455fefe29a41"

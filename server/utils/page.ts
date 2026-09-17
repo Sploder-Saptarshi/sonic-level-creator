@@ -1,7 +1,6 @@
-// server/utils/page.ts — SSR page rendering (Eta, Workers-safe: no fs reads).
-// Query overrides (?user= ?session= ?levelid= ?) are stubs until auth lands;
-// every value is validated AND Eta-escaped.
-import { Eta } from "eta";
+// server/utils/page.ts — SSR page rendering (Workers-safe: no fs reads,
+// no runtime codegen — Eta's `new Function` compile is banned on Workers,
+// so templates render through a minimal `<%= %>`/`<%~ %>` interpolator).
 import layoutTemplate from "../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
@@ -20,12 +19,36 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 
 // Offline session stub (mirrors ts/actions.ts TEST_API_ID). The game loads
 // /<sessionId>.swf, so this must match public/<id>.swf until sessions are real.
-export const OFFLINE_SESSION_ID = "9f3210793951251c83ea5addaa24b963";
+const OFFLINE_SESSION_ID = "9f3210793951251c83ea5addaa24b963";
 const DEFAULT_LEVEL_ID = 2914;
 const DEFAULT_TITLE = "Sonic The Hedgehog Level Player - At Dawn";
 const TERRITORIES = ["EnglishUK", "EnglishUSA"];
 
-const eta = new Eta();
+// Minimal template renderer: `<%= it.x %>` HTML-escaped, `<%~ it.x %>` raw.
+// Same placeholder syntax/semantics as before, zero codegen.
+const ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+function render(
+  tpl: string,
+  data: Record<string, unknown>,
+): string {
+  return tpl.replace(
+    /<%([=~])\s*it\.([A-Za-z_$][\w$]*)\s*%>/g,
+    (_, sig: string, key: string) => {
+      const v = data[key];
+      const s = v == null ? "" : String(v);
+      return sig === "="
+        ? s.replace(/[&<>"']/g, (c) => ESCAPES[c])
+        : s;
+    },
+  );
+}
 
 export interface PageQuery {
   user?: unknown;
@@ -93,8 +116,8 @@ export function renderGamePage(query: PageQuery): string {
     isZoneOne: cleanZoneOne(query.zoneone),
     contentSwf: "/games/swf/52/52.swf",
   };
-  const body = eta.renderString(gameBodyTemplate, data);
-  return eta.renderString(layoutTemplate, {
+  const body = render(gameBodyTemplate, data);
+  return render(layoutTemplate, {
     username,
     headExtra: "",
     domloadExtra: gameDomloadExtra,
@@ -107,13 +130,13 @@ export function renderEditorPage(query: PageQuery): string {
   const username = cleanUsername(query.user);
   const sessionId = cleanSession(query.session);
   const levelId = cleanLevelId(query.levelid);
-  const body = eta.renderString(editorBodyTemplate, {
+  const body = render(editorBodyTemplate, {
     username,
     sessionId,
     territory: cleanTerritory(query.territory),
     levelId,
   });
-  return eta.renderString(layoutTemplate, {
+  return render(layoutTemplate, {
     username,
     headExtra: editorHeadExtra,
     domloadExtra: "",
