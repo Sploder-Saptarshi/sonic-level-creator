@@ -12,7 +12,7 @@ import { escapeHtml } from "./session";
 // escaped here — the layout slot is raw).
 export function userLanguageBar(username: string): string {
   const name = escapeHtml(username);
-  return `<div id="languagebar" class="loggedin">  <span>Signed in as <b>${name}</b></span> <a class="lozenge1" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
+  return `<div id="languagebar" style="width:auto;min-width:200px;white-space:nowrap">  <span style="vertical-align:middle">Signed in as <b>${name}</b></span> <a class="lozenge1" style="vertical-align:middle;float:none;display:inline-block;margin-left:8px" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
   <form name="signoutForm" action="/member/signout" method="post" style="display:none"></form>
   </div>
 `;
