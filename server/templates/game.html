@@ -1,0 +1,165 @@
+
+    <div id="sidenav">
+            <div id="sidenav1">
+        <ul>
+          <li class="arcade"><a href="/games/?action=listByGenre&amp;gt=1">Arcade Games</a></li>
+          <li class="card"><a href="/games/?action=listByGenre&amp;gt=2">Card Games</a></li>
+          <li class="puzzle"><a href="/games/?action=listByGenre&amp;gt=3">Puzzle Games</a></li>
+          <li class="quiz"><a href="/games/?action=listByGenre&amp;gt=4">Quiz Games</a></li>
+          <li class="sonic"><a href="/games/?action=listByGenre&amp;gt=5">Sonic Games</a></li>
+          <li class="sports"><a href="/games/?action=listByGenre&amp;gt=6">Sports Games</a></li>
+          <li class="word"><a href="/games/?action=listByGenre&amp;gt=7">Word Games</a></li>
+        </ul>
+      </div>
+
+              <div id="sidenav3">
+            <a href="/info/?action=quickStartGuide" class="quickstart"></a>
+            <a href="/games/?action=listAll" class="allgames"></a>
+        </div>
+          <div id="upsellOne" class="upsellOne">
+    <div class="upsell_guest">
+        <div class="upsellOneContent">
+            <div class="upsellOnePerks">
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Scores">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Save high scores</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Rings2">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Collect PlaySEGA rings</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Prizes2">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Win cash prizes</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Trial">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">
+                        FREE 5 day PlaySEGA<sup>VIP</sup> trial
+                    </div>
+                </div>
+            </div>
+            <div class="upsellButton">
+                <a class="sifrButton1" href="/member/?action=signUp"><span class="text"><span class="fancybutton">Sign up now</span></span></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="clear">&nbsp;</div>
+    </div>    <div id="pagecontent">
+    
+
+<!-- play game section -->
+<div id="box3" style="margin-bottom:10px; z-index: 1000">
+  <h3><span class="fancy" style="color:#ffffff"><%= it.levelTitle %></span></h3>
+  <div class="content" id="playGame" style="padding:0">
+            <script type="text/javascript">
+            var gcat=8;
+            var gsku=52;
+        </script>        <div id="gamecontainer" style="height:448px">
+            <div id="gameswf">
+            <div id="preroll_mpu">
+    <p><img src="../images/game-loading.gif" height="30" width="160" alt="Your game is loading..." /></p>
+</div>                <noscript>
+                  <div id="js">&nbsp;</div>
+                </noscript>
+                <div id="fl">&nbsp;</div>
+                <div id="java"><a href="http://www.java.com/" target="_blank">Click here to download</a></div>          </div>
+        </div>
+
+        <div class="clear">&nbsp;</div>
+
+
+
+<script type="text/javascript">border2.render('upsellTwo');</script>
+            
+            <!-- Report & AddThis Button BEGIN -->
+            <div class="clear">&nbsp;</div>
+
+            <center><div style="width: 720px; z-index: 1000">                <div class="report">
+                    <div class="reportButton">
+                        <a class="lozenge1" id="reporter" href="javascript:void(0)"><span>Report Level</span></a>
+                        <a class="lozenge2" href="javascript:void(0);"
+                           onclick="javascript:notifyOfLeaving('/editors/?action=edit&gamegroupid=52', false);">
+                            <span>Create Level</span>
+                        </a>
+                        <a class="lozenge2" href="javascript:void(0);"
+                           onclick="javascript:notifyOfLeaving('/editors/?action=myLevels&gamegroupid=52', false);">
+                            <span>My Levels</span>
+                        </a>
+                        <a class="lozenge2" href="javascript:void(0);"
+                           onclick="javascript:notifyOfLeaving('/editors/?action=editorDetail&gamegroupid=52', false);">
+                            <span>All Levels</span>
+                        </a>
+                    </div>
+                    <div class="reportReportHidden" id="reportArea">
+                        <div class="reportHeading">
+                            <div class="headingText">Report This Level</div>
+                            <div class="closeButton" onclick="expandReport()">&nbsp;</div>
+                        </div>
+                        <div class="reportContent" id="reportContent">                            Why is this level inappropriate?
+                            <div class="clear">&nbsp;</div>
+                            <input type="hidden" id="frm_levelid" value="<%= it.levelId %>" />
+                            <textarea id="frm_reason" class="reportTextArea"></textarea>
+                            <div class="clear">&nbsp;</div>
+                            <div id="reportResult" class="reportResult">&nbsp;</div>
+                            <a class="lozenge1" href="javascript:void(0)" onclick="javascript:postReport()"><span>Submit</span></a>                        </div>
+                    </div>
+                </div>
+            </div></center>
+            <div class="clear">&nbsp;</div>
+            
+                        
+            
+            
+            <!-- Report & AddThis Button END -->
+            <div class="clear">&nbsp;</div>      
+        
+            		   
+
+  </div>
+</div>
+<!-- //play game section -->
+
+<div style="float: left; width: 420px">
+</div>
+<div style="margin: 0 0 0 10px; float: left">
+
+  <div class="clear">&nbsp;</div>  
+</div>
+
+
+        <script type="text/javascript">
+            function show_game()
+            {
+                if(swfobject.hasFlashPlayerVersion("6.0.65")) {//they have flash
+
+                    var flashvars = {
+                    id: "<%= it.sessionId %>",territory: "<%= it.territory %>",enableSkip: 1,levelid: <%= it.levelId %>,isZoneOne: <%= it.isZoneOne %>,contentSWF: "/games/swf/52/52.swf"                    };
+                    var params = {
+                        menu: "false"
+                    };
+
+                    swfobject.embedSWF("/swf/preloader/as3/v2/preloader-guest.swf",
+                                       "gameswf",
+                                       "640",
+                                       "448",
+                                       "9.0.0",
+                                       "../swf/expressInstall.swf",
+                                       flashvars,
+                                       params);
+
+                } else {//they dont have flash
+                    swfobject.createCSS("#gameswf div#fl", "display:block;");
+                    swfobject.createCSS("#gameswf div#preroll_mpu", "display:none;");
+                }
+            }
+        </script><script type="text/javascript">
+    //display the game after preroll
+    show_game()
+    </script>
+<div class="clear">&nbsp;</div>
+</div>
+<div style="clear:both"></div>
+</div>

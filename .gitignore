@@ -1,2 +1,5 @@
 /.opencode
 /node_modules
+/.output
+/.nitro
+/.wrangler

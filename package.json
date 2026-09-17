@@ -4,14 +4,22 @@
   "private": true,
   "description": "Sonic Level Creator editor — TypeScript sources bundled to public/editors/assets/editor.js",
   "engines": {
-    "node": ">=16"
+    "node": ">=20.19"
   },
   "scripts": {
-    "build": "esbuild ts/main.ts --bundle --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
+    "build": "npm run build:editor && nitro build",
+    "build:editor": "esbuild ts/main.ts --bundle --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
+    "dev": "nitro dev",
+    "preview": "nitro preview",
+    "serve": "node .output/server/index.mjs",
     "lint": "node --check public/editors/assets/editor.js"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
+    "nitro": "^3.0.260903-beta",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "eta": "^4.6.0"
   }
 }

@@ -1,3 +1,4 @@
+"use strict";
 (() => {
   // ts/format.ts
   var BLOCK_PX = 256;
@@ -1706,6 +1707,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
   ];
 
   // ts/thumbnails.ts
+  var lastThumbLog = "";
   var tipEl = null;
   var tipTimer = null;
   var tipAnchor = null;
@@ -1797,6 +1799,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     const { thumbstrip, spritesheetImg, activeTab } = S;
     if (!thumbstrip) return;
     thumbstrip.innerHTML = "";
+    let painted = 0, total = 0;
     if (activeTab === "tiles") {
       for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
         if (i === 7 || i === 35 || i === 71) continue;
@@ -1809,7 +1812,9 @@ canvas.display { display: block; cursor: crosshair; border: none;
         if (spritesheetImg?.complete) {
           const { x: sx, y: sy } = blockSheetXY(i);
           c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
+          painted++;
         }
+        total++;
         el.appendChild(cvs);
         el.addEventListener("mousedown", (ev) => {
           ev.preventDefault();
@@ -1841,6 +1846,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
           cvs = document.createElement("canvas");
           paintThumb(cvs.getContext("2d"), parts, 1, mirror);
           el.appendChild(cvs);
+          painted++;
         } else {
           el.className = "thumb thumb-txt";
           el.textContent = def.name;
@@ -1857,6 +1863,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
           draw();
         });
         thumbstrip.appendChild(el);
+        total++;
         if (cvs) {
           const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
           if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
@@ -1866,6 +1873,11 @@ canvas.display { display: block; cursor: crosshair; border: none;
           }
         }
       }
+    }
+    const summary = `${activeTab} painted=${painted}/${total}`;
+    if (summary !== lastThumbLog) {
+      lastThumbLog = summary;
+      timingLog(`thumbnails ${summary}`);
     }
   }
   function switchTab(tab) {
@@ -2374,7 +2386,18 @@ canvas.display { display: block; cursor: crosshair; border: none;
   }
 
   // ts/main.ts
+  var SCRIPT_T0 = performance.now();
+  console.log(`[editor:timing] bundle executed readyState=${document.readyState}`);
+  function timingLog(tag) {
+    console.log(`[editor:timing] ${tag} +${Math.round(performance.now() - SCRIPT_T0)}ms`);
+  }
+  function resourceMs(name) {
+    const entries = performance.getEntriesByType("resource");
+    const hit = entries.filter((e) => e.name.endsWith(name)).pop();
+    return hit ? ` (net ${Math.round(hit.responseEnd - hit.startTime)}ms)` : "";
+  }
   function boot() {
+    timingLog(`boot DOMContentLoaded readyState=${document.readyState}`);
     console.log("[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)");
     const host = document.getElementById("gamecontainer");
     if (!host) return;
@@ -2407,9 +2430,17 @@ canvas.display { display: block; cursor: crosshair; border: none;
     initGhostCanvas();
     S.spritesheetImg = new Image();
     S.spritesheetImg.onload = () => {
+      timingLog(`spritesheet onload${resourceMs("/editors/assets/spritesheet.png")}`);
       buildThumbnails();
       draw();
+      warmOnce();
     };
+    S.spritesheetImg.onerror = () => {
+      timingLog("spritesheet onerror \u2014 warming test player anyway");
+      warmOnce();
+    };
+    setTimeout(warmOnce, 15e3);
+    timingLog("spritesheet fetch start");
     S.spritesheetImg.src = "/editors/assets/spritesheet.png";
     S.gloweyImg = new Image();
     S.gloweyImg.onload = () => {
@@ -2421,12 +2452,19 @@ canvas.display { display: block; cursor: crosshair; border: none;
       draw();
     });
     wireEvents();
-    warmTestPlayer();
     requestAnimationFrame(() => {
       resizeCanvas();
       updateCounter();
       switchTab("tiles");
+      timingLog("first paint (tiles tab)");
     });
+  }
+  var warmed = false;
+  function warmOnce() {
+    if (warmed) return;
+    warmed = true;
+    timingLog("test-player warmup start");
+    warmTestPlayer();
   }
   document.addEventListener("DOMContentLoaded", boot);
 })();

@@ -8,6 +8,10 @@ import {
 import { draw } from './render';
 import { partsFor, paintThumb, isMirrored } from './sprites';
 import { TOOLTIPS } from './tooltipTexts';
+import { timingLog } from './main';
+
+// Last logged paint counts (log only on change — sprite arrivals rebuild often).
+let lastThumbLog = '';
 
 // ── Custom tooltip (replaces native title) ──
 let tipEl: HTMLElement | null = null;
@@ -122,6 +126,7 @@ export function buildThumbnails() {
   const { thumbstrip, spritesheetImg, activeTab } = S;
   if (!thumbstrip) return;
   thumbstrip.innerHTML = '';
+  let painted = 0, total = 0;
 
   if (activeTab === 'tiles') {
     // Palette: blocks 1–107 only (108+ unused), excluding blocks 7, 35, 71.
@@ -137,7 +142,9 @@ export function buildThumbnails() {
       if (spritesheetImg?.complete) {
         const { x: sx, y: sy } = blockSheetXY(i);
         c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
+        painted++;
       }
+      total++;
       el.appendChild(cvs);
       el.addEventListener('mousedown', (ev) => {
         ev.preventDefault();
@@ -170,6 +177,7 @@ export function buildThumbnails() {
         cvs = document.createElement('canvas');
         paintThumb(cvs.getContext('2d')!, parts, 1, mirror);
         el.appendChild(cvs);
+        painted++;
       } else {
         // Game-invisible type (no zone art / no draw routine): labeled box
         el.className = 'thumb thumb-txt';
@@ -187,6 +195,7 @@ export function buildThumbnails() {
         draw();
       });
       thumbstrip.appendChild(el);
+      total++;
       if (cvs) {
         // Deterministic 1x sizing with proportional shrink-only into the
         // 80% bounding box (see .thumb canvas CSS), measured from the live
@@ -201,6 +210,11 @@ export function buildThumbnails() {
         }
       }
     }
+  }
+  const summary = `${activeTab} painted=${painted}/${total}`;
+  if (summary !== lastThumbLog) {
+    lastThumbLog = summary;
+    timingLog(`thumbnails ${summary}`);
   }
 }
 

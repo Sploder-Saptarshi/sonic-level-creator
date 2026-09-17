@@ -9,7 +9,23 @@ import { buildThumbnails, switchTab, updateCounter } from './thumbnails';
 import { resizeCanvas, warmTestPlayer } from './actions';
 import { wireEvents } from './events';
 
+// Timing diagnostics: ms since this bundle started executing (end of body,
+// so a large value here means a parser-blocking script above stalled us).
+const SCRIPT_T0 = performance.now();
+console.log(`[editor:timing] bundle executed readyState=${document.readyState}`);
+
+export function timingLog(tag: string) {
+  console.log(`[editor:timing] ${tag} +${Math.round(performance.now() - SCRIPT_T0)}ms`);
+}
+
+function resourceMs(name: string): string {
+  const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+  const hit = entries.filter(e => e.name.endsWith(name)).pop();
+  return hit ? ` (net ${Math.round(hit.responseEnd - hit.startTime)}ms)` : '';
+}
+
 function boot() {
+  timingLog(`boot DOMContentLoaded readyState=${document.readyState}`);
   console.log('[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)');
   const host = document.getElementById('gamecontainer');
   if (!host) return;
@@ -53,7 +69,20 @@ function boot() {
 
   // Load spritesheet
   S.spritesheetImg = new Image();
-  S.spritesheetImg.onload = () => { buildThumbnails(); draw(); };
+  S.spritesheetImg.onload = () => {
+    timingLog(`spritesheet onload${resourceMs('/editors/assets/spritesheet.png')}`);
+    buildThumbnails();
+    draw();
+    // Tiles are painted — now the test-player warmup may use the pipe.
+    warmOnce();
+  };
+  S.spritesheetImg.onerror = () => {
+    timingLog('spritesheet onerror — warming test player anyway');
+    warmOnce();
+  };
+  // Safety net: never let a stalled image block the warmup forever.
+  setTimeout(warmOnce, 15000);
+  timingLog('spritesheet fetch start');
   S.spritesheetImg.src = '/editors/assets/spritesheet.png';
 
   // Load hover glow overlay (drawn on top of the hovered filled tile)
@@ -67,15 +96,27 @@ function boot() {
   // Wire all event handlers
   wireEvents();
 
-  // Boot the test player muted in the background so Test opens warm.
-  warmTestPlayer();
-
   // First paint — defer to let Shadow DOM layout compute
   requestAnimationFrame(() => {
     resizeCanvas();
     updateCounter();
     switchTab('tiles');
+    timingLog('first paint (tiles tab)');
+    // NOTE: test-player warmup is NOT started here. It downloads the full
+    // game SWF + BGM, which starves the tile spritesheet on narrow servers
+    // (php -S is single-threaded and serialises all local responses).
+    // warmOnce() fires it after tiles paint (spritesheet onload), on image
+    // error, or after a 15s safety timeout — whichever comes first.
   });
+}
+
+// Test-player warmup gate (see boot rAF note). Exactly-once.
+let warmed = false;
+function warmOnce() {
+  if (warmed) return;
+  warmed = true;
+  timingLog('test-player warmup start');
+  warmTestPlayer();
 }
 
 document.addEventListener('DOMContentLoaded', boot);
