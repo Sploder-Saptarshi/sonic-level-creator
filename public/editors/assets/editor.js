@@ -1914,7 +1914,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5e3);
   }
-  var TEST_API_ID = "9f3210793951251c83ea5addaa24b963";
+  var TEST_API_ID = "api-connector";
   var TEST_LEVEL_ID = "2914";
   var TEST_LOAD_OPTS = {
     url: "/games/swf/52/52.swf",

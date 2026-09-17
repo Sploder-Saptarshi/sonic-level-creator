@@ -24,6 +24,8 @@ export interface PageView {
   formError?: string;
 }
 
+const GAME_SWF = "/games/swf/52/52.swf";
+
 // Shared-chrome variants (verbatim archive markup; layout holds the slots).
 // Logged-in chrome (game + editor pages).
 const NAV_LANGUAGEBAR = `<div id="languagebar">  <a class="lozenge1" href="/member/signup" rel="nofollow"><span>Quick Sign-up</span></a>
@@ -55,9 +57,10 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 <link rel="preload" as="image" href="/editors/assets/spritesheet.png" />
 `;
 
-// Offline session stub (mirrors ts/actions.ts TEST_API_ID). The game loads
-// /<sessionId>.swf, so this must match public/<id>.swf until sessions are real.
-const OFFLINE_SESSION_ID = "9f3210793951251c83ea5addaa24b963";
+// API connector id passed as the game's `id` flashvar (it loads
+// /<id>.swf). A static filename, not a session — real sessions live
+// server-side (see server/utils/session.ts).
+const API_CONNECTOR_ID = "api-connector";
 const DEFAULT_LEVEL_ID = 2914;
 const DEFAULT_TITLE = "Sonic The Hedgehog Level Player - At Dawn";
 const TERRITORIES = ["EnglishUK", "EnglishUSA"];
@@ -108,9 +111,9 @@ function cleanUsername(v: unknown): string {
 
 function cleanSession(v: unknown): string {
   const s = first(v);
-  return typeof s === "string" && /^[0-9a-f]{32}$/i.test(s)
-    ? s.toLowerCase()
-    : OFFLINE_SESSION_ID;
+  return typeof s === "string" && /^[\w.-]{1,64}$/.test(s)
+    ? s
+    : API_CONNECTOR_ID;
 }
 
 function cleanLevelId(v: unknown): number {
@@ -152,7 +155,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     levelId,
     levelTitle: cleanTitle(query.title),
     isZoneOne: cleanZoneOne(query.zoneone),
-    contentSwf: "/games/swf/52/52.swf",
+    contentSwf: GAME_SWF,
   };
   const body = render(gameBodyTemplate, data);
   return render(layoutTemplate, {

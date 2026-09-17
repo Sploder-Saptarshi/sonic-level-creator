@@ -44,8 +44,9 @@ export function doSave() {
 // Test with the movie running unsuspended throughout. Without the flag
 // (plain game page) it behaves exactly like stock.
 
-// Session id flashvar the game expects (resolves to /<id>.swf API stub).
-const TEST_API_ID = '9f3210793951251c83ea5addaa24b963';
+// API connector flashvar the game expects (resolves to /<id>.swf).
+// This is a static filename, not a session — real sessions live server-side.
+const TEST_API_ID = 'api-connector';
 const TEST_LEVEL_ID = '2914';
 
 const TEST_LOAD_OPTS = {
