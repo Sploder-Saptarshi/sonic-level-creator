@@ -1,0 +1,72 @@
+<div id="pagecontent">
+    <div id="box5" class="si-step2-header-width">
+        <h3><span class="fancy" style="color:#ffffff">Member Sign-in</span></h3>
+        <div class="content" id="round1" style="padding-left: 1px">
+            <div class="newformholdersignup">
+                <div class="rightBoxes">
+                    <div class="notyetmember">
+                        <a class="lozenge2" href="/member/" rel="nofollow"><span>Go to Quick Sign-up</span></a>
+                    </div>
+                    <div class="alreadymember2">
+                        <p>
+                            <strong>Already a member?</strong><br />
+                            Use your existing login from SEGA Pass to sign in and play FREE games.
+                        </p>
+                    </div>
+                </div>
+                <div class="welcomeback">&nbsp;</div>
+<%~ it.formError %>
+                <form action="/member/index.php" method="post" id="sign_in">
+                    <div class="si-login-form-cnt" style="float: none">
+                        <input type="hidden" name="action" value="processSignIn" />
+                        <input type="hidden" name="promotion" value="" />
+                        <div class="si-login-form-item-cnt" style="float: none; padding: 0; height: 32px">
+                            <div class="si-login-form-item-left">Email:&nbsp;</div>
+                            <div class="si-login-form-item-right">
+                                <div class="si-login-form-textfield-cnt">
+                                    <input type="text" name="signInEmail" value="" class="si-login-form-textfield" />
+                                                                    </div>
+                            </div>
+                            <div class="clear">&nbsp;</div>
+                        </div>
+                        <div class="si-login-form-item-cnt" style="float: none; padding: 0; height: 38px">
+                            <div class="si-login-form-item-left">Password:&nbsp;</div>
+                            <div class="si-login-form-item-right">
+                                <div class="si-login-form-textfield-cnt">
+                                    <input type="password" name="signInPassword" value="" class="si-login-form-textfield" />
+                                                                    </div>
+                            </div>
+                            <div class="clear">&nbsp;</div>
+                        </div>
+                        <div class="si-login-form-item-cnt" style="float: none; padding: 0; height: 15px">
+                            <div class="si-login-form-item-left">&nbsp;</div>
+                            <div class="si-login-form-item-right">
+                                <div class="si-login-form-rememberme-cb"><input type="checkbox" name="remember_me" id="remember_me" value="1" /></div>
+                                <div class="si-login-form-rememberme-text si-segapass-text-color"><label for="remember_me">Remember me on this computer</label></div>
+                                <div class="clear">&nbsp;</div>
+                            </div>
+                            <div class="clear">&nbsp;</div>
+                        </div>
+                        <div class="si-login-form-item-cnt" style="padding-top: 15px; float: none">
+                            <div class="si-login-form-item-left">&nbsp;</div>
+                            <div class="si-login-form-item-right">
+                                <a href="index.php?action=forgottenSignIn" class="playnow">Forgot your password?</a>
+                            </div>
+                            <div class="clear">&nbsp;</div>
+                        </div>
+                        <div class="si-login-form-item-cnt" style="padding-top: 15px; float: none">
+                            <div class="si-login-form-item-left">&nbsp;</div>
+                            <div class="si-login-form-item-right">
+                                <span class="button"><button type="submit" name="submit" value="submit">Sign-in</button></span>
+                            </div>
+                            <div class="clear">&nbsp;</div>
+                        </div>
+                    </div>
+                </form>
+                            <div style="height: 90px">&nbsp;</div>
+                      </div>
+    </div>
+  </div>
+</div>
+<div style="clear:both"></div>
+</div>

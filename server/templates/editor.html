@@ -1,7 +1,4 @@
-
     <div id="pagecontent">
-    
-
 <!-- play game section -->
 <div id="box3" style="margin-bottom:10px; z-index: 1000">
   <h3><span class="fancy" style="color:#ffffff">Sonic The Hedgehog Level Creator</span>
@@ -14,32 +11,24 @@
         </script>        <div id="gamecontainer" style="display:inline flow-root list-item;list-style:none;vertical-align:top;width:977px;height:700px;margin:-10px 0 0 0;padding:0;border:0;border-radius:0 0 10px 10px;overflow:hidden">
             <!-- editor mounts here via shadow DOM -->
         </div>
-
         <div class="clear">&nbsp;</div>
-
   </div>
 </div>
 <!-- //play game section -->
-
 <div style="float: left; width: 420px">
 </div>
 <div style="margin: 0 0 0 10px; float: left">
-
   <div class="clear">&nbsp;</div>  
 </div>
-
-
         <script type="text/javascript">
             function show_game()
             {
                 if(swfobject.hasFlashPlayerVersion("6.0.65")) {//they have flash
-
                     var flashvars = {
                     id: "<%= it.sessionId %>",territory: "<%= it.territory %>",enableSkip: 1,levelid: <%= it.levelId %>,contentSWF: "/games/swf/52/52.swf"                    };
                     var params = {
                         menu: "false"
                     };
-
                     swfobject.embedSWF("/swf/preloader/as3/v2/preloader-guest.swf",
                                        "gameswf",
                                        "640",
@@ -48,7 +37,6 @@
                                        "../swf/expressInstall.swf",
                                        flashvars,
                                        params);
-
                 } else {//they dont have flash
                     swfobject.createCSS("#gameswf div#fl", "display:block;");
                     swfobject.createCSS("#gameswf div#preroll_mpu", "display:none;");
@@ -62,6 +50,4 @@
 </div>
 <div style="clear:both"></div>
 </div>
-
 <script src="/editors/assets/editor.js"></script>
-

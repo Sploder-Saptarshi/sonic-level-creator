@@ -1,4 +1,3 @@
-
     <div id="sidenav">
             <div id="sidenav1">
         <ul>
@@ -11,7 +10,6 @@
           <li class="word"><a href="/games/?action=listByGenre&amp;gt=7">Word Games</a></li>
         </ul>
       </div>
-
               <div id="sidenav3">
             <a href="/info/?action=quickStartGuide" class="quickstart"></a>
             <a href="/games/?action=listAll" class="allgames"></a>
@@ -45,11 +43,8 @@
         </div>
     </div>
 </div>
-
 <div class="clear">&nbsp;</div>
     </div>    <div id="pagecontent">
-    
-
 <!-- play game section -->
 <div id="box3" style="margin-bottom:10px; z-index: 1000">
   <h3><span class="fancy" style="color:#ffffff"><%= it.levelTitle %></span></h3>
@@ -67,16 +62,10 @@
                 <div id="fl">&nbsp;</div>
                 <div id="java"><a href="http://www.java.com/" target="_blank">Click here to download</a></div>          </div>
         </div>
-
         <div class="clear">&nbsp;</div>
-
-
-
 <script type="text/javascript">border2.render('upsellTwo');</script>
-            
             <!-- Report & AddThis Button BEGIN -->
             <div class="clear">&nbsp;</div>
-
             <center><div style="width: 720px; z-index: 1000">                <div class="report">
                     <div class="reportButton">
                         <a class="lozenge1" id="reporter" href="javascript:void(0)"><span>Report Level</span></a>
@@ -109,38 +98,25 @@
                 </div>
             </div></center>
             <div class="clear">&nbsp;</div>
-            
-                        
-            
-            
             <!-- Report & AddThis Button END -->
             <div class="clear">&nbsp;</div>      
-        
-            		   
-
   </div>
 </div>
 <!-- //play game section -->
-
 <div style="float: left; width: 420px">
 </div>
 <div style="margin: 0 0 0 10px; float: left">
-
   <div class="clear">&nbsp;</div>  
 </div>
-
-
         <script type="text/javascript">
             function show_game()
             {
                 if(swfobject.hasFlashPlayerVersion("6.0.65")) {//they have flash
-
                     var flashvars = {
                     id: "<%= it.sessionId %>",territory: "<%= it.territory %>",enableSkip: 1,levelid: <%= it.levelId %>,isZoneOne: <%= it.isZoneOne %>,contentSWF: "/games/swf/52/52.swf"                    };
                     var params = {
                         menu: "false"
                     };
-
                     swfobject.embedSWF("/swf/preloader/as3/v2/preloader-guest.swf",
                                        "gameswf",
                                        "640",
@@ -149,7 +125,6 @@
                                        "../swf/expressInstall.swf",
                                        flashvars,
                                        params);
-
                 } else {//they dont have flash
                     swfobject.createCSS("#gameswf div#fl", "display:block;");
                     swfobject.createCSS("#gameswf div#preroll_mpu", "display:none;");

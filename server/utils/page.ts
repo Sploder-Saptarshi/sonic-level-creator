@@ -4,9 +4,28 @@
 import layoutTemplate from "../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
+import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
+
+// Shared-chrome variants (verbatim archive markup; layout holds the slots).
+// Logged-in chrome (game + editor pages).
+const NAV_LOGGED_IN_LANGUAGEBAR = `<div id="languagebar" class="loggedin">  <a class="lozenge1" href="/member/?action=signUp" rel="nofollow"><span>Sign up!</span></a>
+  </div>
+`;
+const NAV_LOGGED_IN_TOPNAV = `<ul id="topnav_in" class="loggedin">
+  <li class="one"><a href="/games/" class="on">Play Games</a></li>
+  <li class="two"><a href="/escape/">My Escape</a></li>
+  <li class="three"><a href="/prizedraws/">Win Cash</a></li>
+  <li class="four"><a href="/vip/">My VIP</a></li>
+  <li class="five"><a href="/member/?action=editMyAccount" rel="nofollow">My Account</a></li>
+  <li class="six"><a href="/downloads/">Download Games</a></li>
+  <li class="seven"><a href="http://forums.sega.com/forumdisplay.php?f=115" target="_blank">Forum</a></li>
+</ul>
+`;
+// Signed-out chrome is intentionally NOT used: all pages share the same
+// header (game/editor chrome) for a consistent revival UI.
 
 // Static domload snippet (page wiring, not an Eta template).
-const gameDomloadExtra = `;reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEventListener('click', function(e) {
+const gameDomloadExtra = `splitBorderBottom.render('playGame');reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEventListener('click', function(e) {
 e.preventDefault();
 e.stopPropagation();
 expandReport();
@@ -118,7 +137,9 @@ export function renderGamePage(query: PageQuery): string {
   };
   const body = render(gameBodyTemplate, data);
   return render(layoutTemplate, {
-    username,
+    title: `${username} | Level Creators | PlaySEGA`,
+    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -137,10 +158,29 @@ export function renderEditorPage(query: PageQuery): string {
     levelId,
   });
   return render(layoutTemplate, {
-    username,
+    title: `${username} | Level Creators | PlaySEGA`,
+    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
     headExtra: editorHeadExtra,
     domloadExtra: "",
     bootstrap: bootstrap({ sessionId, username, levelId }),
+    body,
+  });
+}
+
+const signinHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="text/css" media="screen" />
+`;
+const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
+
+export function renderSigninPage(query: PageQuery): string {
+  const body = render(signinBodyTemplate, { formError: "" });
+  return render(layoutTemplate, {
+    title: "Member Sign-in | PlaySEGA",
+    languagebar: NAV_LOGGED_IN_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
+    headExtra: signinHeadExtra,
+    domloadExtra: signinDomloadExtra,
+    bootstrap: bootstrap({ username: "Guest" }),
     body,
   });
 }

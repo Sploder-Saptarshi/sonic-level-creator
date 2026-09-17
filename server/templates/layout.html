@@ -12,17 +12,13 @@
 <meta name="description" content="PlaySEGA - THE OFFICIAL WEBSITE"></meta>
 <meta name="keywords" content="sega, sega europe, sega japan, SOA, SOJ, sega america, sonic, sega games, sega support, games, video games, videogames, videoconsoles, console games, Xbox, games movies, downloads, screen shots, screens, screenshots, movies, wallpapers, news, cheats, hints, tips, support, SEGA, juego, juex,"></meta>
     <meta name="robots" content="index, follow" />
-    <title><%= it.username %> | Level Creators | PlaySEGA</title>
-
-
+    <title><%= it.title %></title>
 <link rel="stylesheet" href="/css/playsega.css" type="text/css" media="screen" />
 <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
 <script src="/js/shadedborder.js" type="text/javascript"></script>
 <script src="/js/events.js" type="text/javascript"></script>
 <script src="/js/swfobject.js" type="text/javascript"></script>
 <script src="/js/feedback.js" type="text/javascript"></script>
-
-
 <script type="text/javascript">
 //some path variables
 var PLAYSEGA_PATH = "/";
@@ -40,12 +36,10 @@ window.RufflePlayer.config = {
 // Server-rendered bootstrap for auth/session wiring.
 window.__PLAYSEGA__ = <%~ it.bootstrap %>;
 </script>
-
 <!--
 <script type="text/javascript" src="/fsrscripts/triggerParams.js"></script>
 <script type="text/javascript" src="/fsrscripts/stdLauncher.js"></script>
 -->
-
 <script type="text/javascript">
 //Ruzee borders
 var border = RUZEE.ShadedBorder.create({ corner:10, border:3, shadow:22 });
@@ -56,14 +50,10 @@ RUZEE.Events.add(window,'domload',function() {
     if (!window.$) {
       window.$ = function(id) { return document.getElementById(id); }
     }
-
     border.render('content1');
-
     /* Set up flags (vanilla; was MooTools Fx.Elements) */
     var flagsSmallHeight = 16, flagsFullHeight = 47;
-
     var mainFlags = document.querySelectorAll("#flags");
-
     for (var fi = 0; fi < mainFlags.length; fi++) {
     	(function (mainFlag) {
     		mainFlag.style.transition = 'height 0.1s';
@@ -71,7 +61,6 @@ RUZEE.Events.add(window,'domload',function() {
     			mainFlag.style.backgroundImage = 'url(http://' + document.domain + HTML_TOP + '/images/flag-top.gif)'; // Set Background Image for element
     			mainFlag.style.backgroundPosition = 'top';                                                             // Set Background position for the element
     			mainFlag.style.backgroundRepeat = 'no-repeat';                                                         // State that we dont want the image to repeat
-
     			mainFlag.style.height = flagsFullHeight + 'px';
     		});
     		mainFlag.addEventListener ("mouseleave", function (event) {
@@ -81,13 +70,10 @@ RUZEE.Events.add(window,'domload',function() {
     	})(mainFlags[fi]);
     }
     /* //Set up flags */
-
         //round all h3s
     splitBorderTop.render($('content1').getElementsByTagName('h3'));
-    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderBottom.render('playGame');splitBorderTop.render($('content1').getElementsByTagName('h4'))<%~ it.domloadExtra %>
-
+    splitBorderTop.render($('content1').getElementsByTagName('h1'));splitBorderTop.render($('content1').getElementsByTagName('h4'));<%~ it.domloadExtra %>
 });
-
 </script>
 <script src="../js/ticker.js" type="text/javascript"></script>
 <link rel="stylesheet" href="../css/slimbox.css" type="text/css" media="screen" /><script src="../js/report.js"
@@ -104,7 +90,6 @@ RUZEE.Events.add(window,'domload',function() {
                                                     <p><a href="/"><img src="/images/PlaySEGA.png" height="98" width="222" alt="PlaySEGA" /></a></p>
                                             </div>
                 </div>
-
 <div class="flags-float" style="z-index: 9000">
     <div class="flags-float-inner" style="z-index: 9000">
         <div id="flags" class="flags">
@@ -124,25 +109,11 @@ RUZEE.Events.add(window,'domload',function() {
     </div>
     <div class="clear">&nbsp;</div>
 </div>
-<div id="languagebar" class="loggedin">  <a class="lozenge1" href="/member/?action=signUp" rel="nofollow"><span>Sign up!</span></a>
-  </div>
-
-
-<ul id="topnav_in" class="loggedin">
-  <li class="one"><a href="/games/" class="on">Play Games</a></li>
-  <li class="two"><a href="/escape/">My Escape</a></li>
-  <li class="three"><a href="/prizedraws/">Win Cash</a></li>
-  <li class="four"><a href="/vip/">My VIP</a></li>
-  <li class="five"><a href="/member/?action=editMyAccount" rel="nofollow">My Account</a></li>
-  <li class="six"><a href="/downloads/">Download Games</a></li>
-  <li class="seven"><a href="http://forums.sega.com/forumdisplay.php?f=115" target="_blank">Forum</a></li>
-</ul>
+<%~ it.languagebar %>
+<%~ it.topnav %>
 <%~ it.body %>
 <div id="footer">
-    
-
     		   <p><i>A very small percentage of people may experience seizures or blackouts triggered by flashing lights, patterns or certain visual images that may appear in video games.  Please be aware that even people who have never had a photosensitive epileptic seizure may have an undiagnosed condition that may be triggered by viewing video games.  In the event that you encounter any of the following symptoms: convulsions; eye or face twitching; loss of awareness; jerking and shaking of arms and legs; disorientation; altered vision, stop playing immediately and consult a doctor.  Parents should be aware of these symptoms as children and teenagers are more likely than adults to experience these seizures.  In order to reduce the risk of epileptic seizures it is advised that video games should be played in a well-lit room; not to play while drowsy or fatigued; take 10-15 minute breaks every hour.</i></p>
-
 	    <p>&copy; SEGA 2009. SEGA and the SEGA logo are either registered trade marks or trade marks of SEGA Corporation.</p>
     <p>This website is optimised for FireFox 3+ and Internet Explorer 7+, requires cookies and JavaScript to be enabled, and requires <a target="_blank" href="http://get.adobe.com/flashplayer/" rel="nofollow">Adobe Flash Player</a></p>
     <p>
@@ -162,6 +133,5 @@ RUZEE.Events.add(window,'domload',function() {
 <!-- Empty DIV for feedback box    // -->
 <div id="feedback" class="feedbackContainer"></div>
 <script type="text/javascript">moveIt (document.getElementById ('feedback'), findHeight (document.getElementById ('content1')), 360);</script>
-
 </body>
 </html>
