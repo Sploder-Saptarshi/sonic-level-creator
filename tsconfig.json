@@ -7,5 +7,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["server", "nitro.config.ts"]
+  "include": ["server", "build", "nitro.config.ts", "drizzle.config.ts"]
 }

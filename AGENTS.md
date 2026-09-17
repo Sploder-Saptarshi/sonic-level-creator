@@ -27,6 +27,10 @@ bundle. Web document root is `public/` (Nitro serves it as static);
 | `npm run serve`      | Run the production build (`.output/server/index.mjs`)     |
 | `npm run deploy:pages` | Build `cloudflare_pages` preset + deploy `dist/` to `sonicrelvl.pages.dev` |
 
+> Pages Functions only run on the explicit `cloudflare.pages.routes`
+> include list (`nitro.config.ts`) — everything else is a free static 404,
+> so scanner junk never spends invocations.
+
 > `dev` strips `Accept-Encoding` via a dev-only middleware (nitro dev
 > would otherwise brotli statics on the fly at max quality — ~8s for the
 > spritesheet). Production serves prebuilt `.br`/`.gz` variants instead.
