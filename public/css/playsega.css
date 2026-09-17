@@ -879,7 +879,7 @@ a.sifrButton1 {background: transparent url('../images/buttons/bg_button_orange_e
                padding-right: 30px; text-decoration: none}
 a.sifrButton1 .text {background: transparent url('../images/buttons/bg_button_orange_span_big.gif') no-repeat;
                      display: block; line-height: 17px; padding: 9px 5px 8px 16px}
-a.sifrButton1:hover {background-position: bottom right; color: #000; outline: none}
+a.sifrButton1:hover {background-position: bottom right; color: #fff; outline: none}
 a.sifrButton1:hover .text {background-position: bottom left}
 a.sifrButton1 span.fancybutton {display: block; clear: none; height: 17px}
 /* END: Orange lozenge (largest) */
