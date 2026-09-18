@@ -382,7 +382,7 @@ export function wireEvents() {
       else if (a === 'test') doTest();
       else if (a === 'stoptest') stopTest();
       else if (a === 'fullscreen') doFullscreen();
-      else if (a === 'mylevels') location.href = '/editors/?action=myLevels&gamegroupid=52';
+      else if (a === 'mylevels') location.href = '/editors/mylevels';
       else if (a === 'alllevels') location.href = '/editors/?action=editorDetail&gamegroupid=52';
       else if (a === 'startcreating') doStartCreating();
     });

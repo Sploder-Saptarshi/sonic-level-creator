@@ -194,6 +194,53 @@
     const all = binBytes.concat(actBytes);
     return all.join(",");
   }
+  function encodeCompact(grid, objects) {
+    const flat = [];
+    for (const row2 of grid) for (const id of row2) flat.push(id);
+    const runs = [];
+    for (const v of flat) {
+      const last = runs[runs.length - 1];
+      if (last && last[0] === v) last[1]++;
+      else runs.push([v, 1]);
+    }
+    return JSON.stringify({
+      w: grid[0].length,
+      h: grid.length,
+      r: runs,
+      o: objects.map((o) => [o.x, o.y, o.variant, o.type, o.sub])
+    });
+  }
+  var isInt = (n) => typeof n === "number" && Number.isInteger(n);
+  function decodeLevel(data) {
+    const t = (data ?? "").trim();
+    if (!t) return null;
+    if (!t.startsWith("{")) return null;
+    let doc;
+    try {
+      doc = JSON.parse(t);
+    } catch {
+      return null;
+    }
+    if (!doc || !isInt(doc.w) || !isInt(doc.h) || doc.w < 1 || doc.w > 256 || doc.h < 1 || doc.h > 256 || !Array.isArray(doc.r) || !Array.isArray(doc.o)) {
+      return null;
+    }
+    const flat = [];
+    for (const run of doc.r) {
+      if (!Array.isArray(run) || run.length !== 2 || !isInt(run[0]) || !isInt(run[1]) || run[0] < 0 || run[1] < 1) return null;
+      for (let i = 0; i < run[1]; i++) flat.push(run[0]);
+    }
+    if (flat.length !== doc.w * doc.h) return null;
+    const grid = [];
+    for (let r = 0; r < doc.h; r++) grid.push(flat.slice(r * doc.w, (r + 1) * doc.w));
+    const objects = [];
+    for (const e of doc.o) {
+      if (!Array.isArray(e) || e.length !== 5 || !e.every(isInt)) return null;
+      const [x, y, variant, type, sub] = e;
+      if (x < 0 || x > 65535 || y < 0 || y > 65535 || variant < 0 || variant > 255 || type < 0 || type > 255 || sub < 0 || sub > 255) return null;
+      objects.push({ x, y, variant, type, sub });
+    }
+    return { grid, objects };
+  }
   function isRingType(type) {
     return type <= 1 || type >= 63 && type <= 69;
   }
@@ -227,6 +274,8 @@
     selectedObj: null,
     // Chosen on the "Start a new level" screen; used for the save filename.
     levelName: "The Guide Zone",
+    // Server row id once saved (null until the first server save).
+    levelId: null,
     zoom: 2,
     spaceHeld: false,
     selectedObjIdx: -1,
@@ -2012,9 +2061,70 @@ canvas.display { display: block; cursor: crosshair; border: none;
     S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
     resizeCanvas();
   }
-  function doSave() {
+  async function loadLevelById(id) {
+    if (!/^[\w-]{1,128}$/.test(id)) return false;
+    let row2;
+    try {
+      const res = await fetch(`/api/levels/${id}`);
+      if (!res.ok) return false;
+      const body = await res.json();
+      if (!body.level) return false;
+      row2 = body.level;
+    } catch {
+      return false;
+    }
+    const parsed = typeof row2.data === "string" ? decodeLevel(row2.data) : null;
+    if (!parsed) return false;
+    S.grid = parsed.grid;
+    S.objects = parsed.objects;
+    if (typeof row2.name === "string" && row2.name.trim()) {
+      S.levelName = row2.name.trim();
+    }
+    S.levelId = id;
+    S.selectedObjIdx = -1;
+    S.selectedTileBx = -1;
+    S.selectedTileBy = -1;
+    updateCounter();
+    markDirty();
+    S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
+    resizeCanvas();
+    return true;
+  }
+  async function doSave() {
     if (!levelValid()) return;
-    const blob = new Blob([levelCSV()], { type: "text/plain" });
+    const compact = encodeCompact(S.grid, S.objects);
+    const csv = levelCSV();
+    const boot2 = window.__PLAYSEGA__;
+    if (!boot2 || boot2.username === "Guest" || !boot2.username) {
+      downloadCSV(csv);
+      return;
+    }
+    try {
+      const payload = {
+        name: S.levelName,
+        cols: S.grid[0].length,
+        rows: S.grid.length,
+        data: compact
+      };
+      const res = await fetch(
+        S.levelId ? `/api/levels/${S.levelId}` : "/api/levels",
+        {
+          method: S.levelId ? "PUT" : "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+      if (!res.ok) throw new Error(`save failed: ${res.status}`);
+      const saved = await res.json();
+      if (saved.id) S.levelId = saved.id;
+      updateDesc(`Saved "${S.levelName}".`);
+    } catch {
+      updateDesc("Server save failed \u2014 downloaded a local copy instead.");
+      downloadCSV(csv);
+    }
+  }
+  function downloadCSV(csv) {
+    const blob = new Blob([csv], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     const slug = S.levelName.trim().replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-");
@@ -2487,7 +2597,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
         else if (a === "test") doTest();
         else if (a === "stoptest") stopTest();
         else if (a === "fullscreen") doFullscreen();
-        else if (a === "mylevels") location.href = "/editors/?action=myLevels&gamegroupid=52";
+        else if (a === "mylevels") location.href = "/editors/mylevels";
         else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
         else if (a === "startcreating") doStartCreating();
       });
@@ -2588,6 +2698,12 @@ canvas.display { display: block; cursor: crosshair; border: none;
       draw();
     });
     wireEvents();
+    const loadId = new URLSearchParams(location.search).get("load");
+    if (loadId) {
+      loadLevelById(loadId).then((ok) => {
+        if (ok) timingLog("opened saved level");
+      });
+    }
     const nameInput = shadow.querySelector(".start-name");
     nameInput?.focus();
     nameInput?.select();

@@ -6,7 +6,7 @@ import { EDITOR_CSS, EDITOR_HTML } from './ui';
 import { draw, initGhostCanvas } from './render';
 import { preloadSprites } from './sprites';
 import { buildThumbnails, switchTab, updateCounter } from './thumbnails';
-import { resizeCanvas, warmTestPlayer } from './actions';
+import { resizeCanvas, warmTestPlayer, loadLevelById } from './actions';
 import { wireEvents } from './events';
 
 // Timing diagnostics: ms since this bundle started executing (end of body,
@@ -95,6 +95,16 @@ function boot() {
 
   // Wire all event handlers
   wireEvents();
+
+  // Open from My Levels (?load=<id>): fetch + decode straight into the
+  // editor, skipping the start screens. Falls through to a fresh level
+  // when the id is missing, foreign, or corrupt.
+  const loadId = new URLSearchParams(location.search).get('load');
+  if (loadId) {
+    loadLevelById(loadId).then((ok) => {
+      if (ok) timingLog('opened saved level');
+    });
+  }
 
   // Start screen is up: focus the name field, text selected, ready to type.
   const nameInput = shadow.querySelector('.start-name') as HTMLInputElement | null;

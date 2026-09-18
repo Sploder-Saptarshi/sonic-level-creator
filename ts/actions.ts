@@ -1,7 +1,7 @@
 // ts/actions.ts — Save, test, fullscreen, clear, resize, zoom
 
-import { encodeBin, encodeAct, toCSV } from './format';
-import { S, cellSize, initGrid } from './state';
+import { encodeBin, encodeAct, toCSV, decodeLevel, encodeCompact } from './format';
+import { S, cellSize, initGrid, updateDesc } from './state';
 import { draw } from './render';
 import { updateCounter } from './thumbnails';
 
@@ -42,10 +42,80 @@ export function doSelectMapSize(el: Element) {
   resizeCanvas();
 }
 
-// Local-only save: downloads the level CSV. Never writes to the server.
-export function doSave() {
+// Open from My Levels (?load=<id>): fetch the row, decode its CSV, and
+// drop straight into the editor — no start screens. Returns true on success.
+export async function loadLevelById(id: string): Promise<boolean> {
+  if (!/^[\w-]{1,128}$/.test(id)) return false;
+  let row: { name?: unknown; cols?: unknown; rows?: unknown; data?: unknown };
+  try {
+    const res = await fetch(`/api/levels/${id}`);
+    if (!res.ok) return false;
+    const body = (await res.json()) as { level?: typeof row };
+    if (!body.level) return false;
+    row = body.level;
+  } catch {
+    return false;
+  }
+  const parsed = typeof row.data === 'string' ? decodeLevel(row.data) : null;
+  if (!parsed) return false;
+  S.grid = parsed.grid;
+  S.objects = parsed.objects;
+  if (typeof row.name === 'string' && row.name.trim()) {
+    S.levelName = row.name.trim();
+  }
+  S.levelId = id;
+  S.selectedObjIdx = -1;
+  S.selectedTileBx = -1;
+  S.selectedTileBy = -1;
+  updateCounter();
+  markDirty();
+  S.shadow!.querySelector('.start-overlay')?.classList.add('hidden');
+  resizeCanvas();
+  return true;
+}
+
+// Save: signed-in users persist to the server (POST then PUT); guests and
+// server failures fall back to a local CSV download so work is never lost.
+export async function doSave() {
   if (!levelValid()) return;
-  const blob = new Blob([levelCSV()], { type: 'text/plain' });
+  // Compact RLE-JSON for the server (10–27x smaller than CSV); the local
+  // fallback stays CSV so it still opens in external tools.
+  const compact = encodeCompact(S.grid, S.objects);
+  const csv = levelCSV();
+  const boot = (window as unknown as { __PLAYSEGA__?: { username?: string } })
+    .__PLAYSEGA__;
+  if (!boot || boot.username === 'Guest' || !boot.username) {
+    downloadCSV(csv);
+    return;
+  }
+  try {
+    const payload = {
+      name: S.levelName,
+      cols: S.grid[0].length,
+      rows: S.grid.length,
+      data: compact,
+    };
+    const res = await fetch(
+      S.levelId ? `/api/levels/${S.levelId}` : '/api/levels',
+      {
+        method: S.levelId ? 'PUT' : 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+    if (!res.ok) throw new Error(`save failed: ${res.status}`);
+    const saved = (await res.json()) as { id?: string };
+    if (saved.id) S.levelId = saved.id;
+    updateDesc(`Saved "${S.levelName}".`);
+  } catch {
+    updateDesc('Server save failed — downloaded a local copy instead.');
+    downloadCSV(csv);
+  }
+}
+
+// Local CSV download: guest fallback + server-failure safety net.
+function downloadCSV(csv: string) {
+  const blob = new Blob([csv], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   // Filename from the level name; strip anything the filesystem dislikes.

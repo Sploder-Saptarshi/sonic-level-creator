@@ -78,3 +78,23 @@ export const verification = sqliteTable(
   },
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
+
+// Saved levels: one row per user level. `data` is the level CSV (levelCSV()
+// in ts/actions.ts); cols/rows are grid dimensions. All access is scoped to
+// the owning user (see server/api/levels/*).
+export const level = sqliteTable(
+  "level",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    cols: integer("cols").notNull(),
+    rows: integer("rows").notNull(),
+    data: text("data").notNull().default(""),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [index("level_user_id_idx").on(t.userId)],
+);

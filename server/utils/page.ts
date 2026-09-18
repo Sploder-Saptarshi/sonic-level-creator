@@ -6,6 +6,7 @@ import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
+import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
 import { escapeHtml } from "./session";
 
 // Logged-in header: same lozenges, signed-in name + sign-out (username is
@@ -139,6 +140,15 @@ function cleanZoneOne(v: unknown): number {
   return Number(first(v)) === 0 ? 0 : 1;
 }
 
+// Guest upsell sidebar block ("Save high scores / Collect PlaySEGA rings
+// / Win cash prizes ... Sign up now") — removed for signed-in users.
+const UPSELL_RE =
+  /\n          <div id="upsellOne" class="upsellOne">[\s\S]*?\n<\/div>/;
+
+export function stripUpsell(body: string): string {
+  return body.replace(UPSELL_RE, "");
+}
+
 // JSON bootstrap for client scripts; < escaped so it can't break out of <script>.
 function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
@@ -158,6 +168,8 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     contentSwf: GAME_SWF,
   };
   const body = render(gameBodyTemplate, data);
+  // Signed-in users never see the guest sign-up upsell in the sidebar.
+  const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -165,7 +177,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
-    body,
+    body: sidebarBody,
   });
 }
 
@@ -205,6 +217,51 @@ export function renderSigninPage(query: PageQuery, view: PageView = {}): string 
     headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
+    body,
+  });
+}
+
+export interface LevelRow {
+  id: string;
+  name: string;
+  cols: number;
+  rows: number;
+  updatedAt: unknown;
+}
+
+function renderLevelRows(levels: LevelRow[]): string {
+  if (!levels.length) {
+    return `<p style="padding: 12px 0">You have not created any levels yet. <a href="/editors/">Create your first level</a>.</p>`;
+  }
+  const items = levels.map((l) => {
+    const name = escapeHtml(l.name);
+    const id = escapeHtml(l.id);
+    const d = l.updatedAt instanceof Date && !isNaN(+l.updatedAt)
+      ? l.updatedAt.toISOString().slice(0, 10)
+      : "";
+    return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
+      <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
+      <div style="float: right"><a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
+      <form action="/editors/mylevels/delete" method="post" style="display: inline"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
+    </div>`;
+  });
+  return items.join("\n");
+}
+
+export function renderMyLevelsPage(
+  view: PageView & { levels: LevelRow[] },
+): string {
+  const body = render(mylevelsBodyTemplate, {
+    rows: renderLevelRows(view.levels),
+  });
+  return render(layoutTemplate, {
+    title: "My Levels | PlaySEGA",
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
+    headExtra: "",
+    // Draws the rounded content-box border (same as the game/editor pages).
+    domloadExtra: `splitBorderBottom.render('playGame');`,
+    bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
   });
 }

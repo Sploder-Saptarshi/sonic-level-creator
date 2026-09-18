@@ -15,6 +15,13 @@
       "when": 1789644242670,
       "tag": "0001_outgoing_random",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789727732616,
+      "tag": "0002_numerous_romulus",
+      "breakpoints": true
     }
   ]
 }
