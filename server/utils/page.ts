@@ -28,6 +28,10 @@ export interface PageView {
 }
 
 const GAME_SWF = "/games/swf/52/52.swf";
+const PRELOADER_SWF = "/swf/preloader/as3/v2/preloader-guest.swf";
+const DEFAULT_PLAYER_NAME = "Sonic The Hedgehog Level Player";
+const REPORTER_HTML =
+  `<a class="lozenge1" id="reporter" href="javascript:void(0)"><span>Report Level</span></a>`;
 
 // Shared-chrome variants (verbatim archive markup; layout holds the slots).
 // Logged-in chrome (game + editor pages).
@@ -188,10 +192,17 @@ const UPSELL_HTML = `          <div id="upsellOne" class="upsellOne">
     </div>
 </div>`;
 
-// Sidebar with the per-session upsell filled in.
-function sidebar(signedIn: boolean): string {
+// Sidebar with the per-session slot filled in: guests see the sign-up
+// upsell, signed-in users get the Sonic side art (same left-side art as
+// the sign-in page).
+const SIDEBAR_SONIC =
+  `<img class="sidebar-sonic" src="/images/sonic_side_sml.jpg" alt="Sonic" />`;
+
+function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   return render(sidenavTemplate, {
-    upsell: signedIn ? "" : UPSELL_HTML,
+    upsell: signedIn ? SIDEBAR_SONIC : UPSELL_HTML,
+    sonicOn: sideActive === "sonic" ? " on" : "",
+    iceOn: sideActive === "ice" ? " on" : "",
   });
 }
 
@@ -219,23 +230,49 @@ function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-export function renderGamePage(query: PageQuery, view: PageView = {}): string {
+export interface GamePageOptions {
+  contentSwf?: string;
+  playerName?: string;
+  title?: string;
+  // Ice Shuffle variants: direct SWF embed, no report button, bare heading.
+  playerSwf?: string;
+  hideReport?: boolean;
+  hideTitle?: boolean;
+  hideEditorButtons?: boolean;
+  sideActive?: string;
+}
+
+export function renderGamePage(
+  query: PageQuery,
+  view: PageView = {},
+  opts: GamePageOptions = {},
+): string {
   const username = view.username ?? cleanUsername(query.user);
   const sessionId = cleanSession(query.session);
   const levelId = cleanLevelId(query.levelid);
+  const playerName = opts.playerName ?? DEFAULT_PLAYER_NAME;
+  const levelTitle = cleanTitle(query.title);
   const data = {
     username,
     sessionId,
     territory: cleanTerritory(query.territory),
     levelId,
-    levelTitle: cleanTitle(query.title),
-    isZoneOne: cleanZoneOne(query.zoneone),
-    contentSwf: GAME_SWF,
-    editorButtons: editorButtons(!!view.username),
+    // JS literal for the flashvars: bare number for stock ids, quoted
+    // string for custom (UUID) ids. The game SWF coerces to uint either way.
+    levelIdJs: JSON.stringify(levelId),
+    // Omitted entirely on player pages without zones (e.g. /play).
+    zoneOneFrag: `,isZoneOne: ${cleanZoneOne(query.zoneone)}`,
+    playerSwf: opts.playerSwf ?? PRELOADER_SWF,
+    reportButton: opts.hideReport ? "" : REPORTER_HTML,
+    playerHeading: opts.hideTitle
+      ? escapeHtml(playerName)
+      : `${escapeHtml(playerName)} - ${escapeHtml(levelTitle)}`,
+    editorButtons: opts.hideEditorButtons ? "" : editorButtons(!!view.username),
+    contentSwf: opts.contentSwf ?? GAME_SWF,
   };
-  const body = sidebar(!!view.username) + render(gameBodyTemplate, data);
+  const body = sidebar(!!view.username, opts.sideActive) + render(gameBodyTemplate, data);
   return render(layoutTemplate, {
-    title: `${username} | Level Creators | PlaySEGA`,
+    title: opts.title ?? `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: "",
@@ -254,6 +291,8 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
     sessionId,
     territory: cleanTerritory(query.territory),
     levelId,
+    levelIdJs: JSON.stringify(levelId),
+    contentSwf: GAME_SWF,
   });
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
@@ -388,13 +427,14 @@ export function renderPlayPage(
     sessionId: API_CONNECTOR_ID,
     territory: TERRITORIES[0],
     levelId,
-    levelTitle: levelName,
-    isZoneOne: 1,
+    levelIdJs: JSON.stringify(levelId),
+    zoneOneFrag: "",
+    playerSwf: PRELOADER_SWF,
+    reportButton: REPORTER_HTML,
+    playerHeading: `${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
+    editorButtons: editorButtons(!!view.username),
     contentSwf: GAME_SWF,
-    // Custom ids are UUID strings: the template emits levelid unquoted
-    // (stock numeric ids), so quote it and drop the isZoneOne flashvar.
-  }).replace(`levelid: ${levelId}`, `levelid: "${levelId}"`)
-    .replace(/,isZoneOne: \d+/, "");
+  });
   // Same sidebar as the index page.
   const body = sidebar(!!view.username) + gameBody;
   return render(layoutTemplate, {

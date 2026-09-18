@@ -329,6 +329,14 @@ width:220px;
 padding:0 5px;
 }
 
+/* Signed-in sidebar art (same Sonic as the sign-in page). */
+.sidebar-sonic {
+display:block;
+width:220px;
+height:auto;
+margin:4px 0 0;
+}
+
 /* Two-option sprite sidebar (sidebar.png): normal art carries icon + label
    (220px); hover/active are icon-less pills at sprite x285/505 shown at
    item x65. Text pushed below via padding-top (image replacement). */
