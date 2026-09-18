@@ -203,7 +203,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     contentSwf: GAME_SWF,
     editorButtons: editorButtons(!!view.username),
   };
-  const body = render(gameBodyTemplate, data);
+  const body = sidenavTemplate + render(gameBodyTemplate, data);
   // Signed-in users never see the guest sign-up upsell in the sidebar.
   const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
@@ -359,7 +359,7 @@ export function renderPlayPage(
 ): string {
   // Same player as the index page, but the isZoneOne flashvar is omitted:
   // custom levels carry their own dimensions.
-  const body = render(gameBodyTemplate, {
+  const gameBody = render(gameBodyTemplate, {
     sessionId: API_CONNECTOR_ID,
     territory: TERRITORIES[0],
     levelId,
@@ -370,6 +370,9 @@ export function renderPlayPage(
     // (stock numeric ids), so quote it and drop the isZoneOne flashvar.
   }).replace(`levelid: ${levelId}`, `levelid: "${levelId}"`)
     .replace(/,isZoneOne: \d+/, "");
+  // Same sidebar as the index page (upsell stripped when signed in).
+  const body = sidenavTemplate + gameBody;
+  const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
     title: `${levelName} | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -377,7 +380,7 @@ export function renderPlayPage(
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
-    body,
+    body: sidebarBody,
   });
 }
 
