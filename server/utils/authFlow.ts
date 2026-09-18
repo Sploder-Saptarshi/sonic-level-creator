@@ -2,7 +2,7 @@
 // HTML forms POST here; we call Better Auth server-side so validation
 // errors re-render in-page and session cookies are set on our own responses.
 import { createAuth } from "../auth/config";
-import { escapeHtml } from "./session";
+import { escapeHtml, first, getSessionUser } from "./session";
 import { appendResponseHeader } from "nitro/h3";
 import type { H3Event } from "nitro";
 
@@ -30,10 +30,26 @@ export function apiMessage(e: unknown): string {
 }
 
 export function cleanUsernameInput(v: unknown): string | null {
-  const s = Array.isArray(v) ? v[0] : v;
+  const s = first(v);
   if (typeof s !== "string") return null;
   const t = s.trim();
   return t.length >= 3 && t.length <= 30 ? t : null;
+}
+
+// First string value of a form field ("" when missing/non-string).
+// Shared by the sign-in/sign-up POST handlers (replaces their local
+// `first` clones and per-field typeof guards).
+export function formString(body: Record<string, unknown>, key: string): string {
+  const s = first(body?.[key]);
+  return typeof s === "string" ? s : "";
+}
+
+// True when the request already carries a valid session. 0 SQL for
+// guests (no cookie fast-path in getSessionUser), 1 indexed lookup
+// otherwise. Shared guard for the sign-in/sign-up pages (signed-in
+// users bounce to /editors/).
+export function alreadySignedIn(event: H3Event): Promise<boolean> {
+  return getSessionUser(event).then((s) => s !== null);
 }
 
 export function syntheticEmail(username: string): string {

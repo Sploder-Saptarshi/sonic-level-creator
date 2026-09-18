@@ -1,23 +1,11 @@
 // GET /api/levels — list the signed-in user's levels (metadata only).
+// SQL: 1 session lookup + exactly 1 app query over the userId index.
+// Rows: N metadata rows (never the `data` column).
 import { defineHandler } from "nitro";
-import { desc } from "drizzle-orm";
-import { level } from "../../db/schema";
-import { eq } from "drizzle-orm";
-import { getRequestDb, requireUser } from "../../utils/levels";
+import { getRequestDb, listMyLevels, requireUser } from "../../utils/levels";
 
 export default defineHandler(async (event) => {
   const user = await requireUser(event);
-  const db = getRequestDb(event);
-  const rows = await db
-    .select({
-      id: level.id,
-      name: level.name,
-      cols: level.cols,
-      rows: level.rows,
-      updatedAt: level.updatedAt,
-    })
-    .from(level)
-    .where(eq(level.userId, user.id))
-    .orderBy(desc(level.updatedAt));
+  const rows = await listMyLevels(getRequestDb(event), user.id);
   return { levels: rows };
 });

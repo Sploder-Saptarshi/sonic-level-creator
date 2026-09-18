@@ -1,16 +1,13 @@
 // POST /api/levels — save a new level for the signed-in user.
+// SQL: 1 session lookup + 1 aggregate read (MAX id, 1 row) + 1 row insert
+// per attempt (succeeds first try absent a PK race; <= 3 attempts).
+// Validation is pure (0 SQL) and runs before any write.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { HTTPError } from "nitro";
 import { sql } from "drizzle-orm";
 import { level } from "../../db/schema";
-import {
-  cleanDims,
-  cleanLevelData,
-  cleanLevelName,
-  getRequestDb,
-  requireUser,
-} from "../../utils/levels";
+import { getRequestDb, readLevelBody, requireUser } from "../../utils/levels";
 
 function isConflict(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
@@ -20,16 +17,7 @@ function isConflict(e: unknown): boolean {
 export default defineHandler(async (event) => {
   const user = await requireUser(event);
   const body = (await readBody(event)) as Record<string, unknown>;
-  const name = cleanLevelName(body?.name);
-  const cols = cleanDims(body?.cols);
-  const rows = cleanDims(body?.rows);
-  const data = cleanLevelData(body?.data ?? "");
-  if (!name || !cols || !rows || data === null) {
-    throw new HTTPError({
-      status: 400,
-      message: "Need name (1–60 chars), cols/rows (1–256), data (≤1MB).",
-    });
-  }
+  const { name, cols, rows, data } = readLevelBody(body);
   const now = new Date();
   const db = getRequestDb(event);
   // Numeric-string ids: the game SWF coerces the levelid flashvar to uint,

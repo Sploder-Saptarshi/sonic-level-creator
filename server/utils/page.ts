@@ -10,7 +10,9 @@ import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text
 import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
-import { escapeHtml } from "./session";
+import { escapeHtml, first, type SessionUser } from "./session";
+import type { H3Event } from "nitro";
+import { setResponseHeader } from "nitro/h3";
 
 // Logged-in header: same lozenges, signed-in name + sign-out (username is
 // escaped here — the layout slot is raw).
@@ -26,6 +28,21 @@ export interface PageView {
   username?: string;
   languagebar?: string;
   formError?: string;
+}
+
+// Session -> template view. Null (guest) maps to {} so pages render the
+// signed-out chrome; signed-in sessions get the name + sign-out bar.
+// One helper replaces the per-route ternary (was cloned in 5 routes).
+export function toPageView(session: SessionUser | null): PageView {
+  if (!session) return {};
+  return { username: session.username, languagebar: userLanguageBar(session.username) };
+}
+
+// HTML page responder: sets the content-type and returns the body.
+// Replaces the per-route setResponseHeader clone (was cloned in 8 routes).
+export function html(event: H3Event, body: string): string {
+  setResponseHeader(event, "content-type", "text/html; charset=utf-8");
+  return body;
 }
 
 const GAME_SWF = "/games/swf/52/52.swf";
@@ -89,15 +106,8 @@ const DEFAULT_TITLE = "Green Hill Zone";
 const TERRITORIES = ["EnglishUK", "EnglishUSA"];
 
 // Minimal template renderer: `<%= it.x %>` HTML-escaped, `<%~ it.x %>` raw.
-// Same placeholder syntax/semantics as before, zero codegen.
-const ESCAPES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-};
-
+// Same placeholder syntax/semantics as before, zero codegen. Escaping is
+// shared with server/utils/session.ts (single implementation).
 function render(
   tpl: string,
   data: Record<string, unknown>,
@@ -107,9 +117,7 @@ function render(
     (_, sig: string, key: string) => {
       const v = data[key];
       const s = v == null ? "" : String(v);
-      return sig === "="
-        ? s.replace(/[&<>"']/g, (c) => ESCAPES[c])
-        : s;
+      return sig === "=" ? escapeHtml(s) : s;
     },
   );
 }
@@ -121,10 +129,6 @@ export interface PageQuery {
   territory?: unknown;
   title?: unknown;
   zoneone?: unknown;
-}
-
-function first(v: unknown): unknown {
-  return Array.isArray(v) ? v[0] : v;
 }
 
 function cleanUsername(v: unknown): string {
@@ -324,12 +328,14 @@ const memberHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="tex
 `;
 const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
 
-export function renderSigninPage(query: PageQuery, view: PageView = {}): string {
-  const body = render(signinBodyTemplate, {
-    formError: view.formError ?? "",
-  });
+function renderMemberPage(
+  bodyTpl: string,
+  title: string,
+  view: PageView = {},
+): string {
+  const body = render(bodyTpl, { formError: view.formError ?? "" });
   return render(layoutTemplate, {
-    title: "Member Sign-in | PlaySEGA",
+    title,
     languagebar: NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: memberHeadExtra,
@@ -337,6 +343,10 @@ export function renderSigninPage(query: PageQuery, view: PageView = {}): string 
     bootstrap: bootstrap({ username: "Guest" }),
     body,
   });
+}
+
+export function renderSigninPage(query: PageQuery, view: PageView = {}): string {
+  return renderMemberPage(signinBodyTemplate, "Member Sign-in | PlaySEGA", view);
 }
 
 export interface LevelRow {
@@ -348,6 +358,12 @@ export interface LevelRow {
   updatedAt: unknown;
 }
 
+// YYYY-MM-DD for Date values, "" otherwise. Shared by both level-list
+// renderers so the guard lives in one place.
+function formatDate(v: unknown): string {
+  return v instanceof Date && !isNaN(+v) ? v.toISOString().slice(0, 10) : "";
+}
+
 function renderLevelRows(levels: LevelRow[]): string {
   if (!levels.length) {
     return `<p style="padding: 12px 0">You have not created any levels yet. <a href="/editors/">Create your first level</a>.</p>`;
@@ -357,9 +373,7 @@ function renderLevelRows(levels: LevelRow[]): string {
     // Single-quoted JS string inside a double-quoted HTML attribute.
     const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
     const id = escapeHtml(l.id);
-    const d = l.updatedAt instanceof Date && !isNaN(+l.updatedAt)
-      ? l.updatedAt.toISOString().slice(0, 10)
-      : "";
+    const d = formatDate(l.updatedAt);
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
       <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
       <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>
@@ -373,19 +387,7 @@ function renderLevelRows(levels: LevelRow[]): string {
 export function renderMyLevelsPage(
   view: PageView & { levels: LevelRow[] },
 ): string {
-  const body = sidebar(!!view.username) + render(mylevelsBodyTemplate, {
-    rows: renderLevelRows(view.levels),
-  });
-  return render(layoutTemplate, {
-    title: "My Levels | PlaySEGA",
-    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: topnavFor(view, "mylevels"),
-    headExtra: "",
-    // Draws the rounded content-box border (same as the game/editor pages).
-    domloadExtra: `splitBorderBottom.render('playGame');`,
-    bootstrap: bootstrap({ username: view.username ?? "Guest" }),
-    body,
-  });
+  return renderLevelListPage(view, "mylevels", "My Levels | PlaySEGA", mylevelsBodyTemplate, renderLevelRows(view.levels));
 }
 
 export interface PublicLevelRow {
@@ -405,9 +407,7 @@ function renderPublicLevelRows(levels: PublicLevelRow[]): string {
     const name = escapeHtml(l.name);
     const author = escapeHtml(l.author);
     const id = escapeHtml(l.id);
-    const d = l.updatedAt instanceof Date && !isNaN(+l.updatedAt)
-      ? l.updatedAt.toISOString().slice(0, 10)
-      : "";
+    const d = formatDate(l.updatedAt);
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
       <div style="float: left"><b>${name}</b> <span style="color: #666">by ${author} &middot; ${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
       <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a></div>
@@ -416,22 +416,33 @@ function renderPublicLevelRows(levels: PublicLevelRow[]): string {
   return items.join("\n");
 }
 
-export function renderAllLevelsPage(
-  view: PageView & { levels: PublicLevelRow[] },
+// Shared shell for the two level-list pages (My Levels / All Levels):
+// same sidebar + layout + border wiring, only the active nav tab, title,
+// body template, and pre-rendered rows differ.
+function renderLevelListPage(
+  view: PageView,
+  active: string,
+  title: string,
+  bodyTpl: string,
+  rows: string,
 ): string {
-  const body = sidebar(!!view.username) + render(alllevelsBodyTemplate, {
-    rows: renderPublicLevelRows(view.levels),
-  });
+  const body = sidebar(!!view.username) + render(bodyTpl, { rows });
   return render(layoutTemplate, {
-    title: "All Levels | PlaySEGA",
+    title,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: topnavFor(view, "alllevels"),
+    topnav: topnavFor(view, active),
     headExtra: "",
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
   });
+}
+
+export function renderAllLevelsPage(
+  view: PageView & { levels: PublicLevelRow[] },
+): string {
+  return renderLevelListPage(view, "alllevels", "All Levels | PlaySEGA", alllevelsBodyTemplate, renderPublicLevelRows(view.levels));
 }
 
 export function renderPlayPage(
@@ -466,16 +477,5 @@ export function renderPlayPage(
 }
 
 export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
-  const body = render(signupBodyTemplate, {
-    formError: view.formError ?? "",
-  });
-  return render(layoutTemplate, {
-    title: "Member Sign-up | PlaySEGA",
-    languagebar: NAV_LANGUAGEBAR,
-    topnav: topnavFor(view),
-    headExtra: memberHeadExtra,
-    domloadExtra: signinDomloadExtra,
-    bootstrap: bootstrap({ username: "Guest" }),
-    body,
-  });
+  return renderMemberPage(signupBodyTemplate, "Member Sign-up | PlaySEGA", view);
 }

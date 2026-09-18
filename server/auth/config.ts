@@ -23,9 +23,13 @@ export function createAuth(event: H3Event) {
 
   return betterAuth({
     secret: env.secret,
-    // Production sets BETTER_AUTH_URL explicitly; locally the origin is
-    // derived per request (dev ports vary).
-    ...(env.baseURL ? { baseURL: env.baseURL } : {}),
+    // Explicit BETTER_AUTH_URL wins (production + local override). Without
+    // it the origin is derived per request from an allowlisted host set —
+    // the dynamic form silences Better Auth's "Base URL is not set"
+    // warning and keeps varying dev ports working with no env changes.
+    baseURL: env.baseURL ?? {
+      allowedHosts: ["localhost:*", "127.0.0.1:*", "sonicrelvl.pages.dev"],
+    },
     trustedOrigins: [
       "http://localhost:3000",
       "http://localhost:3001",

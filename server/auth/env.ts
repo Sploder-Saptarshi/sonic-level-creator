@@ -42,6 +42,9 @@ export function getAuthEnv(event: H3Event): AuthEnv {
     kind: "node",
     secret:
       process.env.BETTER_AUTH_SECRET ?? "dev-only-insecure-secret-change-me",
+    // Explicit local override (e.g. https tunnels); otherwise the dynamic
+    // allowedHosts form in auth/config.ts derives the origin per request.
+    baseURL: process.env.BETTER_AUTH_URL,
   };
 }
 

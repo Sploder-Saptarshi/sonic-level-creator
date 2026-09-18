@@ -1,22 +1,17 @@
 // GET /ice-shuffle — Ice Shuffle player. Same game template as the index
 // player (no duplicated markup): different SWF, name, and <title>.
+// SQL: 0 for guests (no cookie fast-path), 1 session lookup otherwise.
+// App rows: 0.
 import { defineHandler } from "nitro";
-import { getQuery, setResponseHeader } from "nitro/h3";
-import { renderGamePage, userLanguageBar } from "../../utils/page";
+import { getQuery } from "nitro/h3";
+import { html, renderGamePage, toPageView } from "../../utils/page";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
-  setResponseHeader(event, "content-type", "text/html; charset=utf-8");
   const session = await getSessionUser(event);
-  return renderGamePage(
-    getQuery(event),
-    session
-      ? {
-        username: session.username,
-        languagebar: userLanguageBar(session.username),
-      }
-      : {},
-    {
+  return html(
+    event,
+    renderGamePage(getQuery(event), toPageView(session), {
       contentSwf: "/games/swf/5/5.swf",
       playerName: "Ice Shuffle",
       title: "Ice Shuffle | PlaySEGA",
@@ -30,6 +25,6 @@ export default defineHandler(async (event) => {
       hideTitle: true,
       hideEditorButtons: true,
       sideActive: "ice",
-    },
+    }),
   );
 });

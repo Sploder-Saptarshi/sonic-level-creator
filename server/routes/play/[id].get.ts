@@ -1,17 +1,20 @@
 // GET /play/:id — player for a published level (index player chrome,
 // minus the isZoneOne flashvar: custom levels carry their own dimensions).
-// Exactly 1 app query (PK lookup + published check).
+// SQL: 0 for the stock redirect; guests pay exactly 1 app query (PK + name
+// column only), members add 1 session lookup. Rows read: <= 1 level row.
 import { defineHandler } from "nitro";
-import { and, eq, or } from "drizzle-orm";
-import { getRouterParam, sendRedirect, setResponseHeader } from "nitro/h3";
+import { getRouterParam, sendRedirect } from "nitro/h3";
 import { HTTPError } from "nitro";
-import { level } from "../../db/schema";
-import { renderPlayPage, userLanguageBar } from "../../utils/page";
-import { STOCK_LEVEL_ID, getRequestDb } from "../../utils/levels";
+import { html, renderPlayPage, toPageView } from "../../utils/page";
+import {
+  STOCK_LEVEL_ID,
+  findVisibleLevelName,
+  getRequestDb,
+  requireRow,
+} from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
-  setResponseHeader(event, "content-type", "text/html; charset=utf-8");
   const id = getRouterParam(event, "id") ?? "";
   if (!/^[\w-]{1,128}$/.test(id)) {
     throw new HTTPError({ status: 404, message: "Level not found" });
@@ -21,23 +24,7 @@ export default defineHandler(async (event) => {
   // Published levels play for everyone; owners can also play their own
   // unpublished levels (single indexed query either way).
   const session = await getSessionUser(event);
-  const db = getRequestDb(event);
-  const visible = session
-    ? or(eq(level.published, true), eq(level.userId, session.id))
-    : eq(level.published, true);
-  const rows = await db
-    .select({ name: level.name })
-    .from(level)
-    .where(and(eq(level.id, id), visible));
-  if (!rows[0]) throw new HTTPError({ status: 404, message: "Level not found" });
-  return renderPlayPage(
-    rows[0].name,
-    id,
-    session
-      ? {
-        username: session.username,
-        languagebar: userLanguageBar(session.username),
-      }
-      : {},
-  );
+  const rows = await findVisibleLevelName(getRequestDb(event), id, session);
+  const row = requireRow(rows);
+  return html(event, renderPlayPage(row.name, id, toPageView(session)));
 });

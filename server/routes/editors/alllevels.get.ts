@@ -1,38 +1,21 @@
 // GET /editors/alllevels — public directory of published levels.
-// Exactly 1 app query: published-only metadata over the published index,
-// joined to the author name. No login required.
+// SQL: 0 session lookups for guests + exactly 1 app query
+// (published-only metadata + author over the published index, stock
+// excluded in SQL, `data` never read); signed-in adds 1 session lookup.
+// No login required.
 import { defineHandler } from "nitro";
-import { and, desc, eq, ne } from "drizzle-orm";
-import { setResponseHeader } from "nitro/h3";
-import { level, user } from "../../db/schema";
-import { renderAllLevelsPage, userLanguageBar } from "../../utils/page";
-import { STOCK_LEVEL_ID, getRequestDb } from "../../utils/levels";
+import { html, renderAllLevelsPage, toPageView } from "../../utils/page";
+import { getRequestDb, listPublicLevels } from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
-  setResponseHeader(event, "content-type", "text/html; charset=utf-8");
   const session = await getSessionUser(event);
-  const db = getRequestDb(event);
-  const levels = await db
-    .select({
-      id: level.id,
-      name: level.name,
-      author: user.username,
-      cols: level.cols,
-      rows: level.rows,
-      updatedAt: level.updatedAt,
-    })
-    .from(level)
-    .innerJoin(user, eq(level.userId, user.id))
-    .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)))
-    .orderBy(desc(level.updatedAt));
-  return renderAllLevelsPage({
-    ...(session
-      ? {
-        username: session.username,
-        languagebar: userLanguageBar(session.username),
-      }
-      : {}),
-    levels: levels.map((l) => ({ ...l, author: l.author ?? "Player" })),
-  });
+  const levels = await listPublicLevels(getRequestDb(event));
+  return html(
+    event,
+    renderAllLevelsPage({
+      ...toPageView(session),
+      levels: levels.map((l) => ({ ...l, author: l.author ?? "Player" })),
+    }),
+  );
 });

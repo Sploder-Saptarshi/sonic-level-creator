@@ -14,7 +14,6 @@ bundle. Web document root is `public/` (Nitro serves it as static);
 - `server/routes/index.get.ts` → game page, `server/routes/editors/index.get.ts`
   → editor page. Query stubs `?user= ?session= ?levelid= ?territory= ?title=`
   until auth lands (see `server/utils/page.ts`).
-- `server/middleware/canonical.ts` — `/editors` → `/editors/` 301.
 - PHP backend removed: `/amfphp/gateway.php` is natively ported to
   `server/routes/amfphp/gateway.php.post.ts`; dead `/ajax/**` +
   `/editors/save.php` scripts deleted (ticker/report/feedback call sites

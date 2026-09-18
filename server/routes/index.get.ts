@@ -1,19 +1,12 @@
 // GET / — level player page (SSR flashvars + bootstrap).
+// SQL: 0 for guests (no cookie fast-path), 1 session lookup otherwise.
+// App rows: 0 (static stock level id, no level query).
 import { defineHandler } from "nitro";
-import { getQuery, setResponseHeader } from "nitro/h3";
-import { renderGamePage, userLanguageBar } from "../utils/page";
+import { getQuery } from "nitro/h3";
+import { html, renderGamePage, toPageView } from "../utils/page";
 import { getSessionUser } from "../utils/session";
 
 export default defineHandler(async (event) => {
-  setResponseHeader(event, "content-type", "text/html; charset=utf-8");
   const session = await getSessionUser(event);
-  return renderGamePage(
-    getQuery(event),
-    session
-      ? {
-        username: session.username,
-        languagebar: userLanguageBar(session.username),
-      }
-      : {},
-  );
+  return html(event, renderGamePage(getQuery(event), toPageView(session)));
 });
