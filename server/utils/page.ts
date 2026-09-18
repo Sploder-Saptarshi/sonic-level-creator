@@ -156,6 +156,45 @@ function cleanZoneOne(v: unknown): number {
   return Number(first(v)) === 0 ? 0 : 1;
 }
 
+// Guest upsell sidebar block (archive-verbatim). Guests see sign-up perks;
+// signed-in users see nothing (empty string keeps the slot seamless).
+const UPSELL_HTML = `          <div id="upsellOne" class="upsellOne">
+    <div class="upsell_guest">
+        <div class="upsellOneContent">
+            <div class="upsellOnePerks">
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Scores">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Save high scores</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Rings2">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Collect PlaySEGA rings</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Prizes2">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Win cash prizes</div>
+                </div>
+                <div class="upsellOnePerk">
+                    <div class="upsellOnePerk_Trial">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">
+                        FREE 5 day PlaySEGA<sup>VIP</sup> trial
+                    </div>
+                </div>
+            </div>
+            <div class="upsellButton">
+                <a class="sifrButton1" href="/member/signup"><span class="text"><span class="fancybutton">Sign up now</span></span></a>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+// Sidebar with the per-session upsell filled in.
+function sidebar(signedIn: boolean): string {
+  return render(sidenavTemplate, {
+    upsell: signedIn ? "" : UPSELL_HTML,
+  });
+}
+
 // Editor buttons under the player. Create Level shows for everyone (guests
 // funnel into sign-in); My Levels needs an account. Rendered server-side
 // into the <%~ it.editorButtons %> slot.
@@ -194,7 +233,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     contentSwf: GAME_SWF,
     editorButtons: editorButtons(!!view.username),
   };
-  const body = sidenavTemplate + render(gameBodyTemplate, data);
+  const body = sidebar(!!view.username) + render(gameBodyTemplate, data);
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -277,7 +316,7 @@ function renderLevelRows(levels: LevelRow[]): string {
 export function renderMyLevelsPage(
   view: PageView & { levels: LevelRow[] },
 ): string {
-  const body = sidenavTemplate + render(mylevelsBodyTemplate, {
+  const body = sidebar(!!view.username) + render(mylevelsBodyTemplate, {
     rows: renderLevelRows(view.levels),
   });
   return render(layoutTemplate, {
@@ -323,7 +362,7 @@ function renderPublicLevelRows(levels: PublicLevelRow[]): string {
 export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
 ): string {
-  const body = sidenavTemplate + render(alllevelsBodyTemplate, {
+  const body = sidebar(!!view.username) + render(alllevelsBodyTemplate, {
     rows: renderPublicLevelRows(view.levels),
   });
   return render(layoutTemplate, {
@@ -357,7 +396,7 @@ export function renderPlayPage(
   }).replace(`levelid: ${levelId}`, `levelid: "${levelId}"`)
     .replace(/,isZoneOne: \d+/, "");
   // Same sidebar as the index page.
-  const body = sidenavTemplate + gameBody;
+  const body = sidebar(!!view.username) + gameBody;
   return render(layoutTemplate, {
     title: `${levelName} | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
