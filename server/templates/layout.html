@@ -36,6 +36,8 @@ window.RufflePlayer.config = {
 };
 // Server-rendered bootstrap for auth/session wiring.
 window.__PLAYSEGA__ = <%~ it.bootstrap %>;
+// Shared delete confirmation (My Levels).
+window.confirmDelete = function(n){return confirm('Delete "' + n + '" permanently?');};
 </script>
 <!--
 <script type="text/javascript" src="/fsrscripts/triggerParams.js"></script>

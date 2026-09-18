@@ -354,14 +354,17 @@ function renderLevelRows(levels: LevelRow[]): string {
   }
   const items = levels.map((l) => {
     const name = escapeHtml(l.name);
+    // Single-quoted JS string inside a double-quoted HTML attribute.
+    const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
     const id = escapeHtml(l.id);
     const d = l.updatedAt instanceof Date && !isNaN(+l.updatedAt)
       ? l.updatedAt.toISOString().slice(0, 10)
       : "";
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
       <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
-      <div style="float: right"><a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
-      <form action="/editors/mylevels/delete" method="post" style="display: inline"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
+      <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>
+      <a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
+      <form action="/editors/mylevels/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
     </div>`;
   });
   return items.join("\n");

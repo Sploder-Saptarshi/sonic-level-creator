@@ -2,7 +2,7 @@
 // minus the isZoneOne flashvar: custom levels carry their own dimensions).
 // Exactly 1 app query (PK lookup + published check).
 import { defineHandler } from "nitro";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { getRouterParam, sendRedirect, setResponseHeader } from "nitro/h3";
 import { HTTPError } from "nitro";
 import { level } from "../../db/schema";
@@ -18,13 +18,18 @@ export default defineHandler(async (event) => {
   }
   // Stock lives on the index page, not /play.
   if (id === STOCK_LEVEL_ID) return sendRedirect(event, "/");
+  // Published levels play for everyone; owners can also play their own
+  // unpublished levels (single indexed query either way).
+  const session = await getSessionUser(event);
   const db = getRequestDb(event);
+  const visible = session
+    ? or(eq(level.published, true), eq(level.userId, session.id))
+    : eq(level.published, true);
   const rows = await db
     .select({ name: level.name })
     .from(level)
-    .where(and(eq(level.id, id), eq(level.published, true)));
+    .where(and(eq(level.id, id), visible));
   if (!rows[0]) throw new HTTPError({ status: 404, message: "Level not found" });
-  const session = await getSessionUser(event);
   return renderPlayPage(
     rows[0].name,
     id,
