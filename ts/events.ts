@@ -7,7 +7,7 @@ import {
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -391,6 +391,28 @@ export function wireEvents() {
   // Start screen: Enter in the name field starts creating too.
   shadow!.querySelector('.start-name')?.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') doStartCreating();
+  });
+
+  // Map-size step: hovering a region previews its name/dims + glows it.
+  // One mouseover listener on the area (not per-region mouseenter, which
+  // never re-fires when moving outward Small -> Medium -> Large). closest()
+  // resolves the innermost region under the cursor in both directions.
+  const mapArea = shadow!.querySelector('.map-area');
+  const mapLabel = shadow!.querySelector('.map-label');
+  mapArea?.addEventListener('mouseover', (e) => {
+    const t = (e.target as Element).closest?.('.map-opt');
+    if (!t || !mapArea.contains(t)) return;
+    shadow!.querySelectorAll('.map-opt.map-hover').forEach((o) => {
+      if (o !== t) o.classList.remove('map-hover');
+    });
+    t.classList.add('map-hover');
+    const n = mapLabel?.querySelector('.map-name');
+    const d = mapLabel?.querySelector('.map-dims');
+    if (n) n.textContent = t.getAttribute('data-name') ?? '';
+    if (d) d.textContent = `${t.getAttribute('data-cols')} x ${t.getAttribute('data-rows')} tiles`;
+  });
+  shadow!.querySelectorAll('.map-opt').forEach((b) => {
+    b.addEventListener('click', (e) => { e.stopPropagation(); doSelectMapSize(b); });
   });
 
   // Clear button

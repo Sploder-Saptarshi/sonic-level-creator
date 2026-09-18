@@ -20,13 +20,25 @@ function levelCSV(): string {
 // ── Actions ──
 
 // "Start a new level" screen: take the chosen name (fall back to the
-// default when blank) and reveal the editor underneath.
+// default when blank) and move to the map-size step.
 export function doStartCreating() {
   const input = S.shadow!.querySelector('.start-name') as HTMLInputElement | null;
   const name = (input?.value ?? '').trim();
   S.levelName = name || 'The Guide Zone';
-  S.shadow!.querySelector('.start-overlay')?.classList.add('hidden');
   input?.blur();
+  S.shadow!.querySelector('.start-card')?.setAttribute('hidden', '');
+  S.shadow!.querySelector('.size-card')?.removeAttribute('hidden');
+}
+
+// Map-size step: apply the chosen dimensions and reveal the editor.
+// Counts are grid cells (the original UI calls them "tiles").
+export function doSelectMapSize(el: Element) {
+  const cols = parseInt(el.getAttribute('data-cols') || '35', 10);
+  const rows = parseInt(el.getAttribute('data-rows') || '8', 10);
+  initGrid(cols, rows);
+  S.selectedObjIdx = -1;
+  updateCounter();
+  S.shadow!.querySelector('.start-overlay')?.classList.add('hidden');
   resizeCanvas();
 }
 

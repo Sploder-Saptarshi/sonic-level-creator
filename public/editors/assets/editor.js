@@ -562,6 +562,27 @@ canvas.display { display: block; cursor: crosshair; border: none;
   background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
+
+/* \u2500\u2500 step 2: Select Map Size \u2014 nested hover regions, outer = largest.
+   Counts are grid cells (the original UI calls them "tiles"). */
+.size-card { background: #fff; border: 1px solid #b5b5b5; border-radius: 10px;
+  padding: 16px 20px 20px; width: 460px; max-width: calc(100% - 32px);
+  text-align: left; }
+.size-card h2 { color: #1767c9; font-size: 24px; font-weight: bold; margin: 0 0 2px; }
+.size-card p { color: #333; font-size: 12px; margin: 0 0 12px; }
+.map-area { position: relative; }
+.map-opt { cursor: pointer; }
+.map-large { background: #93b9ea; padding: 40px; }
+.map-medium { background: #669fe5; padding: 40px; }
+.map-small { background: #4087df; min-height: 96px;
+  display: flex; align-items: center; justify-content: center; }
+/* 2px yellow glow on the hovered region. */
+.map-opt.map-hover { box-shadow: 0 0 6px 2px #f5c542; }
+.map-label { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+  color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.map-label .map-name { font-size: 22px; }
+.map-label .map-dims { font-size: 12px; }
 */
 
 /* \u2500\u2500 test mode: persistent player overlaying the whole editor space \u2500\u2500
@@ -669,6 +690,19 @@ canvas.display { display: block; cursor: crosshair; border: none;
       <button class="start-go" data-action="startcreating">Start creating...</button>
     </div>
     <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
+  </div>
+
+  <div class="size-card" hidden>
+    <h2>Select Map Size</h2>
+    <p>Select the size of Map you would like to create.</p>
+    <div class="map-area">
+      <div class="map-opt map-large" data-name="Large" data-cols="35" data-rows="8">
+        <div class="map-opt map-medium" data-name="Medium" data-cols="26" data-rows="6">
+          <div class="map-opt map-small" data-name="Small" data-cols="12" data-rows="4"></div>
+        </div>
+      </div>
+      <div class="map-label"><span class="map-name">Medium</span><span class="map-dims">26 x 6 tiles</span></div>
+    </div>
   </div>
 </div>
 `;
@@ -1957,8 +1991,17 @@ canvas.display { display: block; cursor: crosshair; border: none;
     const input = S.shadow.querySelector(".start-name");
     const name = (input?.value ?? "").trim();
     S.levelName = name || "The Guide Zone";
-    S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
     input?.blur();
+    S.shadow.querySelector(".start-card")?.setAttribute("hidden", "");
+    S.shadow.querySelector(".size-card")?.removeAttribute("hidden");
+  }
+  function doSelectMapSize(el) {
+    const cols = parseInt(el.getAttribute("data-cols") || "35", 10);
+    const rows = parseInt(el.getAttribute("data-rows") || "8", 10);
+    initGrid(cols, rows);
+    S.selectedObjIdx = -1;
+    updateCounter();
+    S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
     resizeCanvas();
   }
   function doSave() {
@@ -2443,6 +2486,26 @@ canvas.display { display: block; cursor: crosshair; border: none;
     });
     shadow.querySelector(".start-name")?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doStartCreating();
+    });
+    const mapArea = shadow.querySelector(".map-area");
+    const mapLabel = shadow.querySelector(".map-label");
+    mapArea?.addEventListener("mouseover", (e) => {
+      const t = e.target.closest?.(".map-opt");
+      if (!t || !mapArea.contains(t)) return;
+      shadow.querySelectorAll(".map-opt.map-hover").forEach((o) => {
+        if (o !== t) o.classList.remove("map-hover");
+      });
+      t.classList.add("map-hover");
+      const n = mapLabel?.querySelector(".map-name");
+      const d = mapLabel?.querySelector(".map-dims");
+      if (n) n.textContent = t.getAttribute("data-name") ?? "";
+      if (d) d.textContent = `${t.getAttribute("data-cols")} x ${t.getAttribute("data-rows")} tiles`;
+    });
+    shadow.querySelectorAll(".map-opt").forEach((b) => {
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        doSelectMapSize(b);
+      });
     });
     shadow.querySelector(".btn-clear")?.addEventListener("click", doClearAll);
     window.addEventListener("resize", resizeCanvas);

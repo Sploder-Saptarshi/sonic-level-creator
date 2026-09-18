@@ -223,6 +223,27 @@ canvas.display { display: block; cursor: crosshair; border: none;
   background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
+
+/* ── step 2: Select Map Size — nested hover regions, outer = largest.
+   Counts are grid cells (the original UI calls them "tiles"). */
+.size-card { background: #fff; border: 1px solid #b5b5b5; border-radius: 10px;
+  padding: 16px 20px 20px; width: 460px; max-width: calc(100% - 32px);
+  text-align: left; }
+.size-card h2 { color: #1767c9; font-size: 24px; font-weight: bold; margin: 0 0 2px; }
+.size-card p { color: #333; font-size: 12px; margin: 0 0 12px; }
+.map-area { position: relative; }
+.map-opt { cursor: pointer; }
+.map-large { background: #93b9ea; padding: 40px; }
+.map-medium { background: #669fe5; padding: 40px; }
+.map-small { background: #4087df; min-height: 96px;
+  display: flex; align-items: center; justify-content: center; }
+/* 2px yellow glow on the hovered region. */
+.map-opt.map-hover { box-shadow: 0 0 6px 2px #f5c542; }
+.map-label { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+  color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.map-label .map-name { font-size: 22px; }
+.map-label .map-dims { font-size: 12px; }
 */
 
 /* ── test mode: persistent player overlaying the whole editor space ──
@@ -331,6 +352,19 @@ export const EDITOR_HTML = `
       <button class="start-go" data-action="startcreating">Start creating...</button>
     </div>
     <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
+  </div>
+
+  <div class="size-card" hidden>
+    <h2>Select Map Size</h2>
+    <p>Select the size of Map you would like to create.</p>
+    <div class="map-area">
+      <div class="map-opt map-large" data-name="Large" data-cols="35" data-rows="8">
+        <div class="map-opt map-medium" data-name="Medium" data-cols="26" data-rows="6">
+          <div class="map-opt map-small" data-name="Small" data-cols="12" data-rows="4"></div>
+        </div>
+      </div>
+      <div class="map-label"><span class="map-name">Medium</span><span class="map-dims">26 x 6 tiles</span></div>
+    </div>
   </div>
 </div>
 `;
