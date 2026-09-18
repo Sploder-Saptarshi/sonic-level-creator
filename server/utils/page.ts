@@ -292,7 +292,7 @@ function renderPublicLevelRows(levels: PublicLevelRow[]): string {
       : "";
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
       <div style="float: left"><b>${name}</b> <span style="color: #666">by ${author} &middot; ${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
-      <div style="float: right"><a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a></div>
+      <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a></div>
     </div>`;
   });
   return items.join("\n");
@@ -315,6 +315,35 @@ export function renderAllLevelsPage(
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body: sidebarBody,
+  });
+}
+
+export function renderPlayPage(
+  levelName: string,
+  levelId: number | string,
+  view: PageView = {},
+): string {
+  // Same player as the index page, but the isZoneOne flashvar is omitted:
+  // custom levels carry their own dimensions.
+  const body = render(gameBodyTemplate, {
+    sessionId: API_CONNECTOR_ID,
+    territory: TERRITORIES[0],
+    levelId,
+    levelTitle: levelName,
+    isZoneOne: 1,
+    contentSwf: GAME_SWF,
+    // Custom ids are UUID strings: the template emits levelid unquoted
+    // (stock numeric ids), so quote it and drop the isZoneOne flashvar.
+  }).replace(`levelid: ${levelId}`, `levelid: "${levelId}"`)
+    .replace(/,isZoneOne: \d+/, "");
+  return render(layoutTemplate, {
+    title: `${levelName} | PlaySEGA`,
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
+    headExtra: "",
+    domloadExtra: gameDomloadExtra,
+    bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
+    body,
   });
 }
 

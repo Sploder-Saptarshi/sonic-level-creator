@@ -46,3 +46,8 @@ export function cleanLevelData(v: unknown): string | null {
 export function levelWhere(id: string, userId: string) {
   return and(eq(level.id, id), eq(level.userId, userId));
 }
+
+// Seeded stock Green Hill row: the default playable level (also the
+// archive DEFAULT_LEVEL_ID). Playable via / and the gateway, but never
+// listed in All Levels and /play/2914 redirects home.
+export const STOCK_LEVEL_ID = "2914";

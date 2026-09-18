@@ -2,11 +2,11 @@
 // Exactly 1 app query: published-only metadata over the published index,
 // joined to the author name. No login required.
 import { defineHandler } from "nitro";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { setResponseHeader } from "nitro/h3";
 import { level, user } from "../../db/schema";
 import { renderAllLevelsPage, userLanguageBar } from "../../utils/page";
-import { getRequestDb } from "../../utils/levels";
+import { STOCK_LEVEL_ID, getRequestDb } from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
@@ -24,7 +24,7 @@ export default defineHandler(async (event) => {
     })
     .from(level)
     .innerJoin(user, eq(level.userId, user.id))
-    .where(eq(level.published, true))
+    .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)))
     .orderBy(desc(level.updatedAt));
   return renderAllLevelsPage({
     ...(session
