@@ -15,12 +15,14 @@ bundle. Web document root is `public/` (Nitro serves it as static);
   → editor page. Query stubs `?user= ?session= ?levelid= ?territory= ?title=`
   until auth lands (see `server/utils/page.ts`).
 - `server/middleware/canonical.ts` — `/editors` → `/editors/` 301.
-- PHP endpoints (`/amfphp/**`, `/ajax/**`, `/editors/save.php`) are proxied to
-  `php -S public` on :8000 until ported to `server/api/`.
+- PHP backend removed: `/amfphp/gateway.php` is natively ported to
+  `server/routes/amfphp/gateway.php.post.ts`; dead `/ajax/**` +
+  `/editors/save.php` scripts deleted (ticker/report/feedback call sites
+  in `public/js/` are inert until ported).
 
 | Command              | What it does                                              |
 | -------------------- | --------------------------------------------------------- |
-| `npm run dev`        | Nitro dev server (needs `php -S public` on :8000 for PHP) |
+| `npm run dev`        | Nitro dev server (no PHP needed)                        |
 | `npm run build`      | Editor bundle + `nitro build` (preset `node_server`)      |
 | `npm run build:editor` | Bundles `ts/main.ts` → `public/editors/assets/editor.js` |
 | `npm run lint`       | `node --check` on the compiled `editor.js`                |

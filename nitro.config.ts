@@ -35,11 +35,4 @@ export default defineConfig({
       },
     },
   ],
-  routeRules: {
-    // Transitional: PHP endpoints still run under `php -S public` on :8000
-    // until they are ported to server/api/. Also keeps .php source out of
-    // static serving. (amfphp/gateway.php is natively ported — no proxy.)
-    "/ajax/**": { proxy: "http://127.0.0.1:8000/ajax/**" },
-    "/editors/save.php": { proxy: "http://127.0.0.1:8000/editors/save.php" },
-  },
 });
