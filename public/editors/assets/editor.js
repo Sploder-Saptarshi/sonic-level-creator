@@ -268,7 +268,15 @@
     ghostEl: null
   };
   function cellSize() {
-    return Math.round(128 * S.zoom);
+    return Math.round(128 * effZoom());
+  }
+  function effZoom() {
+    const cols = S.grid[0]?.length ?? 0, rows = S.grid.length;
+    const wrap = S.canvasWrap;
+    if (!cols || !rows || !wrap) return S.zoom;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (w <= 0 || h <= 0) return S.zoom;
+    return Math.max(S.zoom, w / (128 * cols), h / (128 * rows));
   }
   function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
     S.grid = [];

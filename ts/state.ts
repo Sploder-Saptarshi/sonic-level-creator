@@ -65,7 +65,19 @@ export const S = {
 // ── Helpers ──
 
 export function cellSize(): number {
-  return Math.round(128 * S.zoom);
+  return Math.round(128 * effZoom());
+}
+
+// Effective zoom: never smaller than the minimum that fills the viewport,
+// so no zoom button can leave a blank canvas area. The buttons keep their
+// labels (100%/50%/25%) — small maps just render larger than literal.
+export function effZoom(): number {
+  const cols = S.grid[0]?.length ?? 0, rows = S.grid.length;
+  const wrap = S.canvasWrap;
+  if (!cols || !rows || !wrap) return S.zoom;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (w <= 0 || h <= 0) return S.zoom;
+  return Math.max(S.zoom, w / (128 * cols), h / (128 * rows));
 }
 
 export function initGrid(cols = DEFAULT_COLS, rows = DEFAULT_ROWS) {
