@@ -156,15 +156,6 @@ function cleanZoneOne(v: unknown): number {
   return Number(first(v)) === 0 ? 0 : 1;
 }
 
-// Guest upsell sidebar block ("Save high scores / Collect PlaySEGA rings
-// / Win cash prizes ... Sign up now") — removed for signed-in users.
-const UPSELL_RE =
-  /\n          <div id="upsellOne" class="upsellOne">[\s\S]*?\n<\/div>/;
-
-export function stripUpsell(body: string): string {
-  return body.replace(UPSELL_RE, "");
-}
-
 // Editor buttons under the player. Create Level shows for everyone (guests
 // funnel into sign-in); My Levels needs an account. Rendered server-side
 // into the <%~ it.editorButtons %> slot.
@@ -204,8 +195,6 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     editorButtons: editorButtons(!!view.username),
   };
   const body = sidenavTemplate + render(gameBodyTemplate, data);
-  // Signed-in users never see the guest sign-up upsell in the sidebar.
-  const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -213,7 +202,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
-    body: sidebarBody,
+    body,
   });
 }
 
@@ -299,8 +288,7 @@ export function renderMyLevelsPage(
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
-    // Page requires login, so the guest upsell is always stripped.
-    body: stripUpsell(body),
+    body,
   });
 }
 
@@ -338,8 +326,6 @@ export function renderAllLevelsPage(
   const body = sidenavTemplate + render(alllevelsBodyTemplate, {
     rows: renderPublicLevelRows(view.levels),
   });
-  // Signed-in users never see the guest sign-up upsell in the sidebar.
-  const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
     title: "All Levels | PlaySEGA",
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -348,7 +334,7 @@ export function renderAllLevelsPage(
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
-    body: sidebarBody,
+    body,
   });
 }
 
@@ -370,9 +356,8 @@ export function renderPlayPage(
     // (stock numeric ids), so quote it and drop the isZoneOne flashvar.
   }).replace(`levelid: ${levelId}`, `levelid: "${levelId}"`)
     .replace(/,isZoneOne: \d+/, "");
-  // Same sidebar as the index page (upsell stripped when signed in).
+  // Same sidebar as the index page.
   const body = sidenavTemplate + gameBody;
-  const sidebarBody = view.username ? stripUpsell(body) : body;
   return render(layoutTemplate, {
     title: `${levelName} | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
@@ -380,7 +365,7 @@ export function renderPlayPage(
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
-    body: sidebarBody,
+    body,
   });
 }
 

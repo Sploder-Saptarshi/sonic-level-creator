@@ -329,65 +329,52 @@ width:220px;
 padding:0 5px;
 }
 
-div#sidenav1 ul {
+/* Two-option sprite sidebar (sidebar.png): normal art carries icon + label
+   (220px); hover/active are icon-less pills at sprite x285/505 shown at
+   item x65. Text pushed below via padding-top (image replacement). */
+ul.sidebarnav {
+list-style:none;
 padding:0;
 margin:0;
 }
 
-div#sidenav1 li {
-list-style:none;
+ul.sidebarnav li {
+padding:0;
 margin:0;
-height:34px;
-background-repeat: no-repeat;
-overflow: hidden;
+height:38px;
+overflow:hidden;
+position:relative;
 }
 
-div#sidenav1 li a {
-background-repeat: no-repeat;
+/* Persistent icon slice (sprite x0-64 of each row): stays put while the
+   pill beside it swaps states. */
+ul.sidebarnav li .sb-icon {
+position:absolute;
+left:0;
+top:0;
+width:65px;
+height:38px;
+background:url('../images/sidebar.png') no-repeat;
+}
+ul.sidebarnav li .sb-icon-sonic {background-position:0 0}
+ul.sidebarnav li .sb-icon-ice {background-position:0 -38px}
+
+ul.sidebarnav li a {
 display:block;
-/*height:100%;*/
-background-position:65px 0;
-padding-top: 41px;
-overflow: hidden;
+margin-left:65px;
+width:155px;
+padding-top:38px;
+background:url('../images/sidebar.png') no-repeat;
 }
 
-div#sidenav1 li a:hover {
-text-decoration:none;
-background-position: 65px -36px;
-overflow: hidden;
-}
-div#sidenav1 li a:active {
-background-position: 65px -72px
-}
-
-div#sidenav1 li.arcade {height:36px}
-div#sidenav1 li.arcade a:hover {background-position: 65px -38px}
-div#sidenav1 li.arcade a:active {background-position: 65px -76px}
-div#sidenav1 li.word {height:36px}
-div#sidenav1 li.word a:hover {background-position: 65px -39px}
-div#sidenav1 li.word a:active {background-position: 65px -78px}
-
-div#sidenav1 li.megadrive {background-image: url('../images/sidenav/megadrive-icon.gif')}
-div#sidenav1 li.genesis {background-image: url('../images/sidenav/megadrive-icon.gif')}
-div#sidenav1 li.arcade {background-image: url('../images/sidenav/arcade-icon.gif')}
-div#sidenav1 li.card {background-image: url('../images/sidenav/card-icon.gif')}
-div#sidenav1 li.editors {background-image: url('../images/sidenav/editors-icon.gif')}
-div#sidenav1 li.puzzle {background-image: url('../images/sidenav/puzzle-icon.gif')}
-div#sidenav1 li.quiz {background-image: url('../images/sidenav/quiz-icon.gif')}
-div#sidenav1 li.sonic {background-image: url('../images/sidenav/sonic-icon.gif')}
-div#sidenav1 li.sports {background-image: url('../images/sidenav/sport-icon.gif')}
-div#sidenav1 li.word {background-image: url('../images/sidenav/word-icon.gif')}
-
-div#sidenav1 li.megadrive a {background-image: url('../images/sidenav/megadrive-bg.gif')}
-div#sidenav1 li.genesis a {background-image: url('../images/sidenav/genesis-bg.gif')}
-div#sidenav1 li.arcade a {background-image: url('../images/sidenav/arcade-bg.gif')}
-div#sidenav1 li.card a {background-image: url('../images/sidenav/card-bg.gif')}
-div#sidenav1 li.editors a {background-image: url('../images/sidenav/editors-bg.gif')}
-div#sidenav1 li.puzzle a {background-image: url('../images/sidenav/puzzle-bg.gif')}
-div#sidenav1 li.quiz a {background-image: url('../images/sidenav/quiz-bg.gif')}
-div#sidenav1 li.sonic a {background-image: url('../images/sidenav/sonic-bg.gif')}
-div#sidenav1 li.sports a {background-image: url('../images/sidenav/sport-bg.gif')}
-div#sidenav1 li.word a {background-image: url('../images/sidenav/word-bg.gif')}
+ul.sidebarnav li a.sb-sonic {background-position:-65px 0}
+ul.sidebarnav li a.sb-sonic:hover {background-position:-285px 0}
+ul.sidebarnav li a.sb-sonic:active,
+ul.sidebarnav li a.sb-sonic.on {background-position:-505px 0}
+ul.sidebarnav li a.sb-ice {background-position:-65px -38px}
+ul.sidebarnav li a.sb-ice:hover {background-position:-285px -38px}
+ul.sidebarnav li a.sb-ice:active,
+ul.sidebarnav li a.sb-ice.on {background-position:-505px -38px}
 
 div#sidenav2 {
 margin-top:3px;
