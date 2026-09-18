@@ -19,6 +19,7 @@ export default defineHandler(async (event) => {
       name: level.name,
       cols: level.cols,
       rows: level.rows,
+      published: level.published,
       updatedAt: level.updatedAt,
     })
     .from(level)

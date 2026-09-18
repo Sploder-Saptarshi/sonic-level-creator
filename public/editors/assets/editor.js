@@ -2081,6 +2081,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
       S.levelName = row2.name.trim();
     }
     S.levelId = id;
+    if (row2.published) hideShareButton();
     S.selectedObjIdx = -1;
     S.selectedTileBx = -1;
     S.selectedTileBy = -1;
@@ -2089,6 +2090,31 @@ canvas.display { display: block; cursor: crosshair; border: none;
     S.shadow.querySelector(".start-overlay")?.classList.add("hidden");
     resizeCanvas();
     return true;
+  }
+  function hideShareButton() {
+    const btn = S.shadow.querySelector('[data-action="share"]');
+    if (btn) btn.style.display = "none";
+  }
+  async function doShare() {
+    const boot2 = window.__PLAYSEGA__;
+    if (!boot2 || boot2.username === "Guest" || !boot2.username) {
+      location.href = "/member/signin";
+      return;
+    }
+    if (!levelValid()) return;
+    if (!S.levelId) {
+      await doSave();
+      if (!S.levelId) return;
+    }
+    if (!confirm("Publishing is permanent. Share this level with everyone?")) return;
+    try {
+      const res = await fetch(`/api/levels/${S.levelId}/publish`, { method: "POST" });
+      if (!res.ok) throw new Error(`publish failed: ${res.status}`);
+      updateDesc(`Published "${S.levelName}".`);
+      hideShareButton();
+    } catch {
+      updateDesc("Publishing failed \u2014 try again.");
+    }
   }
   async function doSave() {
     if (!levelValid()) return;
@@ -2598,7 +2624,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
         else if (a === "stoptest") stopTest();
         else if (a === "fullscreen") doFullscreen();
         else if (a === "mylevels") location.href = "/editors/mylevels";
-        else if (a === "alllevels") location.href = "/editors/?action=editorDetail&gamegroupid=52";
+        else if (a === "alllevels") location.href = "/editors/alllevels";
+        else if (a === "share") doShare();
         else if (a === "startcreating") doStartCreating();
       });
     });

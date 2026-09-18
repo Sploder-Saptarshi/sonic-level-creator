@@ -93,8 +93,14 @@ export const level = sqliteTable(
     cols: integer("cols").notNull(),
     rows: integer("rows").notNull(),
     data: text("data").notNull().default(""),
+    // Publishing is permanent: Share flips this once; published levels
+    // appear in the public All Levels list.
+    published: integer("published", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   },
-  (t) => [index("level_user_id_idx").on(t.userId)],
+  (t) => [
+    index("level_user_id_idx").on(t.userId),
+    index("level_published_idx").on(t.published),
+  ],
 );

@@ -7,6 +7,8 @@ import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
 import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
+import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
+import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml } from "./session";
 
 // Logged-in header: same lozenges, signed-in name + sign-out (username is
@@ -226,6 +228,7 @@ export interface LevelRow {
   name: string;
   cols: number;
   rows: number;
+  published: boolean | null;
   updatedAt: unknown;
 }
 
@@ -240,7 +243,7 @@ function renderLevelRows(levels: LevelRow[]): string {
       ? l.updatedAt.toISOString().slice(0, 10)
       : "";
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
-      <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
+      <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
       <div style="float: right"><a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
       <form action="/editors/mylevels/delete" method="post" style="display: inline"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
     </div>`;
@@ -251,7 +254,7 @@ function renderLevelRows(levels: LevelRow[]): string {
 export function renderMyLevelsPage(
   view: PageView & { levels: LevelRow[] },
 ): string {
-  const body = render(mylevelsBodyTemplate, {
+  const body = sidenavTemplate + render(mylevelsBodyTemplate, {
     rows: renderLevelRows(view.levels),
   });
   return render(layoutTemplate, {
@@ -262,7 +265,56 @@ export function renderMyLevelsPage(
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
-    body,
+    // Page requires login, so the guest upsell is always stripped.
+    body: stripUpsell(body),
+  });
+}
+
+export interface PublicLevelRow {
+  id: string;
+  name: string;
+  author: string;
+  cols: number;
+  rows: number;
+  updatedAt: unknown;
+}
+
+function renderPublicLevelRows(levels: PublicLevelRow[]): string {
+  if (!levels.length) {
+    return `<p style="padding: 12px 0">No published levels yet. <a href="/editors/">Create one</a>.</p>`;
+  }
+  const items = levels.map((l) => {
+    const name = escapeHtml(l.name);
+    const author = escapeHtml(l.author);
+    const id = escapeHtml(l.id);
+    const d = l.updatedAt instanceof Date && !isNaN(+l.updatedAt)
+      ? l.updatedAt.toISOString().slice(0, 10)
+      : "";
+    return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
+      <div style="float: left"><b>${name}</b> <span style="color: #666">by ${author} &middot; ${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
+      <div style="float: right"><a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a></div>
+    </div>`;
+  });
+  return items.join("\n");
+}
+
+export function renderAllLevelsPage(
+  view: PageView & { levels: PublicLevelRow[] },
+): string {
+  const body = sidenavTemplate + render(alllevelsBodyTemplate, {
+    rows: renderPublicLevelRows(view.levels),
+  });
+  // Signed-in users never see the guest sign-up upsell in the sidebar.
+  const sidebarBody = view.username ? stripUpsell(body) : body;
+  return render(layoutTemplate, {
+    title: "All Levels | PlaySEGA",
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
+    topnav: NAV_LOGGED_IN_TOPNAV,
+    headExtra: "",
+    // Draws the rounded content-box border (same as the game/editor pages).
+    domloadExtra: `splitBorderBottom.render('playGame');`,
+    bootstrap: bootstrap({ username: view.username ?? "Guest" }),
+    body: sidebarBody,
   });
 }
 

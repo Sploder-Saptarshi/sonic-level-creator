@@ -7,7 +7,7 @@ import {
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -383,7 +383,8 @@ export function wireEvents() {
       else if (a === 'stoptest') stopTest();
       else if (a === 'fullscreen') doFullscreen();
       else if (a === 'mylevels') location.href = '/editors/mylevels';
-      else if (a === 'alllevels') location.href = '/editors/?action=editorDetail&gamegroupid=52';
+      else if (a === 'alllevels') location.href = '/editors/alllevels';
+      else if (a === 'share') doShare();
       else if (a === 'startcreating') doStartCreating();
     });
   });

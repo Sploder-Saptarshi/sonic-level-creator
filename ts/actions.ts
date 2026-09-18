@@ -46,7 +46,7 @@ export function doSelectMapSize(el: Element) {
 // drop straight into the editor — no start screens. Returns true on success.
 export async function loadLevelById(id: string): Promise<boolean> {
   if (!/^[\w-]{1,128}$/.test(id)) return false;
-  let row: { name?: unknown; cols?: unknown; rows?: unknown; data?: unknown };
+  let row: { name?: unknown; cols?: unknown; rows?: unknown; data?: unknown; published?: unknown };
   try {
     const res = await fetch(`/api/levels/${id}`);
     if (!res.ok) return false;
@@ -64,6 +64,8 @@ export async function loadLevelById(id: string): Promise<boolean> {
     S.levelName = row.name.trim();
   }
   S.levelId = id;
+  // Already-published levels can never show Share again.
+  if (row.published) hideShareButton();
   S.selectedObjIdx = -1;
   S.selectedTileBx = -1;
   S.selectedTileBy = -1;
@@ -72,6 +74,36 @@ export async function loadLevelById(id: string): Promise<boolean> {
   S.shadow!.querySelector('.start-overlay')?.classList.add('hidden');
   resizeCanvas();
   return true;
+}
+
+function hideShareButton() {
+  const btn = S.shadow!.querySelector('[data-action="share"]') as HTMLElement | null;
+  if (btn) btn.style.display = 'none';
+}
+
+// Share: permanently publish the level so it appears in All Levels.
+// Saves first when the level has never been saved; guests go to sign-in.
+export async function doShare() {
+  const boot = (window as unknown as { __PLAYSEGA__?: { username?: string } })
+    .__PLAYSEGA__;
+  if (!boot || boot.username === 'Guest' || !boot.username) {
+    location.href = '/member/signin';
+    return;
+  }
+  if (!levelValid()) return;
+  if (!S.levelId) {
+    await doSave();
+    if (!S.levelId) return; // save failed (already fell back to download)
+  }
+  if (!confirm('Publishing is permanent. Share this level with everyone?')) return;
+  try {
+    const res = await fetch(`/api/levels/${S.levelId}/publish`, { method: 'POST' });
+    if (!res.ok) throw new Error(`publish failed: ${res.status}`);
+    updateDesc(`Published "${S.levelName}".`);
+    hideShareButton();
+  } catch {
+    updateDesc('Publishing failed — try again.');
+  }
 }
 
 // Save: signed-in users persist to the server (POST then PUT); guests and
