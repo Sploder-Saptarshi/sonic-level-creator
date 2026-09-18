@@ -35,16 +35,30 @@ const NAV_LANGUAGEBAR = `<div id="languagebar">  <a class="lozenge1" href="/memb
     <a class="lozenge1" href="/member/signin" rel="nofollow"><span>Sign-in</span></a>
 </div>
 `;
-const NAV_LOGGED_IN_TOPNAV = `<ul id="topnav_in" class="loggedin">
-  <li class="one"><a href="/games/" class="on">Play Games</a></li>
-  <li class="two"><a href="/escape/">My Escape</a></li>
-  <li class="three"><a href="/prizedraws/">Win Cash</a></li>
-  <li class="four"><a href="/vip/">My VIP</a></li>
-  <li class="five"><a href="/member/?action=editMyAccount" rel="nofollow">My Account</a></li>
-  <li class="six"><a href="/downloads/">Download Games</a></li>
-  <li class="seven"><a href="http://forums.sega.com/forumdisplay.php?f=115" target="_blank">Forum</a></li>
-</ul>
-`;
+function topnavItem(
+  cls: string,
+  href: string,
+  label: string,
+  active: boolean,
+  rel = "",
+): string {
+  return `  <li class="${cls}"><a href="${href}"${active ? ` class="on"` : ""}${rel ? ` rel="${rel}"` : ""}>${label}</a></li>`;
+}
+
+function topnavFor(view: PageView, active = ""): string {
+  const items = [
+    topnavItem("one", "/editors/alllevels", "All Levels", active === "alllevels"),
+    topnavItem("two", "/editors/mylevels", "My Levels", active === "mylevels"),
+    topnavItem(
+      "three",
+      "/member/?action=editMyAccount",
+      "My Account",
+      false,
+      "nofollow",
+    ),
+  ].join("\n");
+  return `<ul id="topnav_in"${view.username ? ` class="loggedin"` : ""}>\n${items}\n</ul>\n`;
+}
 // Signed-out chrome is intentionally NOT used: all pages share the same
 // header (game/editor chrome) for a consistent revival UI.
 
@@ -195,7 +209,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view),
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -216,7 +230,7 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
   return render(layoutTemplate, {
     title: `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view),
     headExtra: editorHeadExtra,
     domloadExtra: "",
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -235,7 +249,7 @@ export function renderSigninPage(query: PageQuery, view: PageView = {}): string 
   return render(layoutTemplate, {
     title: "Member Sign-in | PlaySEGA",
     languagebar: NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view),
     headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
@@ -280,7 +294,7 @@ export function renderMyLevelsPage(
   return render(layoutTemplate, {
     title: "My Levels | PlaySEGA",
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view, "mylevels"),
     headExtra: "",
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
@@ -329,7 +343,7 @@ export function renderAllLevelsPage(
   return render(layoutTemplate, {
     title: "All Levels | PlaySEGA",
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view, "alllevels"),
     headExtra: "",
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
@@ -359,7 +373,7 @@ export function renderPlayPage(
   return render(layoutTemplate, {
     title: `${levelName} | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view),
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
@@ -374,7 +388,7 @@ export function renderSignupPage(query: PageQuery, view: PageView = {}): string 
   return render(layoutTemplate, {
     title: "Member Sign-up | PlaySEGA",
     languagebar: NAV_LANGUAGEBAR,
-    topnav: NAV_LOGGED_IN_TOPNAV,
+    topnav: topnavFor(view),
     headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),

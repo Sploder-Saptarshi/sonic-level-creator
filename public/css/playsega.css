@@ -222,11 +222,11 @@ background-image:url('../images/mainmenu-loggedin.png');
 
 #topnav_in {
 padding:0;
-margin:0 0 2px 13px;
-height:57px;
-float:left;
-width:750px;
-background:url('../images/mainmenu-loggedout.png') no-repeat top left;
+margin:0 13px 2px 0;
+height:58px;
+float:right;
+clear:right;
+width:343px;
 }
 
 #topnav_in li {
@@ -234,7 +234,7 @@ float:left;
 color:#000;
 list-style:none;
 padding:0;
-height:54px;
+height:58px;
 overflow: hidden;
 
 }
@@ -243,8 +243,7 @@ overflow: hidden;
 #topnav_in li a {
 display:block;
 background:url('../images/mainmenu-loggedout.png') no-repeat top left;
-border-bottom:1px solid green;
-padding-top:54px;
+padding-top:58px;
 }
 
 #topnav_in.loggedin li a {
@@ -252,38 +251,20 @@ background-image:url('../images/mainmenu-loggedin.png');
 }
 
 #topnav_in li.one a {width:112px;background-position:0 0}
-#topnav_in li.two a {width:106px;background-position:-112px 0;}
-#topnav_in li.three a {width:97px;background-position:-218px 0; }
-#topnav_in li.four a {width:91px;background-position: -315px 0;}
-#topnav_in li.five a {width:115px;background-position: -406px 0;}
-#topnav_in li.six a {width:152px;background-position: -521px 0;}
-#topnav_in li.seven a {width:77px;background-position: -673px 0;}
+#topnav_in li.two a {width:114px;background-position:-112px 0}
+#topnav_in li.three a {width:117px;background-position:-226px 0}
 
 #topnav_in li.one a:hover {background-position:0 -58px}
 #topnav_in li.two a:hover {background-position:-112px -58px}
-#topnav_in li.three a:hover {background-position:-218px -58px}
-#topnav_in li.four a:hover {background-position:-315px -58px}
-#topnav_in li.five a:hover {background-position:-406px -58px}
-#topnav_in li.six a:hover {background-position:-521px -58px}
-#topnav_in li.seven a:hover {background-position:-673px -58px}
+#topnav_in li.three a:hover {background-position:-226px -58px}
 
 #topnav_in li.one a:active {background-position:0 -116px}
 #topnav_in li.two a:active {background-position:-112px -116px}
-#topnav_in li.three a:active {background-position:-218px -116px}
-#topnav_in li.four a:active {background-position:-315px -116px}
-#topnav_in li.five a:active {background-position:-406px -116px}
-#topnav_in li.six a:active {background-position:-521px -116px}
-#topnav_in li.seven a:active {background-position:-673px -116px}
+#topnav_in li.three a:active {background-position:-226px -116px}
 
 #topnav_in li.one a.on {background-position:0 -116px}
 #topnav_in li.two a.on {background-position:-112px -116px}
-#topnav_in li.two a.loggedouton {background-position:-112px -174px}
-#topnav_in li.three a.on {background-position:-218px -116px}
-#topnav_in li.four a.on {background-position:-315px -116px}
-#topnav_in li.five a.on {background-position:-406px -116px}
-#topnav_in li.six a.on {background-position:-521px -116px}
-#topnav_in li.six a.loggedouton {background-position:-521px -174px}
-#topnav_in li.seven  a.on {background-position:-673px -116px}
+#topnav_in li.three a.on {background-position:-226px -116px}
 
 /* ============================= */
 #subnav1 {
@@ -343,6 +324,7 @@ padding-top:45px;
 
 div#sidenav {
 float:left;
+clear:both;
 width:220px;
 padding:0 5px;
 }
@@ -449,7 +431,7 @@ padding-bottom:12px;
 #sidenav3 a.quickstart:hover {background-position: bottom right; cursor: pointer}
 
 #sidenav3 a.allgames {width: 113px; height: 36px; margin: 0; float: left;
-                          background:url('../images/gamemenu-allgames.gif') no-repeat;
+                          background:url('../images/gamemenu-allgames.png') no-repeat;
                           background-position: top right;
 }
 #sidenav3 a.allgames:hover {background-position: bottom right; cursor: pointer}
