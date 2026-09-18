@@ -19,12 +19,24 @@ function levelCSV(): string {
 
 // ── Actions ──
 
-// "Start a new level" screen: take the chosen name (fall back to the
-// default when blank) and move to the map-size step.
+// Creator heading ("Sonic The Hedgehog Level Creator - <name>"): the h3
+// lives in the light DOM outside the shadow root.
+export function updateCreatorHeading() {
+  const el = document.querySelector('#box3 h3 .fancy');
+  if (el) {
+    el.textContent = S.levelName
+      ? `Sonic The Hedgehog Level Creator - ${S.levelName}`
+      : 'Sonic The Hedgehog Level Creator';
+  }
+}
+
+// "Start a new level" screen: take the chosen name (may stay blank) and
+// move to the map-size step.
 export function doStartCreating() {
   const input = S.shadow!.querySelector('.start-name') as HTMLInputElement | null;
-  const name = (input?.value ?? '').trim();
-  S.levelName = name || 'The Guide Zone';
+  S.levelName = (input?.value ?? '').trim();
+  if (!S.levelName) return;
+  updateCreatorHeading();
   input?.blur();
   S.shadow!.querySelector('.start-card')?.setAttribute('hidden', '');
   S.shadow!.querySelector('.size-card')?.removeAttribute('hidden');
@@ -63,6 +75,7 @@ export async function loadLevelById(id: string): Promise<boolean> {
   if (typeof row.name === 'string' && row.name.trim()) {
     S.levelName = row.name.trim();
   }
+  updateCreatorHeading();
   S.levelId = id;
   // Already-published levels can never show Share again.
   if (row.published) hideShareButton();
@@ -110,6 +123,11 @@ export async function doShare() {
 // server failures fall back to a local CSV download so work is never lost.
 export async function doSave() {
   if (!levelValid()) return;
+  // Unreachable (the start screen gates on a name), kept as a guard.
+  if (!S.levelName) {
+    updateDesc('Name your level on the start screen first.');
+    return;
+  }
   // Compact RLE-JSON for the server (10–27x smaller than CSV); the local
   // fallback stays CSV so it still opens in external tools.
   const compact = encodeCompact(S.grid, S.objects);

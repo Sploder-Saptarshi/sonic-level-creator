@@ -276,7 +276,8 @@
     selectedTile: 1,
     selectedObj: null,
     // Chosen on the "Start a new level" screen; used for the save filename.
-    levelName: "The Guide Zone",
+    // Empty until the user types a name (the field shows a placeholder).
+    levelName: "",
     // Server row id once saved (null until the first server save).
     levelId: null,
     zoom: 2,
@@ -622,6 +623,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
   background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
+.start-go:disabled { opacity: 0.45; cursor: default; }
+.start-go:disabled:hover { background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%); }
 
 /* \u2500\u2500 step 2: Select Map Size \u2014 nested hover regions, outer = largest.
    Counts are grid cells (the original UI calls them "tiles"). */
@@ -746,8 +749,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
     <p>Ready to start creating a new level? Choose a level name to get started! Be creative!</p>
     <label for="start-name">Level Name</label>
     <div class="start-row">
-      <input class="start-name" id="start-name" type="text" value="The Guide Zone" maxlength="60" />
-      <button class="start-go" data-action="startcreating">Start creating...</button>
+      <input class="start-name" id="start-name" type="text" value="" placeholder="My Awesome Level" maxlength="60" />
+      <button class="start-go" data-action="startcreating" disabled>Start creating...</button>
     </div>
     <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
   </div>
@@ -2047,10 +2050,17 @@ canvas.display { display: block; cursor: crosshair; border: none;
   function levelCSV() {
     return toCSV(encodeBin(S.grid), encodeAct(S.objects));
   }
+  function updateCreatorHeading() {
+    const el = document.querySelector("#box3 h3 .fancy");
+    if (el) {
+      el.textContent = S.levelName ? `Sonic The Hedgehog Level Creator - ${S.levelName}` : "Sonic The Hedgehog Level Creator";
+    }
+  }
   function doStartCreating() {
     const input = S.shadow.querySelector(".start-name");
-    const name = (input?.value ?? "").trim();
-    S.levelName = name || "The Guide Zone";
+    S.levelName = (input?.value ?? "").trim();
+    if (!S.levelName) return;
+    updateCreatorHeading();
     input?.blur();
     S.shadow.querySelector(".start-card")?.setAttribute("hidden", "");
     S.shadow.querySelector(".size-card")?.removeAttribute("hidden");
@@ -2083,6 +2093,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     if (typeof row2.name === "string" && row2.name.trim()) {
       S.levelName = row2.name.trim();
     }
+    updateCreatorHeading();
     S.levelId = id;
     if (row2.published) hideShareButton();
     S.selectedObjIdx = -1;
@@ -2121,6 +2132,10 @@ canvas.display { display: block; cursor: crosshair; border: none;
   }
   async function doSave() {
     if (!levelValid()) return;
+    if (!S.levelName) {
+      updateDesc("Name your level on the start screen first.");
+      return;
+    }
     const compact = encodeCompact(S.grid, S.objects);
     const csv = levelCSV();
     const boot2 = window.__PLAYSEGA__;
@@ -2632,8 +2647,13 @@ canvas.display { display: block; cursor: crosshair; border: none;
         else if (a === "startcreating") doStartCreating();
       });
     });
-    shadow.querySelector(".start-name")?.addEventListener("keydown", (e) => {
+    const nameInput = shadow.querySelector(".start-name");
+    const startBtn = shadow.querySelector(".start-go");
+    nameInput?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doStartCreating();
+    });
+    nameInput?.addEventListener("input", () => {
+      if (startBtn) startBtn.disabled = !nameInput.value.trim();
     });
     const mapArea = shadow.querySelector(".map-area");
     const mapLabel = shadow.querySelector(".map-label");

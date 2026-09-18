@@ -79,7 +79,7 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 // server-side (see server/utils/session.ts).
 const API_CONNECTOR_ID = "api-connector";
 const DEFAULT_LEVEL_ID = 2914;
-const DEFAULT_TITLE = "Sonic The Hedgehog Level Player - At Dawn";
+const DEFAULT_TITLE = "Green Hill Zone";
 const TERRITORIES = ["EnglishUK", "EnglishUSA"];
 
 // Minimal template renderer: `<%= it.x %>` HTML-escaped, `<%~ it.x %>` raw.

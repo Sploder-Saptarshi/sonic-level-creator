@@ -223,6 +223,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
   background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
+.start-go:disabled { opacity: 0.45; cursor: default; }
+.start-go:disabled:hover { background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%); }
 
 /* ── step 2: Select Map Size — nested hover regions, outer = largest.
    Counts are grid cells (the original UI calls them "tiles"). */
@@ -348,8 +350,8 @@ export const EDITOR_HTML = `
     <p>Ready to start creating a new level? Choose a level name to get started! Be creative!</p>
     <label for="start-name">Level Name</label>
     <div class="start-row">
-      <input class="start-name" id="start-name" type="text" value="The Guide Zone" maxlength="60" />
-      <button class="start-go" data-action="startcreating">Start creating...</button>
+      <input class="start-name" id="start-name" type="text" value="" placeholder="My Awesome Level" maxlength="60" />
+      <button class="start-go" data-action="startcreating" disabled>Start creating...</button>
     </div>
     <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
   </div>

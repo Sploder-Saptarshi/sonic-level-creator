@@ -389,9 +389,15 @@ export function wireEvents() {
     });
   });
 
-  // Start screen: Enter in the name field starts creating too.
-  shadow!.querySelector('.start-name')?.addEventListener('keydown', (e) => {
+  // Start screen: the button stays greyed out until a name is typed;
+  // Enter submits only when valid.
+  const nameInput = shadow!.querySelector('.start-name') as HTMLInputElement | null;
+  const startBtn = shadow!.querySelector('.start-go') as HTMLButtonElement | null;
+  nameInput?.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') doStartCreating();
+  });
+  nameInput?.addEventListener('input', () => {
+    if (startBtn) startBtn.disabled = !nameInput.value.trim();
   });
 
   // Map-size step: hovering a region previews its name/dims + glows it.

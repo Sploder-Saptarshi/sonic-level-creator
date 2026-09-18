@@ -15,7 +15,8 @@ export const S = {
   selectedTile: 1,
   selectedObj: null as ObjectDef | null,
   // Chosen on the "Start a new level" screen; used for the save filename.
-  levelName: 'The Guide Zone',
+  // Empty until the user types a name (the field shows a placeholder).
+  levelName: '',
   // Server row id once saved (null until the first server save).
   levelId: null as string | null,
   zoom: 2,
