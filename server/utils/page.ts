@@ -151,6 +151,25 @@ export function stripUpsell(body: string): string {
   return body.replace(UPSELL_RE, "");
 }
 
+// Editor buttons under the player. Create Level shows for everyone (guests
+// funnel into sign-in); My Levels needs an account. Rendered server-side
+// into the <%~ it.editorButtons %> slot.
+function editorButton(label: string, href: string): string {
+  return `<a class="lozenge2" href="javascript:void(0);"
+                           onclick="javascript:notifyOfLeaving('${href}', false);">
+                            <span>${label}</span>
+                        </a>`;
+}
+
+function editorButtons(signedIn: boolean): string {
+  const buttons = [editorButton("Create Level", "/editors/")];
+  if (signedIn) buttons.push(editorButton("My Levels", "/editors/mylevels"));
+  buttons.push(editorButton("All Levels", "/editors/alllevels"));
+  // Newline + 24 spaces between buttons: byte-identical to the separator
+  // between Report Level and the slot in game.html, so every gap matches.
+  return buttons.join("\n                        ");
+}
+
 // JSON bootstrap for client scripts; < escaped so it can't break out of <script>.
 function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
@@ -168,6 +187,7 @@ export function renderGamePage(query: PageQuery, view: PageView = {}): string {
     levelTitle: cleanTitle(query.title),
     isZoneOne: cleanZoneOne(query.zoneone),
     contentSwf: GAME_SWF,
+    editorButtons: editorButtons(!!view.username),
   };
   const body = render(gameBodyTemplate, data);
   // Signed-in users never see the guest sign-up upsell in the sidebar.
