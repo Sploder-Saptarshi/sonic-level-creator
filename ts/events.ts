@@ -201,9 +201,17 @@ function onContextMenu(e: MouseEvent) {
 
 // ── Keyboard ──
 
+function keyTarget(e: KeyboardEvent): HTMLElement | null {
+  // Document-level listeners see shadow-retargeted targets (the host), so
+  // read the real target from composedPath() like the mouse handlers do.
+  const path = typeof e.composedPath === 'function' ? e.composedPath() : null;
+  const t = (path && path[0]) || e.target;
+  return (t instanceof HTMLElement) ? t : null;
+}
+
 function onKeyDown(e: KeyboardEvent) {
   // Typing in the start-screen name field must not drive the editor.
-  if ((e.target as HTMLElement | null)?.classList?.contains('start-name')) return;
+  if (keyTarget(e)?.classList?.contains('start-name')) return;
   if (e.code === 'Space' && !S.spaceHeld) {
     e.preventDefault();
     S.spaceHeld = true;
@@ -229,7 +237,7 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 function onKeyUp(e: KeyboardEvent) {
-  if ((e.target as HTMLElement | null)?.classList?.contains('start-name')) return;
+  if (keyTarget(e)?.classList?.contains('start-name')) return;
   if (e.code === 'Space') {
     S.spaceHeld = false;
     S.canvas!.style.cursor = 'crosshair';

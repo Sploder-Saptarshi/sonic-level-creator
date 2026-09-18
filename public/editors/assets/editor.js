@@ -2521,8 +2521,13 @@ canvas.display { display: block; cursor: crosshair; border: none;
   function onContextMenu(e) {
     e.preventDefault();
   }
+  function keyTarget(e) {
+    const path = typeof e.composedPath === "function" ? e.composedPath() : null;
+    const t = path && path[0] || e.target;
+    return t instanceof HTMLElement ? t : null;
+  }
   function onKeyDown(e) {
-    if (e.target?.classList?.contains("start-name")) return;
+    if (keyTarget(e)?.classList?.contains("start-name")) return;
     if (e.code === "Space" && !S.spaceHeld) {
       e.preventDefault();
       S.spaceHeld = true;
@@ -2546,7 +2551,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
     }
   }
   function onKeyUp(e) {
-    if (e.target?.classList?.contains("start-name")) return;
+    if (keyTarget(e)?.classList?.contains("start-name")) return;
     if (e.code === "Space") {
       S.spaceHeld = false;
       S.canvas.style.cursor = "crosshair";
