@@ -194,8 +194,12 @@ canvas.display { display: block; cursor: crosshair; border: none;
    White card, blue headings, pale input, green pill button, Sonic right.
    Root-absolute img path since shadow URLs resolve against document base. */
 .start-overlay { position: absolute; inset: 0; z-index: 50;
+  /* Covers the editor UI entirely and re-draws its frame pixel-identically
+     (1px #c9c9c9 border, no top border, bottom rounding) over the same gray
+     gradient — chrome stays visible, inner UI does not. */
   display: flex; align-items: center; justify-content: center;
-  background: #fff; border-radius: 0 0 10px 10px; }
+  background: linear-gradient(#ffffff, #e8e8e8);
+  border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
 .start-overlay.hidden { display: none; }
 .start-card { position: relative; background: #fff; border: 1px solid #b5b5b5;
   border-radius: 10px; padding: 12px 12px 24px; width: 420px;
