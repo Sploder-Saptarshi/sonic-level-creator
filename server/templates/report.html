@@ -1,0 +1,25 @@
+            <!-- Report & AddThis Button BEGIN -->
+            <div class="clear">&nbsp;</div>
+            <center><div style="width: 720px; z-index: 1000">                <div class="report">
+                    <div class="reportButton">
+                        <%~ it.reportButton %>
+                        <%~ it.editorButtons %>
+                    </div>
+                    <div class="reportReportHidden" id="reportArea">
+                        <div class="reportHeading">
+                            <div class="headingText">Report This Level</div>
+                            <div class="closeButton" onclick="expandReport()">&nbsp;</div>
+                        </div>
+                        <div class="reportContent" id="reportContent">                            Why is this level inappropriate?
+                            <div class="clear">&nbsp;</div>
+                            <input type="hidden" id="frm_levelid" value="<%= it.levelId %>" />
+                            <textarea id="frm_reason" class="reportTextArea"></textarea>
+                            <div class="clear">&nbsp;</div>
+                            <div id="reportResult" class="reportResult">&nbsp;</div>
+                            <a class="lozenge1" href="javascript:void(0)" onclick="javascript:postReport()"><span>Submit</span></a>                        </div>
+                    </div>
+                </div>
+            </div></center>
+            <div class="clear">&nbsp;</div>
+            <!-- Report & AddThis Button END -->
+            <div class="clear">&nbsp;</div>      

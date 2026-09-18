@@ -8,6 +8,7 @@ import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
 import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
 import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
+import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml } from "./session";
 
@@ -66,8 +67,9 @@ function topnavFor(view: PageView, active = ""): string {
 // Signed-out chrome is intentionally NOT used: all pages share the same
 // header (game/editor chrome) for a consistent revival UI.
 
-// Static domload snippet (page wiring, not an Eta template).
-const gameDomloadExtra = `splitBorderBottom.render('playGame');reportArea = $('reportArea');reportButton = $('reporter');reportButton.addEventListener('click', function(e) {
+// Static domload snippet (page wiring, not an Eta template). The reporter
+// guard keeps pages without the report block (ice-shuffle) working.
+const gameDomloadExtra = `splitBorderBottom.render('playGame');reportArea = $('reportArea');reportButton = $('reporter');if(reportButton)reportButton.addEventListener('click', function(e) {
 e.preventDefault();
 e.stopPropagation();
 expandReport();
@@ -206,6 +208,17 @@ function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   });
 }
 
+// Report block (two-pass fill: inner slots first, then the game template).
+// Ice-shuffle drops the whole block (kills the bottom gap); its domload
+// wiring below is null-safe so the shared snippet keeps working.
+function reportBlockHtml(view: PageView, levelId: number | string): string {
+  return render(reportBodyTemplate, {
+    reportButton: REPORTER_HTML,
+    editorButtons: editorButtons(!!view.username),
+    levelId,
+  });
+}
+
 // Editor buttons under the player. Create Level shows for everyone (guests
 // funnel into sign-in); My Levels needs an account. Rendered server-side
 // into the <%~ it.editorButtons %> slot.
@@ -234,6 +247,7 @@ export interface GamePageOptions {
   contentSwf?: string;
   playerName?: string;
   title?: string;
+  headExtra?: string;
   // Ice Shuffle variants: direct SWF embed, no report button, bare heading.
   playerSwf?: string;
   hideReport?: boolean;
@@ -263,11 +277,12 @@ export function renderGamePage(
     // Omitted entirely on player pages without zones (e.g. /play).
     zoneOneFrag: `,isZoneOne: ${cleanZoneOne(query.zoneone)}`,
     playerSwf: opts.playerSwf ?? PRELOADER_SWF,
-    reportButton: opts.hideReport ? "" : REPORTER_HTML,
+    reportBlock: opts.hideReport
+      ? ""
+      : reportBlockHtml(view, levelId),
     playerHeading: opts.hideTitle
       ? escapeHtml(playerName)
       : `${escapeHtml(playerName)} - ${escapeHtml(levelTitle)}`,
-    editorButtons: opts.hideEditorButtons ? "" : editorButtons(!!view.username),
     contentSwf: opts.contentSwf ?? GAME_SWF,
   };
   const body = sidebar(!!view.username, opts.sideActive) + render(gameBodyTemplate, data);
@@ -275,7 +290,7 @@ export function renderGamePage(
     title: opts.title ?? `${username} | Level Creators | PlaySEGA`,
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
-    headExtra: "",
+    headExtra: opts.headExtra ?? "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
@@ -430,9 +445,8 @@ export function renderPlayPage(
     levelIdJs: JSON.stringify(levelId),
     zoneOneFrag: "",
     playerSwf: PRELOADER_SWF,
-    reportButton: REPORTER_HTML,
+    reportBlock: reportBlockHtml(view, levelId),
     playerHeading: `${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
-    editorButtons: editorButtons(!!view.username),
     contentSwf: GAME_SWF,
   });
   // Same sidebar as the index page.
