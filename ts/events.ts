@@ -515,6 +515,17 @@ export function wireEvents() {
   // Window resize
   window.addEventListener('resize', resizeCanvas);
 
+  // Fullscreen enter/exit: the canvas-wrap only reports its new size after
+  // layout settles, so a synchronous read here would measure the
+  // pre-fullscreen box and the canvas would lag a step behind (only
+  // recovering on the next zoom/resize). Resize on the following frames
+  // instead, when clientWidth/clientHeight are fresh.
+  const resizeAfterFullscreen = () => {
+    requestAnimationFrame(() => requestAnimationFrame(resizeCanvas));
+  };
+  document.addEventListener('fullscreenchange', resizeAfterFullscreen);
+  document.addEventListener('webkitfullscreenchange', resizeAfterFullscreen);
+
   // Canvas: redraw after any scroll (wheel, pan, or scrollbar drag) so
   // newly-revealed viewport regions get painted — not just on next mouse move.
   canvasWrap?.addEventListener('scroll', redrawCanvasOnScroll);
