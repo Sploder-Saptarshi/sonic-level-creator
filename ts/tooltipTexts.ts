@@ -10,7 +10,7 @@ export interface TooltipEntry {
 // Note from Lily, editing these was TEDIOUS. AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!!!!!!!!!!!!!
 export const TOOLTIPS: TooltipEntry[] = [
   // ── Essentials ──
-  { id: 151, name: "Sonic Spawn", desc: "Starting point for your level. (Required)" },
+  { id: 151, name: "Sonic Placer", desc: "Starting point for your level. (Required)" },
   { id: 44, name: "Sign Post", desc: "End point for your level. (Required)" },
   { id: 36, name: "Star Post", desc: "This is a Checkpoint, be careful where you place them!" },
 
