@@ -6,7 +6,7 @@ export const EDITOR_CSS = `
 .editor { display: flex; flex-direction: column; width: 100%; height: 100%;
   margin: 0; padding: 8px; gap: 8px;
   font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000;
-  background: linear-gradient(#ffffff, #e8e8e8); overflow: hidden; user-select: none;
+  background: #fff; overflow: hidden; user-select: none;
   border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
 
 /* ── top bar: flush header band inside the canvas container — full-bleed,
@@ -121,6 +121,14 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .btm-btn:link, .btm-btn:active, .btm-btn:visited { color: #fff; text-decoration: none; font-weight: bold; }
 .btm-btn:hover { background-position: bottom right; color: #fff; outline: none; }
 .btm-btn:hover span { background-position: bottom left; }
+/* Share uses the site button art directly (no sliding doors). The markup
+   keeps data-action so the wiring is untouched. */
+.share-btn { background: none; border: none; padding: 0; cursor: pointer;
+  transform: translateY(-5px); }
+.share-btn:hover img { filter: brightness(1.05); }
+.share-btn:active { transform: translateY(-4px); }
+/* Native art is 76x15: render at 1.25x wide with the height squashed a bit. */
+.share-btn img { display: block; border: none; width: 95px; height: 16px; }
 
 /* ── floating ghost ── */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
@@ -353,7 +361,7 @@ export const EDITOR_HTML = `
       <button class="btm-btn" data-action="mylevels"><span>My Levels</span></button>
       <button class="btm-btn" data-action="alllevels"><span>All Levels</span></button>
     </div>
-    <button class="btm-btn" data-action="share"><span>SHARE</span></button>
+    <button class="share-btn" data-action="share"><img src="/images/share-btn.png" alt="Share" /></button>
   </div>
 
   <div class="ghost" id="ghost"></div>
