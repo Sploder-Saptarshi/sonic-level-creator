@@ -3,7 +3,7 @@
 // errors re-render in-page and session cookies are set on our own responses.
 import { createAuth } from "../auth/config";
 import { escapeHtml, first, getSessionUser } from "./session";
-import { appendResponseHeader } from "nitro/h3";
+import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";
 import type { H3Event } from "nitro";
 
 export function errorBox(msg: string): string {
@@ -47,9 +47,57 @@ export function formString(body: Record<string, unknown>, key: string): string {
 // True when the request already carries a valid session. 0 SQL for
 // guests (no cookie fast-path in getSessionUser), 1 indexed lookup
 // otherwise. Shared guard for the sign-in/sign-up pages (signed-in
-// users bounce to /editors/).
+// users bounce to their return target, else the default landing).
 export function alreadySignedIn(event: H3Event): Promise<boolean> {
   return getSessionUser(event).then((s) => s !== null);
+}
+
+// Default post-login landing: My Levels (was the editor).
+export const DEFAULT_LANDING = "/editors/mylevels";
+
+// Validate a `next` return target. Relative paths only — absolute URLs,
+// protocol-relative `//host`, backslashes, and whitespace are rejected
+// (open-redirect prevention). Null when unusable.
+export function cleanNext(v: unknown): string | null {
+  const s = first(v);
+  if (typeof s !== "string") return null;
+  if (s.length < 1 || s.length > 512) return null;
+  if (!s.startsWith("/") || s.startsWith("//")) return null;
+  if (/[\s\\]/.test(s)) return null;
+  return s;
+}
+
+// Validated `next` from the form body (preferred) or query string, ""
+// when absent/invalid. Used to re-render the hidden form field so the
+// target survives validation errors.
+export function requestNext(
+  event: H3Event,
+  body?: Record<string, unknown>,
+): string {
+  return cleanNext(body?.next) ?? cleanNext(getQuery(event).next) ?? "";
+}
+
+// Landing after a successful sign-in/sign-up: the validated return
+// target, else the default landing. Pure (0 SQL).
+export function resolveNext(
+  event: H3Event,
+  body?: Record<string, unknown>,
+): string {
+  return requestNext(event, body) || DEFAULT_LANDING;
+}
+
+// Guest guard for protected pages: 302 to sign-in with the return target
+// attached. Defaults to the current path+query (so /editors/?load=abc
+// resumes correctly); pass an explicit target when the current URL isn't
+// landable (e.g. the delete POST endpoint -> /editors/mylevels).
+export function redirectToSignin(event: H3Event, returnTo?: string) {
+  let target = returnTo;
+  if (target === undefined) {
+    const url = getRequestURL(event);
+    target = url.pathname + url.search;
+    if (target.length > 512) target = url.pathname;
+  }
+  return sendRedirect(event, `/member/signin?next=${encodeURIComponent(target)}`);
 }
 
 export function syntheticEmail(username: string): string {

@@ -9,6 +9,7 @@
                     <div class="si-login-form-cnt" style="float: none">
                         <input type="hidden" name="action" value="processSignUp" />
                         <input type="hidden" name="promotion" value="" />
+                        <input type="hidden" name="next" value="<%= it.next %>" />
 <%~ it.formError %>
                         <div class="si-login-form-item-cnt" style="float: none; padding: 0; height: 32px">
                             <div class="si-login-form-item-left">Username:&nbsp;</div>
@@ -47,7 +48,7 @@
                         <div class="si-login-form-item-cnt" style="padding-top: 10px; float: none">
                             <div class="si-login-form-item-left">&nbsp;</div>
                             <div class="si-login-form-item-right">
-                                Already have an account? <a href="/member/signin" rel="nofollow">Sign in</a>
+                                Already have an account? <a href="<%= it.signinHref %>" rel="nofollow">Sign in</a>
                             </div>
                             <div class="clear">&nbsp;</div>
                         </div>

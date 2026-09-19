@@ -5,7 +5,7 @@
             <div class="newformholdersignup">
                 <div class="rightBoxes">
                     <div class="notyetmember">
-                        <a class="lozenge2" href="/member/signup" rel="nofollow"><span>Go to Quick Sign-up</span></a>
+                        <a class="lozenge2" href="<%= it.signupHref %>" rel="nofollow"><span>Go to Quick Sign-up</span></a>
                     </div>
                 </div>
                 <div class="welcomeback">&nbsp;</div>
@@ -13,6 +13,7 @@
                     <div class="si-login-form-cnt" style="float: none">
                         <input type="hidden" name="action" value="processSignIn" />
                         <input type="hidden" name="promotion" value="" />
+                        <input type="hidden" name="next" value="<%= it.next %>" />
 <%~ it.formError %>
                         <div class="si-login-form-item-cnt" style="float: none; padding: 0; height: 32px">
                             <div class="si-login-form-item-left">Username:&nbsp;</div>

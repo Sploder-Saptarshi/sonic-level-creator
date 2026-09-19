@@ -28,6 +28,8 @@ export interface PageView {
   username?: string;
   languagebar?: string;
   formError?: string;
+  // Validated `next` return target for the member forms ("" when none).
+  next?: string;
 }
 
 // Session -> template view. Null (guest) maps to {} so pages render the
@@ -333,7 +335,18 @@ function renderMemberPage(
   title: string,
   view: PageView = {},
 ): string {
-  const body = render(bodyTpl, { formError: view.formError ?? "" });
+  // Return target for the hidden form field + the cross-link to the other
+  // member form (so switching sign-in <-> sign-up keeps it). Slots are
+  // escaped on render; routes pass a validated value.
+  const next = view.next ?? "";
+  const withNext = (href: string) =>
+    next ? `${href}?next=${encodeURIComponent(next)}` : href;
+  const body = render(bodyTpl, {
+    formError: view.formError ?? "",
+    next,
+    signupHref: withNext("/member/signup"),
+    signinHref: withNext("/member/signin"),
+  });
   return render(layoutTemplate, {
     title,
     languagebar: NAV_LANGUAGEBAR,
