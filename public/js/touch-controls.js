@@ -134,21 +134,55 @@
       else if (dir === "up") y = -t;
       else if (dir === "down") y = t;
       knob.style.transform = "translate(" + x + "px," + y + "px)";
+      chooseGame();
       sendKey("keydown", KEYMAP[dir]);
-      focusPlayer();
     }
 
-    function focusPlayer() {
-      var player =
+    function playerEl() {
+      return (
         document.querySelector("#gameswf ruffle-player") ||
-        document.getElementById("gameswf");
+        document.querySelector("#gameswf object") ||
+        document.querySelector("#gameswf embed") ||
+        document.getElementById("gameswf")
+      );
+    }
+
+    // Hands the game to the player before input flows: makes the stage
+    // focusable and focuses it. Runs fully once; every press re-asserts
+    // DOM focus cheaply (it can be lost to the exit button or browser
+    // chrome). Deliberately sends no clicks: overlays such as click-to-play
+    // must never be auto-dismissed.
+    var gameChosen = false;
+
+    function focusPlayer() {
+      var player = playerEl();
       if (player && player.focus) {
         try {
-          player.focus();
+          player.focus({ preventScroll: true });
         } catch (e) {
-          /* focus is best-effort */
+          try {
+            player.focus();
+          } catch (ignored) {
+            /* focus is best-effort */
+          }
         }
       }
+    }
+
+    function chooseGame() {
+      focusPlayer();
+      if (gameChosen) return;
+      gameChosen = true;
+      var player = playerEl();
+      if (!player) return;
+      try {
+        if (typeof player.tabIndex === "number" && player.tabIndex < 0) {
+          player.tabIndex = -1;
+        }
+      } catch (e) {
+        /* tabindex is best-effort */
+      }
+      focusPlayer();
     }
 
     function dirFromPoint(cx, cy) {
@@ -252,8 +286,8 @@
         if (jumpPointer !== null) return;
         jumpPointer = e.pointerId !== undefined ? e.pointerId : "touch";
         root.setAttribute("data-jump", "1");
+        chooseGame();
         sendKey("keydown", KEYMAP.jump);
-        focusPlayer();
         e.preventDefault();
       };
       var jumpOff = function (e) {
@@ -274,8 +308,8 @@
           function (e) {
             jumpPointer = e.changedTouches[0].identifier;
             root.setAttribute("data-jump", "1");
+            chooseGame();
             sendKey("keydown", KEYMAP.jump);
-            focusPlayer();
             e.preventDefault();
           },
           { passive: false }

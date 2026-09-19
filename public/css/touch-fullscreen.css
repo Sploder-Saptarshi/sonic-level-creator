@@ -102,6 +102,14 @@ body.tc-locked {
   display: block;
 }
 
+/* While the stage owns the screen, hide floating page chrome (language
+   flags, feedback tab) so it can never paint over the stage. Plain
+   selectors only — no prefixed grouping hazard here. */
+html.tc-stage-active .flags-float,
+html.tc-stage-active #feedback {
+  display: none !important;
+}
+
 /* Exit control (created by touch-fullscreen.js, toggled per mode). */
 .tc-exit-fullscreen {
   display: none;
