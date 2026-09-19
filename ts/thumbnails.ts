@@ -3,7 +3,7 @@
 import { BLOCK_PX, USED_BLOCKS, MAX_OBJECTS_PER_TILE, blockSheetXY } from './format';
 import {
   S, cellSize, defsForTab, totalObjects, countPlacedTiles,
-  pixelToTile, objectsInTile, updateDesc,
+  updateDesc, type TabType,
 } from './state';
 import { draw } from './render';
 import { partsFor, paintThumb, isMirrored } from './sprites';
@@ -218,7 +218,7 @@ export function buildThumbnails() {
   }
 }
 
-export function switchTab(tab: S['activeTab']) {
+export function switchTab(tab: TabType) {
   S.activeTab = tab;
   S.selectedObj = null;
   S.selectedObjIdx = -1;

@@ -3,7 +3,7 @@
 import { MAX_OBJECTS_PER_TILE, objectTileCostInTile, objectTiles, countObjectsInTile, snap8, pixelToTile } from './format';
 import {
   S, inGrid, canvasToWorld, totalObjects, countPlacedTiles,
-  cellSize, updateDesc,
+  cellSize, updateDesc, type TabType,
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
@@ -433,7 +433,7 @@ export function wireEvents() {
 
   // Tab buttons
   shadow!.querySelectorAll('.tab').forEach(b => {
-    b.addEventListener('click', () => switchTab(b.getAttribute('data-tab') as S['activeTab']));
+    b.addEventListener('click', () => switchTab(b.getAttribute('data-tab') as TabType));
   });
 
   // Action buttons

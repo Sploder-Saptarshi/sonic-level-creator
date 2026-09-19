@@ -290,10 +290,20 @@ export function moveExtremes(type: number, sub: number): Array<{ dx: number; dy:
 }
 
 // Sub-indexed art: type -> sub -> parts (motion-only subs fall back to base).
+// Monitor subs 1..6 always have art (monitorParts returns null only for
+// dead sub 0 / sub 7+), so the table builder keeps the non-null parts.
+function monitorTable(): Record<number, SpritePart[]> {
+  const table: Record<number, SpritePart[]> = {};
+  for (let sub = 1; sub <= 6; sub++) {
+    const parts = monitorParts(sub);
+    if (parts) table[sub] = parts;
+  }
+  return table;
+}
 const SUBSPRITES: Record<number, Record<number, SpritePart[]>> = {
   // Monitors 42/43 contents (box + icon overlay; sub 0 spent omitted)
-  42: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
-  43: { 1: monitorParts(1), 2: monitorParts(2), 3: monitorParts(3), 4: monitorParts(4), 5: monitorParts(5), 6: monitorParts(6) },
+  42: monitorTable(),
+  43: monitorTable(),
   // Buttons 45/46 art rows (shared bonus_draw)
   45: {
     0: [p(D + 'bten.png', 0, 0, 32, 24, 0, 0, 'center')],
