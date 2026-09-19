@@ -21,12 +21,16 @@ bundle. Web document root is `public/` (Nitro serves it as static);
 
 | Command              | What it does                                              |
 | -------------------- | --------------------------------------------------------- |
-| `npm run dev`        | Nitro dev server (no PHP needed)                        |
-| `npm run build`      | Editor bundle + `nitro build` (preset `node_server`)      |
-| `npm run build:editor` | Bundles `ts/main.ts` → `public/editors/assets/editor.js` |
+| `npm run dev`        | Nitro dev server (no PHP needed) — run `build:editor` first |
+| `npm run build`      | Minified editor bundle + `nitro build` (preset `node_server`) |
+| `npm run build:editor` | Dev (unminified) bundle `ts/main.ts` → `public/editors/assets/editor.js` |
+| `npm run build:editor:prod` | Minified bundle (used by `build` + `deploy:pages`; never committed) |
 | `npm run lint`       | `node --check` on the compiled `editor.js`                |
 | `npm run serve`      | Run the production build (`.output/server/index.mjs`)     |
-| `npm run deploy:pages` | Build `cloudflare_pages` preset + deploy `dist/` to `sonicrelvl.pages.dev` |
+| `npm run deploy:pages` | Minified bundle + `cloudflare_pages` preset + deploy `dist/` to `sonicrelvl.pages.dev` |
+
+> `public/editors/assets/editor.js` is gitignored build output — clone +
+> `npm run build:editor` before `npm run dev`.
 
 > Pages Functions only run on the explicit `cloudflare.pages.routes`
 > include list (`nitro.config.ts`) — everything else is a free static 404,

@@ -97,19 +97,33 @@ function boot() {
   wireEvents();
 
   // Open from My Levels (?load=<id>): fetch + decode straight into the
-  // editor, skipping the start screens. Falls through to a fresh level
-  // when the id is missing, foreign, or corrupt.
-  const loadId = new URLSearchParams(location.search).get('load');
+  // editor, skipping the start screens. The overlay is hidden
+  // synchronously below so the create screen never flashes while the
+  // fetch is in flight; a failed open reveals it again. Falls through to
+  // a fresh level when the id is missing, foreign, or corrupt.
+  const rawLoadId = new URLSearchParams(location.search).get('load');
+  const loadId = rawLoadId && /^[\w-]{1,128}$/.test(rawLoadId) ? rawLoadId : null;
   if (loadId) {
+    shadow.querySelector('.start-overlay')?.classList.add('hidden');
     loadLevelById(loadId).then((ok) => {
-      if (ok) timingLog('opened saved level');
+      if (ok) {
+        timingLog('opened saved level');
+        return;
+      }
+      shadow.querySelector('.start-overlay')?.classList.remove('hidden');
+      const retryInput = shadow.querySelector('.start-name') as HTMLInputElement | null;
+      retryInput?.focus();
+      retryInput?.select();
     });
   }
 
   // Start screen is up: focus the name field, text selected, ready to type.
-  const nameInput = shadow.querySelector('.start-name') as HTMLInputElement | null;
-  nameInput?.focus();
-  nameInput?.select();
+  // Skipped when opening a saved level (overlay hidden until a failure).
+  if (!loadId) {
+    const nameInput = shadow.querySelector('.start-name') as HTMLInputElement | null;
+    nameInput?.focus();
+    nameInput?.select();
+  }
 
   // First paint — defer to let Shadow DOM layout compute
   requestAnimationFrame(() => {

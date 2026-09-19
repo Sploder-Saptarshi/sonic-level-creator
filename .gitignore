@@ -6,3 +6,5 @@
 /dist
 /data
 /dist
+# esbuild output (built via npm run build:editor / build:editor:prod)
+/public/editors/assets/editor.js

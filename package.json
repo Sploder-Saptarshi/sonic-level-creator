@@ -7,12 +7,13 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "build": "npm run build:editor && nitro build",
+    "build": "npm run build:editor:prod && nitro build",
     "build:editor": "esbuild ts/main.ts --bundle --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
+    "build:editor:prod": "esbuild ts/main.ts --bundle --minify --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
     "dev": "nitro dev",
     "preview": "nitro preview",
     "serve": "node .output/server/index.mjs",
-    "deploy:pages": "NITRO_PRESET=cloudflare_pages nitro build --preset cloudflare_pages && wrangler pages deploy dist --project-name sonicrelvl --branch main",
+    "deploy:pages": "npm run build:editor:prod && NITRO_PRESET=cloudflare_pages nitro build --preset cloudflare_pages && wrangler pages deploy dist --project-name sonicrelvl --branch main",
     "lint": "node --check public/editors/assets/editor.js"
   },
   "devDependencies": {
