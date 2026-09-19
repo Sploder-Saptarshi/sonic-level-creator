@@ -128,12 +128,12 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 // ?v= cache-buster: these files change during the touch-controls rollout;
 // the query guarantees browsers fetch the current revision (static hosts
 // ignore the query when resolving the file).
-const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css?v=2" type="text/css" media="screen" />
+const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" type="text/css" media="screen" />
 `;
 // Fullscreen letterbox stage for touch devices. Loaded on EVERY game page
 // (index, /play, ice-shuffle): it only ever applies while fullscreened,
 // which touch-fullscreen.js enters on a touch inside the SWF.
-const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css?v=2" type="text/css" media="screen" />
+const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css" type="text/css" media="screen" />
 `;
 
 // API connector id passed as the game's `id` flashvar (it loads
@@ -237,9 +237,11 @@ const UPSELL_HTML = `          <div id="upsellOne" class="upsellOne">
 
 // Sidebar with the per-session slot filled in: guests see the sign-up
 // upsell, signed-in users get the Sonic side art (same left-side art as
-// the sign-in page).
+// the sign-in page). Explicit dimensions reserve the slot before the
+// image loads (220px column, 221x431 source) so login state never
+// reflows the layout.
 const SIDEBAR_SONIC =
-  `<img class="sidebar-sonic" src="/images/sonic_side_sml.jpg" alt="Sonic" />`;
+  `<img class="sidebar-sonic" src="/images/sonic_side_sml.jpg" alt="Sonic" width="220" height="429" />`;
 
 function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   return render(sidenavTemplate, {
@@ -330,7 +332,7 @@ const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                     <div class="tc-btn-knob"></div>
                 </div>
             </div>
-            <script type="text/javascript" src="/js/touch-controls.js?v=3"></script>`;
+            <script type="text/javascript" src="/js/touch-controls.js"></script>`;
 
 export function renderGamePage(
   query: PageQuery,
