@@ -65,6 +65,7 @@ export function html(event: H3Event, body: string): string {
 
 const GAME_SWF = "/games/swf/52/52.swf";
 const PRELOADER_SWF = "/swf/preloader/as3/v2/preloader-guest.swf";
+const PRELOADER_SIGNEDIN_SWF = "/swf/preloader/as3/v2/preloader-signedin.swf";
 const DEFAULT_PLAYER_NAME = "Sonic The Hedgehog Level Player";
 const REPORTER_HTML =
   `<a class="lozenge1" id="reporter" href="javascript:void(0)"><span>Report Level</span></a>`;
@@ -309,7 +310,9 @@ export function renderGamePage(
     levelIdJs: JSON.stringify(levelId),
     // Omitted entirely on player pages without zones (e.g. /play).
     zoneOneFrag: `,isZoneOne: ${cleanZoneOne(query.zoneone)}`,
-    playerSwf: opts.playerSwf ?? PRELOADER_SWF,
+    // Signed-in users get the signed-in preloader (modified copy); guests
+    // keep the stock guest one. An explicit playerSwf always wins.
+    playerSwf: opts.playerSwf ?? (view.username ? PRELOADER_SIGNEDIN_SWF : PRELOADER_SWF),
     reportBlock: opts.hideReport
       ? ""
       : reportBlockHtml(view, levelId),
@@ -514,7 +517,7 @@ export function renderPlayPage(
     levelId,
     levelIdJs: JSON.stringify(levelId),
     zoneOneFrag: "",
-    playerSwf: PRELOADER_SWF,
+    playerSwf: view.username ? PRELOADER_SIGNEDIN_SWF : PRELOADER_SWF,
     reportBlock: reportBlockHtml(view, levelId),
     playerHeading: `${unpublishedBadge}${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
     contentSwf: GAME_SWF,
