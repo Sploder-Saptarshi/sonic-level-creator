@@ -148,7 +148,7 @@
       if (exitBtn) return exitBtn;
       exitBtn = document.createElement("button");
       exitBtn.className = "tc-exit-fullscreen";
-      exitBtn.textContent = "\u00d7";
+      exitBtn.textContent = "";
       exitBtn.setAttribute("aria-label", "Exit fullscreen");
       exitBtn.setAttribute("type", "button");
       exitBtn.addEventListener("click", function (e) {

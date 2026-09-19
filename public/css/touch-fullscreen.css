@@ -157,7 +157,8 @@ html.tc-stage-active body * {
   margin: 0 -20px !important;
 }
 
-/* Exit control (created by touch-fullscreen.js, toggled per mode). */
+/* Exit control (created by touch-fullscreen.js, toggled per mode).
+   Uses the stock exit-full-btn art (64x64). */
 .tc-exit-fullscreen {
   display: none;
   position: absolute;
@@ -166,12 +167,10 @@ html.tc-stage-active body * {
   z-index: 60;
   width: 40px;
   height: 40px;
-  border-radius: 20px;
-  border: 1px solid #666;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  font-size: 18px;
-  line-height: 1;
+  border: none;
+  padding: 0;
+  background: transparent url("/images/exit-full-btn.png") no-repeat center center;
+  background-size: contain;
   cursor: pointer;
   pointer-events: auto;
   touch-action: manipulation;

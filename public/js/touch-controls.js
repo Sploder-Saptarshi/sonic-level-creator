@@ -98,6 +98,56 @@
     if (!dpad || !knob) return;
     var jumpBtn = root.querySelector(".tc-btn");
 
+    // Show the controls only while gameplay is in progress (not on the
+    // title screen). The SWF exposes tcInGame()/tcMode() via
+    // ExternalInterface; unknown/unavailable counts as not playing.
+    // NOTE: tcMode() is authoritative — this Ruffle build demonstrably
+    // marshals Numbers (tcMode 1/2 verified live) while the Boolean
+    // return is unreliable, so gameplay is detected as mode == 2
+    // (MainCanvas.MODE_FIELD).
+    function refreshPlaying() {
+      var playing = false;
+      try {
+        var player =
+          document.querySelector("#gameswf ruffle-player") ||
+          document.querySelector("#gameswf object") ||
+          document.querySelector("#gameswf embed") ||
+          document.getElementById("gameswf");
+        var cbs = [];
+        if (player) cbs.push(player);
+        try {
+          if (player && typeof player.ruffle === "function") {
+            var api = player.ruffle();
+            if (api) cbs.push(api);
+          }
+        } catch (e) {
+          /* versioned API is best-effort */
+        }
+        for (var i = 0; i < cbs.length && !playing; i++) {
+          try {
+            if (typeof cbs[i].tcInGame === "function") {
+              if (cbs[i].tcInGame() === true) playing = true;
+            }
+          } catch (e) {
+            /* try the next target */
+          }
+          try {
+            if (!playing && typeof cbs[i].tcMode === "function") {
+              if (cbs[i].tcMode() === 2) playing = true;
+            }
+          } catch (e) {
+            /* try the next target */
+          }
+        }
+      } catch (e) {
+        playing = false;
+      }
+      if (playing) root.classList.add("tc-playing");
+      else root.classList.remove("tc-playing");
+    }
+    refreshPlaying();
+    setInterval(refreshPlaying, 500);
+
     var held = null; // currently asserted dpad direction or null
     var activePointer = null;
 

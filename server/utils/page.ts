@@ -330,7 +330,7 @@ const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                     <div class="tc-btn-knob"></div>
                 </div>
             </div>
-            <script type="text/javascript" src="/js/touch-controls.js?v=2"></script>`;
+            <script type="text/javascript" src="/js/touch-controls.js?v=3"></script>`;
 
 export function renderGamePage(
   query: PageQuery,
