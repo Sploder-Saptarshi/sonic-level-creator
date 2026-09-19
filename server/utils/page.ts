@@ -125,12 +125,15 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 `;
 // Touch dpad + jump button over the level player (touch devices only;
 // the overlay self-hides otherwise). Shared by the index and /play pages.
-const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" type="text/css" media="screen" />
+// ?v= cache-buster: these files change during the touch-controls rollout;
+// the query guarantees browsers fetch the current revision (static hosts
+// ignore the query when resolving the file).
+const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css?v=2" type="text/css" media="screen" />
 `;
 // Fullscreen letterbox stage for touch devices. Loaded on EVERY game page
 // (index, /play, ice-shuffle): it only ever applies while fullscreened,
 // which touch-fullscreen.js enters on a touch inside the SWF.
-const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css" type="text/css" media="screen" />
+const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css?v=2" type="text/css" media="screen" />
 `;
 
 // API connector id passed as the game's `id` flashvar (it loads
@@ -327,7 +330,7 @@ const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                     <div class="tc-btn-knob"></div>
                 </div>
             </div>
-            <script type="text/javascript" src="/js/touch-controls.js"></script>`;
+            <script type="text/javascript" src="/js/touch-controls.js?v=2"></script>`;
 
 export function renderGamePage(
   query: PageQuery,

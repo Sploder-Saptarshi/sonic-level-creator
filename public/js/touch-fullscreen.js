@@ -84,6 +84,24 @@
     var exitBtn = null;
     var entering = false; // request in flight: swallow duplicate gestures
 
+    // Natural SWF size. The player renders noscale, so fullscreen scaling
+    // is a CSS transform on the stage: largest factor that still fits.
+    var GAME_W = 640;
+    var GAME_H = 448;
+
+    // Fit the fixed-size stage into the viewport via transform scale.
+    // Origin center (see CSS) keeps it centered under flex layout.
+    function fit() {
+      if (!isFull()) return;
+      var s = Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H);
+      if (!isFinite(s) || s <= 0) s = 1;
+      swf.style.transform = "scale(" + s + ")";
+    }
+
+    function unfit() {
+      swf.style.transform = "";
+    }
+
     // Probe the control sprite: result lands in window.__tcImg.
     window.__tcImg = "pending";
     try {
@@ -136,6 +154,8 @@
       else container.classList.remove("tc-stage-fullscreen");
       showExit(full);
       entering = false;
+      if (full) fit();
+      else unfit();
     }
 
     function ensureExitBtn() {
@@ -226,6 +246,9 @@
 
     document.addEventListener("fullscreenchange", syncStage);
     document.addEventListener("webkitfullscreenchange", syncStage);
+    // Refit on viewport changes (rotation, split-screen, URL bar).
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
     // Some browsers report denial via event instead of promise rejection.
     document.addEventListener("fullscreenerror", function () {
       entering = false;

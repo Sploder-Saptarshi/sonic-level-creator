@@ -59,24 +59,28 @@ body.tc-locked {
   overflow: hidden;
 }
 
-/* Letterboxed stage: fixed SWF aspect, shrink-to-fit. */
+/* Letterboxed stage: the SWF renders noscale (fixed 640x448), so the
+   box is kept at natural size and scaled directly with a CSS transform
+   (factor set inline by touch-fullscreen.js: min(vw/640, vh/448)).
+   transform-origin center keeps the flex centering exact, and scaling the
+   composited frame works regardless of the player's internal scaleMode. */
 #gamecontainer:fullscreen #gameswf,
 #gamecontainer.tc-pseudo-fullscreen #gameswf {
-  width: min(100vw, calc(100vh * 640 / 448)) !important;
-  height: auto !important;
-  aspect-ratio: 640 / 448;
+  width: 640px !important;
+  height: 448px !important;
   margin: 0 !important;
   padding: 0 !important;
   flex: 0 0 auto;
+  transform-origin: center center;
 }
 
 #gamecontainer:-webkit-full-screen #gameswf {
-  width: min(100vw, calc(100vh * 640 / 448)) !important;
-  height: auto !important;
-  aspect-ratio: 640 / 448;
+  width: 640px !important;
+  height: 448px !important;
   margin: 0 !important;
   padding: 0 !important;
   flex: 0 0 auto;
+  transform-origin: center center;
 }
 
 #gamecontainer:fullscreen #gameswf ruffle-player,
