@@ -200,22 +200,20 @@ const UPSELL_HTML = `          <div id="upsellOne" class="upsellOne">
         <div class="upsellOneContent">
             <div class="upsellOnePerks">
                 <div class="upsellOnePerk">
-                    <div class="upsellOnePerk_Scores">&nbsp;</div>
-                    <div class="upsellOnePerk_Text">Save high scores</div>
+                    <div class="upsellOnePerk_Levels">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Build your own levels</div>
                 </div>
                 <div class="upsellOnePerk">
-                    <div class="upsellOnePerk_Rings2">&nbsp;</div>
-                    <div class="upsellOnePerk_Text">Collect PlaySEGA rings</div>
+                    <div class="upsellOnePerk_Newgames">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Share them with everyone</div>
                 </div>
                 <div class="upsellOnePerk">
-                    <div class="upsellOnePerk_Prizes2">&nbsp;</div>
-                    <div class="upsellOnePerk_Text">Win cash prizes</div>
+                    <div class="upsellOnePerk_Joypad">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Play community levels</div>
                 </div>
                 <div class="upsellOnePerk">
-                    <div class="upsellOnePerk_Trial">&nbsp;</div>
-                    <div class="upsellOnePerk_Text">
-                        FREE 5 day PlaySEGA<sup>VIP</sup> trial
-                    </div>
+                    <div class="upsellOnePerk_Saveload">&nbsp;</div>
+                    <div class="upsellOnePerk_Text">Save levels to your account</div>
                 </div>
             </div>
             <div class="upsellButton">
