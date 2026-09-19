@@ -110,6 +110,43 @@ html.tc-stage-active #feedback {
   display: none !important;
 }
 
+/* Cropped stages (Ice Shuffle, flagged .tc-cropped by JS): the 600px
+   crop window moves onto #gameswf itself (the fullscreen container no
+   longer clips), and the player keeps its -20px side offsets so the
+   hidden edges stay hidden. Higher specificity than the base rules above,
+   so these win on cropped pages only. */
+#gamecontainer:fullscreen.tc-cropped #gameswf,
+#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf {
+  width: 600px !important;
+  height: 448px !important;
+  overflow: hidden !important;
+}
+
+#gamecontainer:-webkit-full-screen.tc-cropped #gameswf {
+  width: 600px !important;
+  height: 448px !important;
+  overflow: hidden !important;
+}
+
+#gamecontainer:fullscreen.tc-cropped #gameswf ruffle-player,
+#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf ruffle-player,
+#gamecontainer:fullscreen.tc-cropped #gameswf object,
+#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf object,
+#gamecontainer:fullscreen.tc-cropped #gameswf embed,
+#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf embed {
+  width: 640px !important;
+  height: 448px !important;
+  margin: 0 -20px !important;
+}
+
+#gamecontainer:-webkit-full-screen.tc-cropped #gameswf ruffle-player,
+#gamecontainer:-webkit-full-screen.tc-cropped #gameswf object,
+#gamecontainer:-webkit-full-screen.tc-cropped #gameswf embed {
+  width: 640px !important;
+  height: 448px !important;
+  margin: 0 -20px !important;
+}
+
 /* Exit control (created by touch-fullscreen.js, toggled per mode). */
 .tc-exit-fullscreen {
   display: none;

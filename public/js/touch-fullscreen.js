@@ -13,7 +13,7 @@
  * Stage state is mirrored to a `tc-stage-fullscreen` class on the
  * container (set from fullscreenchange events + the pseudo path), which
  * is what reveals the touch controls — never the :fullscreen selector
- * alone. window.__tcState() reports the live state for debugging.
+ * alone.
  */
 (function () {
   "use strict";
@@ -29,55 +29,6 @@
     var touch = isTouchDevice();
     var container = document.getElementById("gamecontainer");
     var swf = document.getElementById("gameswf");
-    // Debug snapshot (safe to call even when inert).
-    window.__tcState = function () {
-      var root = null;
-      try {
-        root = fsRoot();
-      } catch (e) {
-        root = null;
-      }
-      var controls = document.getElementById("touch-controls");
-      var sheets = [];
-      try {
-        for (var i = 0; i < document.styleSheets.length; i++) {
-          sheets.push(document.styleSheets[i].href || "(inline)");
-        }
-      } catch (e) {
-        sheets.push("unreadable");
-      }
-      var cd = null;
-      var baseBg = null;
-      try {
-        if (controls && window.getComputedStyle) {
-          var cs = window.getComputedStyle(controls);
-          cd = cs.display + "/" + cs.visibility + "/z" + cs.zIndex +
-            "/" + controls.getBoundingClientRect().width + "x" +
-            controls.getBoundingClientRect().height;
-          var base = controls.querySelector(".tc-base");
-          if (base) baseBg = window.getComputedStyle(base).backgroundImage;
-        }
-      } catch (e) {
-        cd = "unreadable";
-      }
-      return {
-        touch: touch,
-        container: !!container,
-        controlsMarkup: !!controls,
-        controlsOn: !!controls && controls.classList.contains("tc-on"),
-        controlsComputed: cd,
-        baseBackground: baseBg,
-        spriteProbe: window.__tcImg,
-        stylesheets: sheets,
-        fullscreenElement: document.fullscreenElement === container,
-        webkitFullscreenElement: document.webkitFullscreenElement === container,
-        fsTag: root ? root.tagName || "?" : null,
-        fsContainsStage: !!root && root !== container &&
-          !!(root.contains && root.contains(container)),
-        pseudo: !!container && container.classList.contains("tc-pseudo-fullscreen"),
-        stage: !!container && container.classList.contains("tc-stage-fullscreen")
-      };
-    };
     if (!touch) return;
     if (!container || !swf) return;
 
@@ -86,8 +37,27 @@
 
     // Natural SWF size. The player renders noscale, so fullscreen scaling
     // is a CSS transform on the stage: largest factor that still fits.
+    // Ice Shuffle crops the movie through a 600px window (20px shaved off
+    // each side); detect that setup so fullscreen preserves the crop
+    // instead of revealing the hidden edges.
     var GAME_W = 640;
     var GAME_H = 448;
+
+    function detectCrop() {
+      var cropped = false;
+      try {
+        if (swf.clientWidth > container.clientWidth + 1) cropped = true;
+      } catch (e) {
+        cropped = false;
+      }
+      GAME_W = cropped ? 600 : 640;
+      try {
+        if (cropped) container.classList.add("tc-cropped");
+        else container.classList.remove("tc-cropped");
+      } catch (e) {
+        /* class toggle is best-effort */
+      }
+    }
 
     // Fit the fixed-size stage into the viewport via transform scale.
     // Origin center (see CSS) keeps it centered under flex layout.
@@ -119,21 +89,6 @@
       setTimeout(function () {
         fit();
       }, 250);
-    }
-
-    // Probe the control sprite: result lands in window.__tcImg.
-    window.__tcImg = "pending";
-    try {
-      var probe = new Image();
-      probe.onload = function () {
-        window.__tcImg = "ok " + probe.naturalWidth + "x" + probe.naturalHeight;
-      };
-      probe.onerror = function () {
-        window.__tcImg = "error";
-      };
-      probe.src = "/images/controls.png";
-    } catch (e) {
-      window.__tcImg = "error";
     }
 
     function isFull() {
@@ -229,6 +184,7 @@
     function enter() {
       if (isFull() || entering) return;
       ensureExitBtn();
+      detectCrop();
       var req = container.requestFullscreen || container.webkitRequestFullscreen;
       if (!req) {
         pseudo();
@@ -310,10 +266,12 @@
     }
 
     // Capture phase on window: runs before anything inside the SWF/Ruffle
-    // player can stop propagation. Desktop mouse is ignored.
+    // player can stop propagation. Desktop mouse is ignored, as are
+    // synthetic (untrusted) events.
     window.addEventListener(
       "touchstart",
       function (e) {
+        if (e.isTrusted === false) return;
         if (inside(e)) enter();
       },
       { capture: true, passive: true }
@@ -322,6 +280,7 @@
       window.addEventListener(
         "pointerdown",
         function (e) {
+          if (e.isTrusted === false) return;
           if ((e.pointerType === "touch" || e.pointerType === "pen") && inside(e)) {
             enter();
           }
@@ -332,6 +291,7 @@
 
     // Pick up a stage that is already fullscreen (e.g. entered before
     // this script ran).
+    detectCrop();
     syncStage();
   }
 

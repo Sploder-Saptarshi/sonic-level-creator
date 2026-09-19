@@ -14,11 +14,11 @@
  *   BR cell = gold feedback ring; only the pushed HALF is revealed
  *             (e.g. left push => left half of BR + right half of TL)
  *
- * The Flash player runs under Ruffle, which listens for real keyboard
- * events on window. Touch is therefore translated into synthesized
- * ArrowLeft/ArrowRight/ArrowUp/ArrowDown (+ Space for jump) keydown/keyup
- * pairs dispatched to window/document/the player element. 4-way only:
- * the dominant axis wins, the knob travels along that axis alone.
+ * The game SWF carries ExternalInterface touch hooks (tcKeyDown/tcKeyUp,
+ * added with FFDec): they write straight into the game's keyPressState
+ * array, so no keyboard focus and no synthetic key events are needed.
+ * 4-way only: the dominant axis wins, the knob travels along that axis
+ * alone. Key codes match the SWF's Utilities.KEY_*_INDEX values.
  */
 (function () {
   "use strict";
@@ -27,12 +27,13 @@
   var TRAVEL = 22; // px knob travel at 132px dpad size (scaled by size/132)
   var DEADZONE = 10; // px neutral radius at 132px dpad size
 
+  // Touch codes match the SWF's Utilities.KEY_*_INDEX values exactly.
   var KEYMAP = {
-    left: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 },
-    right: { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
-    up: { key: "ArrowUp", code: "ArrowUp", keyCode: 38 },
-    down: { key: "ArrowDown", code: "ArrowDown", keyCode: 40 },
-    jump: { key: " ", code: "Space", keyCode: 32 }
+    left: 37,
+    right: 39,
+    up: 38,
+    down: 40,
+    jump: 32
   };
 
   function isTouchDevice() {
@@ -42,46 +43,35 @@
     return false;
   }
 
-  // Synthesize a keyboard event Ruffle/Flash will honor. keyCode/which are
-  // read-only on KeyboardEvent, so they are patched via defineProperty.
-  function sendKey(type, spec) {
-    var ev;
-    try {
-      ev = new KeyboardEvent(type, {
-        key: spec.key,
-        code: spec.code,
-        bubbles: true,
-        cancelable: true
-      });
-    } catch (e) {
-      ev = document.createEvent("KeyboardEvent");
-      if (ev.initKeyboardEvent) {
-        ev.initKeyboardEvent(type, true, true, window, spec.key, 0, "", false, "");
-      } else {
-        ev.initEvent(type, true, true);
-      }
-    }
-    try {
-      Object.defineProperty(ev, "keyCode", { value: spec.keyCode });
-      Object.defineProperty(ev, "which", { value: spec.keyCode });
-    } catch (e) {
-      /* older engines ignore the patch; key/code still carry the meaning */
-    }
-    // Single dispatch: the player (or document fallback) bubbles through
-    // document to window, so every listener fires exactly once.
+  // Touch input via the SWF's ExternalInterface hooks (tcKeyDown/tcKeyUp,
+  // added to 52.swf with FFDec): they write straight into the game's
+  // keyPressState array. Same pattern as the editor's editorStartAudio
+  // hook — element method first, then the versioned ruffle() API.
+  function sendKey(type, code) {
+    var method = type === "keydown" ? "tcKeyDown" : "tcKeyUp";
     var player =
       document.querySelector("#gameswf ruffle-player") ||
       document.querySelector("#gameswf object") ||
       document.querySelector("#gameswf embed") ||
       document.getElementById("gameswf");
-    var target = player || document;
+    var targets = [];
+    if (player) targets.push(player);
     try {
-      target.dispatchEvent(ev);
+      if (player && typeof player.ruffle === "function") {
+        var api = player.ruffle();
+        if (api) targets.push(api);
+      }
     } catch (e) {
+      /* versioned API is best-effort */
+    }
+    for (var i = 0; i < targets.length; i++) {
       try {
-        document.dispatchEvent(ev);
-      } catch (ignored) {
-        /* dispatch is best-effort */
+        if (typeof targets[i][method] === "function") {
+          targets[i][method](code);
+          return;
+        }
+      } catch (e) {
+        /* try the next target */
       }
     }
   }
@@ -134,55 +124,7 @@
       else if (dir === "up") y = -t;
       else if (dir === "down") y = t;
       knob.style.transform = "translate(" + x + "px," + y + "px)";
-      chooseGame();
       sendKey("keydown", KEYMAP[dir]);
-    }
-
-    function playerEl() {
-      return (
-        document.querySelector("#gameswf ruffle-player") ||
-        document.querySelector("#gameswf object") ||
-        document.querySelector("#gameswf embed") ||
-        document.getElementById("gameswf")
-      );
-    }
-
-    // Hands the game to the player before input flows: makes the stage
-    // focusable and focuses it. Runs fully once; every press re-asserts
-    // DOM focus cheaply (it can be lost to the exit button or browser
-    // chrome). Deliberately sends no clicks: overlays such as click-to-play
-    // must never be auto-dismissed.
-    var gameChosen = false;
-
-    function focusPlayer() {
-      var player = playerEl();
-      if (player && player.focus) {
-        try {
-          player.focus({ preventScroll: true });
-        } catch (e) {
-          try {
-            player.focus();
-          } catch (ignored) {
-            /* focus is best-effort */
-          }
-        }
-      }
-    }
-
-    function chooseGame() {
-      focusPlayer();
-      if (gameChosen) return;
-      gameChosen = true;
-      var player = playerEl();
-      if (!player) return;
-      try {
-        if (typeof player.tabIndex === "number" && player.tabIndex < 0) {
-          player.tabIndex = -1;
-        }
-      } catch (e) {
-        /* tabindex is best-effort */
-      }
-      focusPlayer();
     }
 
     function dirFromPoint(cx, cy) {
@@ -286,7 +228,6 @@
         if (jumpPointer !== null) return;
         jumpPointer = e.pointerId !== undefined ? e.pointerId : "touch";
         root.setAttribute("data-jump", "1");
-        chooseGame();
         sendKey("keydown", KEYMAP.jump);
         e.preventDefault();
       };
@@ -308,7 +249,6 @@
           function (e) {
             jumpPointer = e.changedTouches[0].identifier;
             root.setAttribute("data-jump", "1");
-            chooseGame();
             sendKey("keydown", KEYMAP.jump);
             e.preventDefault();
           },
