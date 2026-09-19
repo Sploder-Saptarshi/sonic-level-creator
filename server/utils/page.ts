@@ -284,6 +284,9 @@ export interface GamePageOptions {
   hideTitle?: boolean;
   hideEditorButtons?: boolean;
   sideActive?: string;
+  // Movie embed size (defaults to the stock 640x448).
+  gameWidth?: number;
+  gameHeight?: number;
 }
 
 export function renderGamePage(
@@ -314,6 +317,8 @@ export function renderGamePage(
       ? escapeHtml(playerName)
       : `${escapeHtml(playerName)} - ${escapeHtml(levelTitle)}`,
     contentSwf: opts.contentSwf ?? GAME_SWF,
+    gameWidth: opts.gameWidth ?? 640,
+    gameHeight: opts.gameHeight ?? 448,
   };
   const body = sidebar(!!view.username, opts.sideActive) + render(gameBodyTemplate, data);
   return render(layoutTemplate, {
@@ -513,6 +518,8 @@ export function renderPlayPage(
     reportBlock: reportBlockHtml(view, levelId),
     playerHeading: `${unpublishedBadge}${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
     contentSwf: GAME_SWF,
+    gameWidth: 640,
+    gameHeight: 448,
   });
   // Same sidebar as the index page.
   const body = sidebar(!!view.username) + gameBody;

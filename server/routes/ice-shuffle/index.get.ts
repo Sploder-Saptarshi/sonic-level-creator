@@ -15,9 +15,11 @@ export default defineHandler(async (event) => {
       contentSwf: "/games/swf/5/5.swf",
       playerName: "Ice Shuffle",
       title: "Ice Shuffle",
-      // 1px breathing room at the bottom so the border never sits on game pixels.
+      // Stock 640x448 movie in a 600px window: the 40px overflow is split
+      // evenly and cropped (20px each side).
       headExtra: `<style type="text/css" media="screen">
-#gamecontainer { padding-bottom: 1px; }
+#gamecontainer { padding-bottom: 1px; width: 600px; margin: 0 auto; overflow: hidden; }
+#gamecontainer #gameswf { width: 640px; margin: 0 -20px; }
 </style>
 `,
       playerSwf: "/games/swf/5/5.swf",
