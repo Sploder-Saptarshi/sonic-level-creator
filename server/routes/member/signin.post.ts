@@ -4,7 +4,7 @@
 // failures re-render with 0 writes (keeping the return target). Success
 // lands on the validated `next` target, else My Levels.
 import { defineHandler } from "nitro";
-import { readBody, sendRedirect } from "nitro/h3";
+import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html, renderSigninPage } from "../../utils/page";
 import {
   alreadySignedIn,
@@ -25,8 +25,9 @@ export default defineHandler(async (event) => {
   }
 
   const next = requestNext(event, body);
+  const origin = getRequestURL(event).origin;
   const fail = (msg: string) =>
-    html(event, renderSigninPage({}, { formError: errorBox(msg), next }));
+    html(event, renderSigninPage({}, { formError: errorBox(msg), next, origin }));
   const username = formString(body, "signInUsername").trim();
   const password = formString(body, "signInPassword");
   if (!username || !password) {

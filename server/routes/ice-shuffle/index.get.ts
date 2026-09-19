@@ -11,10 +11,10 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   return html(
     event,
-    renderGamePage(getQuery(event), toPageView(session), {
+    renderGamePage(getQuery(event), toPageView(session, event), {
       contentSwf: "/games/swf/5/5.swf",
       playerName: "Ice Shuffle",
-      title: "Ice Shuffle | PlaySEGA",
+      title: "Ice Shuffle",
       // 1px breathing room at the bottom so the border never sits on game pixels.
       headExtra: `<style type="text/css" media="screen">
 #gamecontainer { padding-bottom: 1px; }

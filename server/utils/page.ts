@@ -12,7 +12,7 @@ import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml, first, type SessionUser } from "./session";
 import type { H3Event } from "nitro";
-import { setResponseHeader } from "nitro/h3";
+import { getRequestURL, setResponseHeader } from "nitro/h3";
 
 // Logged-in header: same lozenges, signed-in name + sign-out (username is
 // escaped here — the layout slot is raw).
@@ -30,14 +30,30 @@ export interface PageView {
   formError?: string;
   // Validated `next` return target for the member forms ("" when none).
   next?: string;
+  // Request origin (scheme + host) for absolute embed URLs. Set by
+  // toPageView when the event is passed; "" renders no embed image.
+  origin?: string;
 }
 
 // Session -> template view. Null (guest) maps to {} so pages render the
 // signed-out chrome; signed-in sessions get the name + sign-out bar.
 // One helper replaces the per-route ternary (was cloned in 5 routes).
-export function toPageView(session: SessionUser | null): PageView {
-  if (!session) return {};
-  return { username: session.username, languagebar: userLanguageBar(session.username) };
+// Pass the event so the view also carries the request origin (used for
+// absolute og:/twitter: image URLs — never hardcoded).
+export function toPageView(session: SessionUser | null, event?: H3Event): PageView {
+  const origin = event ? getRequestURL(event).origin : undefined;
+  if (!session) return origin ? { origin } : {};
+  return {
+    username: session.username,
+    languagebar: userLanguageBar(session.username),
+    ...(origin ? { origin } : {}),
+  };
+}
+
+// Absolute embed image for link unfurls (Discord/Twitter require absolute
+// URLs). Derived from the request origin — no hardcoded domain.
+function embedImage(view: PageView): string {
+  return view.origin ? `${view.origin}/images/embed.png` : "";
 }
 
 // HTML page responder: sets the content-type and returns the body.
@@ -244,6 +260,13 @@ function editorButtons(signedIn: boolean): string {
   return buttons.join("\n                        ");
 }
 
+// Single source of truth for the <title> suffix: every page ends with
+// "| Sonic ReLvl". Callers pass the base ("My Levels", level name, ...);
+// the suffix is applied here so it can't drift between pages.
+function pageTitle(base: string): string {
+  return `${base} | Sonic ReLvl`;
+}
+
 // JSON bootstrap for client scripts; < escaped so it can't break out of <script>.
 function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
@@ -252,6 +275,7 @@ function bootstrap(data: Record<string, unknown>): string {
 export interface GamePageOptions {
   contentSwf?: string;
   playerName?: string;
+  // Base <title> (the "| Sonic ReLvl" suffix is applied automatically).
   title?: string;
   headExtra?: string;
   // Ice Shuffle variants: direct SWF embed, no report button, bare heading.
@@ -293,7 +317,10 @@ export function renderGamePage(
   };
   const body = sidebar(!!view.username, opts.sideActive) + render(gameBodyTemplate, data);
   return render(layoutTemplate, {
-    title: opts.title ?? `${username} | Level Creators | PlaySEGA`,
+    // Player pages are titled by the level (same as /play), not by the
+    // section: e.g. "Green Hill Zone | Sonic ReLvl".
+    title: pageTitle(opts.title ?? levelTitle),
+    embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: opts.headExtra ?? "",
@@ -316,7 +343,8 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
     contentSwf: GAME_SWF,
   });
   return render(layoutTemplate, {
-    title: `${username} | Level Creators | PlaySEGA`,
+    title: pageTitle(`${username} | Level Creators`),
+    embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: editorHeadExtra,
@@ -332,7 +360,8 @@ const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('
 
 function renderMemberPage(
   bodyTpl: string,
-  title: string,
+  // Base <title> (the "| Sonic ReLvl" suffix is applied automatically).
+  baseTitle: string,
   view: PageView = {},
 ): string {
   // Return target for the hidden form field + the cross-link to the other
@@ -348,7 +377,8 @@ function renderMemberPage(
     signinHref: withNext("/member/signin"),
   });
   return render(layoutTemplate, {
-    title,
+    title: pageTitle(baseTitle),
+    embedImage: embedImage(view),
     languagebar: NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: memberHeadExtra,
@@ -359,7 +389,7 @@ function renderMemberPage(
 }
 
 export function renderSigninPage(query: PageQuery, view: PageView = {}): string {
-  return renderMemberPage(signinBodyTemplate, "Member Sign-in | PlaySEGA", view);
+  return renderMemberPage(signinBodyTemplate, "Member Sign-in", view);
 }
 
 export interface LevelRow {
@@ -400,7 +430,7 @@ function renderLevelRows(levels: LevelRow[]): string {
 export function renderMyLevelsPage(
   view: PageView & { levels: LevelRow[] },
 ): string {
-  return renderLevelListPage(view, "mylevels", "My Levels | PlaySEGA", mylevelsBodyTemplate, renderLevelRows(view.levels));
+  return renderLevelListPage(view, "mylevels", "My Levels", mylevelsBodyTemplate, renderLevelRows(view.levels));
 }
 
 export interface PublicLevelRow {
@@ -430,18 +460,19 @@ function renderPublicLevelRows(levels: PublicLevelRow[]): string {
 }
 
 // Shared shell for the two level-list pages (My Levels / All Levels):
-// same sidebar + layout + border wiring, only the active nav tab, title,
-// body template, and pre-rendered rows differ.
+// same sidebar + layout + border wiring, only the active nav tab, base
+// title, body template, and pre-rendered rows differ.
 function renderLevelListPage(
   view: PageView,
   active: string,
-  title: string,
+  baseTitle: string,
   bodyTpl: string,
   rows: string,
 ): string {
   const body = sidebar(!!view.username) + render(bodyTpl, { rows });
   return render(layoutTemplate, {
-    title,
+    title: pageTitle(baseTitle),
+    embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view, active),
     headExtra: "",
@@ -455,7 +486,7 @@ function renderLevelListPage(
 export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
 ): string {
-  return renderLevelListPage(view, "alllevels", "All Levels | PlaySEGA", alllevelsBodyTemplate, renderPublicLevelRows(view.levels));
+  return renderLevelListPage(view, "alllevels", "All Levels", alllevelsBodyTemplate, renderPublicLevelRows(view.levels));
 }
 
 export function renderPlayPage(
@@ -479,7 +510,8 @@ export function renderPlayPage(
   // Same sidebar as the index page.
   const body = sidebar(!!view.username) + gameBody;
   return render(layoutTemplate, {
-    title: `${levelName} | PlaySEGA`,
+    title: pageTitle(levelName),
+    embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     headExtra: "",
@@ -490,5 +522,5 @@ export function renderPlayPage(
 }
 
 export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
-  return renderMemberPage(signupBodyTemplate, "Member Sign-up | PlaySEGA", view);
+  return renderMemberPage(signupBodyTemplate, "Member Sign-up", view);
 }

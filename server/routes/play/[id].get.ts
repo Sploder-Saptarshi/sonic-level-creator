@@ -26,5 +26,5 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   const rows = await findVisibleLevelName(getRequestDb(event), id, session);
   const row = requireRow(rows);
-  return html(event, renderPlayPage(row.name, id, toPageView(session)));
+  return html(event, renderPlayPage(row.name, id, toPageView(session, event)));
 });

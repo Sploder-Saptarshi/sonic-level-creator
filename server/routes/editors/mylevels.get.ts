@@ -12,5 +12,5 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event);
   const levels = await listMyLevels(getRequestDb(event), session.id, true);
-  return html(event, renderMyLevelsPage({ ...toPageView(session), levels }));
+  return html(event, renderMyLevelsPage({ ...toPageView(session, event), levels }));
 });

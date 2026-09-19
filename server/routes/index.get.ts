@@ -8,5 +8,5 @@ import { getSessionUser } from "../utils/session";
 
 export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
-  return html(event, renderGamePage(getQuery(event), toPageView(session)));
+  return html(event, renderGamePage(getQuery(event), toPageView(session, event)));
 });

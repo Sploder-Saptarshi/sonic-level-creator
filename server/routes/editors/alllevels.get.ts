@@ -14,7 +14,7 @@ export default defineHandler(async (event) => {
   return html(
     event,
     renderAllLevelsPage({
-      ...toPageView(session),
+      ...toPageView(session, event),
       levels: levels.map((l) => ({ ...l, author: l.author ?? "Player" })),
     }),
   );

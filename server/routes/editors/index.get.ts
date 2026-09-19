@@ -14,6 +14,6 @@ export default defineHandler(async (event) => {
   if (!session) return redirectToSignin(event);
   return html(
     event,
-    renderEditorPage(getQuery(event), toPageView(session)),
+    renderEditorPage(getQuery(event), toPageView(session, event)),
   );
 });
