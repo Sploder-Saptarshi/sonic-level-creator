@@ -29,6 +29,10 @@ export const S = {
   dragObj: null as PlacedObject | null,
   dragOffX: 0,
   dragOffY: 0,
+  // Canvas position where the current object drag started (world px).
+  // Used on drop to enforce the per-tile cap when moving existing objects.
+  dragStartX: 0,
+  dragStartY: 0,
 
   // Palette drag (started from thumbnail, ends on canvas)
   paletteDrag: false,
@@ -133,14 +137,15 @@ export function defsForTab(tab: TabType): ObjectDef[] {
   return ESSENTIALS;
 }
 
-export function objectsInTile(tc: number, tr: number): number {
-  return countObjectsInTile(S.objects, tc, tr);
+export function objectsInTile(tc: number, tr: number, except?: PlacedObject): number {
+  return countObjectsInTile(S.objects, tc, tr, except);
 }
 
 export function totalObjects(): number {
   // Global counter: every placed entry counts as one — a ring bunch is a
   // single object no matter how many rings it holds. (The per-tile budget
-  // in countObjectsInTile still counts rings individually.)
+  // in countObjectsInTile still counts rings individually, each in the
+  // tile it actually lands in.)
   return S.objects.length;
 }
 

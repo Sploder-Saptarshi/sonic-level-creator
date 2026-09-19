@@ -13,6 +13,22 @@ function levelValid(): boolean {
   return sonics === 1 && goals === 1;
 }
 
+// Specific reasons a level fails validation, for error popups.
+function levelProblems(): string[] {
+  const sonics = S.objects.filter(o => o.type === 151).length;
+  const goals = S.objects.filter(o => o.type === 44).length;
+  const out: string[] = [];
+  if (sonics === 0 && goals === 0) {
+    out.push('Your level has no start and no finish. Open the Essentials tab and place Sonic and a Sign Post.');
+  } else {
+    if (sonics === 0) out.push('Your level has no start. Open the Essentials tab and place Sonic.');
+    if (goals === 0) out.push('Your level has no finish. Open the Essentials tab and place a Sign Post.');
+  }
+  if (sonics > 1) out.push('Your level has more than one Sonic. Keep just one Sonic so the game knows where to start.');
+  if (goals > 1) out.push('Your level has more than one Sign Post. Keep just one so the game knows where the level ends.');
+  return out;
+}
+
 function levelCSV(): string {
   return toCSV(encodeBin(S.grid), encodeAct(S.objects));
 }
@@ -95,7 +111,10 @@ function hideShareButton() {
 }
 
 // Share: permanently publish the level so it appears in All Levels.
-// Saves first when the level has never been saved; guests go to sign-in.
+// Asks first (publishing is permanent), then runs the save flow so the
+// published copy matches the current edits, then publishes. Guests go to
+// sign-in. The flow ends on a "Publish complete" overlay, never "Save
+// complete".
 export async function doShare() {
   const boot = (window as unknown as { __PLAYSEGA__?: { username?: string } })
     .__PLAYSEGA__;
@@ -103,40 +122,106 @@ export async function doShare() {
     location.href = '/member/signin';
     return;
   }
-  if (!levelValid()) return;
-  if (!S.levelId) {
-    await doSave();
-    if (!S.levelId) return; // save failed (already fell back to download)
+  if (!levelValid()) {
+    const why = levelProblems().join(' ');
+    updateDesc(why);
+    showSaveError(why);
+    return;
   }
   if (!confirm('Publishing is permanent. Share this level with everyone?')) return;
+  const saved = await doSave({ publishFlow: true });
+  if (!saved || !S.levelId) return; // save failed, error already shown
+  showPopup('Publishing...', 'Please wait while your level is published.', false);
   try {
     const res = await fetch(`/api/levels/${S.levelId}/publish`, { method: 'POST' });
     if (!res.ok) throw new Error(`publish failed: ${res.status}`);
     updateDesc(`Published "${S.levelName}".`);
+    showPopup('Publish complete', `"${S.levelName}" was published. It now appears in All Levels.`, true);
     hideShareButton();
   } catch {
-    updateDesc('Publishing failed — try again.');
+    updateDesc('Publishing failed - try again.');
+    showPopup('Share failed', 'Publishing failed - check your connection and try again.', true);
   }
 }
 
-// Save: signed-in users persist to the server (POST then PUT); guests and
-// server failures fall back to a local CSV download so work is never lost.
-export async function doSave() {
-  if (!levelValid()) return;
+// ── Save overlay (user feedback while saving + save-complete) ──
+// Generic popup reusing the same overlay + OK button: "Saving..." hides OK
+// while the save is in flight; success and failure both flip to a titled
+// message with OK visible. Test failures reuse it too ("Cannot test").
+function showPopup(title: string, msg: string, showOk: boolean) {
+  const sh = S.shadow;
+  if (!sh) return;
+  const ov = sh.querySelector('.save-overlay');
+  const titleEl = sh.querySelector('.save-overlay .save-title');
+  const msgEl = sh.querySelector('.save-overlay .save-msg');
+  const ok = sh.querySelector('.save-overlay .save-ok');
+  if (!ov || !titleEl || !msgEl || !ok) return;
+  titleEl.textContent = title;
+  msgEl.textContent = msg;
+  ok.classList.toggle('hidden', !showOk);
+  ov.classList.remove('hidden');
+}
+
+export function showSaveSaving() {
+  showPopup('Saving...', 'Please wait while your level is saved.', false);
+}
+
+export function showSaveComplete(msg: string) {
+  showPopup('Save complete', msg, true);
+}
+
+export function showSaveError(msg: string) {
+  showPopup('Cannot save', msg, true);
+}
+
+export function showTestError(msg: string) {
+  showPopup('Cannot test', msg, true);
+}
+
+export function showPlaceError(msg: string) {
+  showPopup('Cannot place object', msg, true);
+}
+
+export function hideSaveOverlay() {
+  S.shadow?.querySelector('.save-overlay')?.classList.add('hidden');
+}
+
+// Save: signed-in users persist to the server (POST then PUT); guests
+// fall back to a local CSV download. Server failures just report the
+// error - no local download. With { publishFlow: true } (the Share button)
+// a successful save stays silent and returns true so the caller can finish
+// the flow with its own "Publish complete" overlay; returns false when the
+// save itself failed.
+export async function doSave(opts?: { publishFlow?: boolean }): Promise<boolean> {
+  if (!levelValid()) {
+    const why = levelProblems().join(' ');
+    updateDesc(why);
+    showSaveError(why);
+    return false;
+  }
   // Unreachable (the start screen gates on a name), kept as a guard.
   if (!S.levelName) {
     updateDesc('Name your level on the start screen first.');
-    return;
+    showSaveComplete('Name your level on the start screen first.');
+    return false;
   }
-  // Compact RLE-JSON for the server (10–27x smaller than CSV); the local
+  // Compact RLE-JSON for the server (10–27x smaller than CSV); the guest
   // fallback stays CSV so it still opens in external tools.
   const compact = encodeCompact(S.grid, S.objects);
   const csv = levelCSV();
   const boot = (window as unknown as { __PLAYSEGA__?: { username?: string } })
     .__PLAYSEGA__;
+  // Overlay up before any I/O so the user sees "Saving..." even when the
+  // save resolves from cache / instantly.
+  showSaveSaving();
+  // Let the overlay paint before the (possibly synchronous) download + the
+  // network request below.
+  await new Promise((r) => setTimeout(r, 30));
   if (!boot || boot.username === 'Guest' || !boot.username) {
     downloadCSV(csv);
-    return;
+    updateDesc(`Saved "${S.levelName}".`);
+    showSaveComplete(`"${S.levelName}" was saved.`);
+    return true;
   }
   try {
     const payload = {
@@ -166,13 +251,17 @@ export async function doSave() {
       }
     }
     updateDesc(`Saved "${S.levelName}".`);
+    if (opts?.publishFlow) return true;
+    showSaveComplete(`"${S.levelName}" was saved.`);
+    return true;
   } catch {
-    updateDesc('Server save failed — downloaded a local copy instead.');
-    downloadCSV(csv);
+    updateDesc('Server save failed - try again.');
+    showPopup('Save failed', 'The server did not save your level - check your connection and try again.', true);
+    return false;
   }
 }
 
-// Local CSV download: guest fallback + server-failure safety net.
+// Local CSV download: guest fallback only.
 function downloadCSV(csv: string) {
   const blob = new Blob([csv], { type: 'text/plain' });
   const a = document.createElement('a');
@@ -377,10 +466,20 @@ function cancelPreStage() {
 }
 
 export async function doTest() {
-  if (!levelValid()) return;
+  if (!levelValid()) {
+    const why = levelProblems().join(' ');
+    updateDesc(why);
+    showTestError(why);
+    return;
+  }
   const els = testEls();
   if (!els || els.mode.classList.contains('active')) return;
-  if (!ensureTestPlayer()) return;
+  if (!ensureTestPlayer()) {
+    const msg = 'The test player could not load. Check your connection and reload the page, then try again.';
+    updateDesc(msg);
+    showTestError(msg);
+    return;
+  }
 
   // Capture synchronously — the editor hides below, so the grid can't
   // change mid-test anyway.
@@ -408,6 +507,9 @@ export async function doTest() {
   // If nothing was ever booted (Ruffle arrived after editor boot), boot now.
   bootTestMovie().catch(() => {
     stopTest();
+    const msg = 'The test player failed to start. Reload the page and try again.';
+    updateDesc(msg);
+    showTestError(msg);
   });
 }
 

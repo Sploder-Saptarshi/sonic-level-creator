@@ -284,6 +284,26 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .stop-test:link, .stop-test:active, .stop-test:visited { color: #4c4c4c; text-decoration: none; font-weight: bold; }
 .stop-test:hover { background-position: bottom right; color: #4c4c4c; outline: none; }
 .stop-test:hover span { background-position: bottom left; }
+
+/* ── save overlay: user feedback while saving + save-complete ──
+    Translucent dim over the editor (editor stays visible behind) + opaque
+    centered card reusing the start-card look. The OK dismiss button reuses
+    .act-btn verbatim (same sliding-doors gloss as Test Level / Save) —
+    only centered + fixed width here. */
+.save-overlay { position: absolute; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.20);
+  border-radius: 0 0 10px 10px; }
+.save-overlay.hidden { display: none; }
+.save-card { background: #fff; border: 1px solid #b5b5b5;
+  border-radius: 10px; padding: 20px 24px 22px; width: 340px;
+  max-width: calc(100% - 32px); text-align: center; }
+.save-card h2 { color: #1767c9; font-size: 20px; font-weight: bold;
+  margin: 0 0 6px; }
+.save-card p { color: #333; font-size: 13px; font-weight: normal;
+  line-height: 1.4; margin: 0 0 16px; }
+.save-card .act-btn { width: 140px; margin: 0 auto; }
+.save-card .act-btn.hidden { display: none; }
 `;
 
 export const EDITOR_HTML = `
@@ -342,6 +362,14 @@ export const EDITOR_HTML = `
 <div class="testmode">
   <div class="ruffle-holder"></div>
   <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
+</div>
+
+<div class="save-overlay hidden">
+  <div class="save-card">
+    <h2 class="save-title">Saving...</h2>
+    <p class="save-msg">Please wait while your level is saved.</p>
+    <a class="act-btn save-ok hidden" data-action="saveok"><span>OK</span></a>
+  </div>
 </div>
 
 <div class="start-overlay">

@@ -262,10 +262,29 @@ export {
 
 // --- Tile counter: count objects in a given tile ---
 // Global budget counts every ACT entry as 1 (a ring bunch is one entry).
-// Per-tile budget counts live objects: a ring bunch expands to 1 + sub
-// individual rings in its anchor tile.
+// Per-tile budget counts live objects where they actually sit: a ring
+// bunch fans out from its anchor (same steps as ringParts() in
+// sprites.ts), so its 1 + sub rings can spill into a neighbouring tile
+// and each ring counts toward the tile it lands in. Max fan-out is 192px
+// < 256px, so one bunch touches at most two tiles.
 export function isRingType(type: number): boolean {
   return type <= 1 || (type >= 63 && type <= 69);
+}
+
+// Fan-out step per ring layout (mirrors ringParts() in sprites.ts).
+const RING_STEPS: Record<number, [number, number]> = {
+  0: [24, 0], 1: [0, 24],
+  63: [-16, 16], 64: [16, 16], 65: [32, 32],
+  66: [16, 0], 67: [32, 0], 68: [0, 16], 69: [0, 32],
+};
+
+/** Live ring positions of a bunch: anchor + fan-out offsets. */
+export function ringPositions(type: number, sub: number, x: number, y: number): Array<{ x: number; y: number }> {
+  const [dx, dy] = RING_STEPS[type] ?? [0, 0];
+  const n = 1 + sub;
+  const out: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < n; i++) out.push({ x: x + i * dx, y: y + i * dy });
+  return out;
 }
 
 /** Per-tile cost of a single ACT entry: expanded ring count, else 1. */
@@ -273,18 +292,47 @@ export function objectTileCost(type: number, sub: number): number {
   return isRingType(type) ? 1 + sub : 1;
 }
 
+/** How many live objects one entry adds to a single tile: the rings
+ *  landing there for a bunch (0 when it spills elsewhere), else 1 when
+ *  its anchor sits there. */
+export function objectTileCostInTile(
+  type: number, sub: number, x: number, y: number,
+  tileCol: number, tileRow: number,
+): number {
+  if (!isRingType(type)) {
+    return pixelToTile(x) === tileCol && pixelToTile(y) === tileRow ? 1 : 0;
+  }
+  let c = 0;
+  for (const p of ringPositions(type, sub, x, y)) {
+    if (pixelToTile(p.x) === tileCol && pixelToTile(p.y) === tileRow) c++;
+  }
+  return c;
+}
+
+/** Unique tiles one entry touches: its anchor tile plus any tile its
+ *  rings spill into. */
+export function objectTiles(type: number, sub: number, x: number, y: number): Array<{ tc: number; tr: number }> {
+  const seen = new Map<string, { tc: number; tr: number }>();
+  const touch = (px: number, py: number) => {
+    const tc = pixelToTile(px), tr = pixelToTile(py);
+    const k = tc + ',' + tr;
+    if (!seen.has(k)) seen.set(k, { tc, tr });
+  };
+  if (!isRingType(type)) touch(x, y);
+  else for (const p of ringPositions(type, sub, x, y)) touch(p.x, p.y);
+  return [...seen.values()];
+}
+
 export function countObjectsInTile(
   objects: PlacedObject[],
   tileCol: number,
   tileRow: number,
+  except?: PlacedObject,
 ): number {
   let count = 0;
   for (const obj of objects) {
-    const tc = Math.floor(obj.x / BLOCK_PX);
-    const tr = Math.floor(obj.y / BLOCK_PX);
-    if (tc === tileCol && tr === tileRow) {
-      count += objectTileCost(obj.type, obj.sub);
-    }
+    if (obj === except) continue;
+    count += objectTileCostInTile(obj.type, obj.sub, obj.x, obj.y, tileCol, tileRow);
   }
   return count;
 }

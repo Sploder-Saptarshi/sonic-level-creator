@@ -1,13 +1,13 @@
 // ts/events.ts — All DOM event handlers
 
-import { MAX_OBJECTS_PER_TILE, objectTileCost, snap8, pixelToTile } from './format';
+import { MAX_OBJECTS_PER_TILE, objectTileCostInTile, objectTiles, countObjectsInTile, snap8, pixelToTile } from './format';
 import {
-  S, inGrid, canvasToWorld, objectsInTile, totalObjects, countPlacedTiles,
-  cellSize,
+  S, inGrid, canvasToWorld, totalObjects, countPlacedTiles,
+  cellSize, updateDesc,
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare, hideSaveOverlay, showPlaceError } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
 
 // ── Canvas: mousedown ──
@@ -82,6 +82,8 @@ function onMouseDown(e: MouseEvent) {
       S.dragObj = o;
       S.dragOffX = px - o.x;
       S.dragOffY = py - o.y;
+      S.dragStartX = o.x;
+      S.dragStartY = o.y;
       S.selectedTileBx = -1;
       S.selectedTileBy = -1;
     } else if (S.grid[by][bx] > 0) {
@@ -110,6 +112,8 @@ function onMouseDown(e: MouseEvent) {
       S.dragObj = o;
       S.dragOffX = px - o.x;
       S.dragOffY = py - o.y;
+      S.dragStartX = o.x;
+      S.dragStartY = o.y;
       S.selectedTileBx = -1;
       S.selectedTileBy = -1;
     } else {
@@ -174,8 +178,34 @@ function onMouseMove(e: MouseEvent) {
 
 // ── Canvas: mouseup ──
 
+// Moving an existing object must respect the per-tile cap too: every tile
+// the object touches at its new position (anchor plus any ring spill) is
+// checked, and an overfull move is reverted with an overlay explaining why.
+function finishObjectDrag() {
+  const o = S.dragObj;
+  if (!o || S.selectedObjIdx < 0) return;
+  let crowded: string | null = null;
+  for (const t of objectTiles(o.type, o.sub, o.x, o.y)) {
+    const others = countObjectsInTile(S.objects, t.tc, t.tr, o);
+    const added = objectTileCostInTile(o.type, o.sub, o.x, o.y, t.tc, t.tr);
+    if (others + added > MAX_OBJECTS_PER_TILE) {
+      crowded = added > 1
+        ? `This tile is full. It already holds ${others} of ${MAX_OBJECTS_PER_TILE} objects and this ring bunch needs room for ${added}. Try a tile with more room.`
+        : `This tile is full. It already holds ${others} of ${MAX_OBJECTS_PER_TILE} objects. Try a tile with more room.`;
+      break;
+    }
+  }
+  if (crowded) {
+    o.x = S.dragStartX;
+    o.y = S.dragStartY;
+    updateDesc(crowded);
+    showPlaceError(crowded);
+  }
+}
+
 function onMouseUp(_e: MouseEvent) {
   S.panning = false;
+  finishObjectDrag();
   S.dragObj = null;
   S.canvas!.style.cursor = S.spaceHeld ? 'grab' : 'crosshair';
   draw();
@@ -185,6 +215,7 @@ function onMouseUp(_e: MouseEvent) {
 
 function onMouseLeave() {
   S.panning = false;
+  finishObjectDrag();
   S.dragObj = null;
   S.hoverBx = -1;
   S.hoverBy = -1;
@@ -323,23 +354,46 @@ function onDocMouseUp(e: MouseEvent) {
       S.grid[by][bx] = S.paletteDragTile;
     } else if (S.paletteDragDef) {
       const def = S.paletteDragDef;
+      const sub = def.sub ?? 0;
       if ((def.id === 151 || def.id === 44) && S.objects.some(o => o.type === def.id)) {
-        // Only one Sonic/Sign Post per level — drop rejected.
+        // Only one Sonic/Sign Post per level.
+        const already = `Your level already has ${def.id === 151 ? 'Sonic' : 'a Sign Post'}. Only one is allowed per level.`;
+        updateDesc(already);
+        showPlaceError(already);
       } else if (totalObjects() >= countPlacedTiles()) {
-        // Object budget reached — drop rejected.
-      } else if (objectsInTile(bx, by) + objectTileCost(def.id, def.sub ?? 0) > MAX_OBJECTS_PER_TILE) {
-        // Per-tile cap reached — drop rejected. A ring bunch costs its
-        // expanded 1 + sub live rings here (it still costs 1 globally),
-        // so e.g. 5 existing + a x7 bunch (5 + 7 = 12 > 7) is rejected.
+        // Global object budget: each placed tile supports one object.
+        const total = totalObjects(), tiles = countPlacedTiles();
+        const full = `The level is full. There are ${total} objects for ${tiles} placed tiles. Paint more tiles to place more objects.`;
+        updateDesc(full);
+        showPlaceError(full);
       } else {
-        // Free pixel placement (8px snap), like the stock levels use.
-        // Objects live in AIR (or straddling ground) — the per-tile count
-        // is a budget, not a solidity requirement.
+        // Per-tile cap: each live ring counts toward the tile it lands in,
+        // so a bunch straddling a boundary is checked against every tile it
+        // touches (it still costs 1 globally).
         const ox = snap8(px), oy = snap8(py);
-        S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
-        // Auto-select the new object so its selection ghosts (travel
-        // extremes + red box) show immediately at the placed spot.
-        S.selectedObjIdx = S.objects.length - 1;
+        let crowded: string | null = null;
+        for (const t of objectTiles(def.id, sub, ox, oy)) {
+          const existing = countObjectsInTile(S.objects, t.tc, t.tr);
+          const added = objectTileCostInTile(def.id, sub, ox, oy, t.tc, t.tr);
+          if (existing + added > MAX_OBJECTS_PER_TILE) {
+            crowded = added > 1
+              ? `This tile is full. It already holds ${existing} of ${MAX_OBJECTS_PER_TILE} objects and this ring bunch needs room for ${added}. Try a tile with more room.`
+              : `This tile is full. It already holds ${existing} of ${MAX_OBJECTS_PER_TILE} objects. Try a tile with more room.`;
+            break;
+          }
+        }
+        if (crowded) {
+          updateDesc(crowded);
+          showPlaceError(crowded);
+        } else {
+          // Free pixel placement (8px snap), like the stock levels use.
+          // Objects live in AIR (or straddling ground) — the per-tile count
+          // is a budget, not a solidity requirement.
+          S.objects.push({ x: ox, y: oy, variant: def.variant ?? 0, type: def.id, sub });
+          // Auto-select the new object so its selection ghosts (travel
+          // extremes + red box) show immediately at the placed spot.
+          S.selectedObjIdx = S.objects.length - 1;
+        }
       }
     }
     updateCounter();
@@ -394,6 +448,7 @@ export function wireEvents() {
       else if (a === 'alllevels') location.href = '/editors/alllevels';
       else if (a === 'share') doShare();
       else if (a === 'startcreating') doStartCreating();
+      else if (a === 'saveok') hideSaveOverlay();
     });
   });
 
