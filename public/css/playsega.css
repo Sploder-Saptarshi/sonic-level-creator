@@ -1792,7 +1792,7 @@ a.nicknameLink:hover {
 .quickstartwrapper .quickstartcontent .headingIcons .item .collectRings { background: url('../images/info/quickstart-ring-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
 .quickstartwrapper .quickstartcontent .headingIcons .item .makeFriends { background: url('../images/info/quickstart-friends-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
 .quickstartwrapper .quickstartcontent .headingIcons .item .createYourEscape { background: url('../images/info/quickstart-items-mini.gif') no-repeat center left; padding: 15px 0 0 46px; height: 30px }
-.quickstartwrapper .quickstartcontent .introduction { width: 520px; margin: 20px 0 20px 0 }
+.quickstartwrapper .quickstartcontent .introduction { width: 420px; margin: 20px 0 20px 0 }
 .quickstartwrapper .quickstartcontent .registerForFree { margin: 0 0 30px 0 }
 .quickstartwrapper .quickstartcontent .registerForFree .getStarted { float: left; width: 420px }
 

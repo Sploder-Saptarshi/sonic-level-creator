@@ -7,6 +7,7 @@ import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
 import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
+import quickstartBodyTemplate from "../templates/quickstart.html" with { type: "text" };
 import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
@@ -540,4 +541,23 @@ export function renderPlayPage(
 
 export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
   return renderMemberPage(signupBodyTemplate, "Member Sign-up", view);
+}
+
+// Quick Start Guide: archive body in revival chrome. Border wiring mirrors
+// the archive domload (border2 === archive border5: corner 8, border 1);
+// the h3 tops are already rendered globally by the layout.
+const quickstartDomloadExtra = `splitBorderBottom.render('round1');border2.render('qs_box1');border2.render('qs_box2');border2.render('qs_box3');border2.render('qs_box4');border2.render('qs_box5');`;
+
+export function renderQuickstartPage(view: PageView = {}): string {
+  const body = sidebar(!!view.username, "") + render(quickstartBodyTemplate, {});
+  return render(layoutTemplate, {
+    title: pageTitle("Quick Start Guide"),
+    embedImage: embedImage(view),
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
+    topnav: topnavFor(view),
+    headExtra: "",
+    domloadExtra: quickstartDomloadExtra,
+    bootstrap: bootstrap({ username: view.username ?? "Guest" }),
+    body,
+  });
 }
