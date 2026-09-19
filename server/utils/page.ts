@@ -101,6 +101,13 @@ function topnavFor(view: PageView, active = ""): string {
   ].join("\n");
   return `<ul id="topnav_in"${view.username ? ` class="loggedin"` : ""}>\n${items}\n</ul>\n`;
 }
+// Footer mid-link: members get My Levels, guests get Quickstart (the
+// members-only levels page would just bounce them to sign-in).
+function footerMidLink(signedIn: boolean): string {
+  return signedIn
+    ? `<a href="/editors/mylevels">My Levels</a>`
+    : `<a href="/quickstart">Quickstart</a>`;
+}
 // Signed-out chrome is intentionally NOT used: all pages share the same
 // header (game/editor chrome) for a consistent revival UI.
 
@@ -226,6 +233,11 @@ const SIDEBAR_SONIC =
 
 function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   return render(sidenavTemplate, {
+    // Signed-in members get My Levels here (they live in the editor);
+    // guests get the Quick Start Guide instead.
+    navButton: signedIn
+      ? `<a href="/editors/mylevels" class="mylevels"></a>`
+      : `<a href="/quickstart" class="quickstart"></a>`,
     upsell: signedIn ? SIDEBAR_SONIC : UPSELL_HTML,
     sonicOn: sideActive === "sonic" ? " on" : "",
     iceOn: sideActive === "ice" ? " on" : "",
@@ -332,6 +344,7 @@ export function renderGamePage(
     embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: opts.headExtra ?? "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -356,6 +369,7 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
     embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: editorHeadExtra,
     domloadExtra: "",
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -390,6 +404,7 @@ function renderMemberPage(
     embedImage: embedImage(view),
     languagebar: NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
@@ -485,6 +500,7 @@ function renderLevelListPage(
     embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view, active),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: "",
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
@@ -532,6 +548,7 @@ export function renderPlayPage(
     embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: "",
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
@@ -546,7 +563,7 @@ export function renderSignupPage(query: PageQuery, view: PageView = {}): string 
 // Quick Start Guide: archive body in revival chrome. Border wiring mirrors
 // the archive domload (border2 === archive border5: corner 8, border 1);
 // the h3 tops are already rendered globally by the layout.
-const quickstartDomloadExtra = `splitBorderBottom.render('round1');border2.render('qs_box1');border2.render('qs_box2');border2.render('qs_box3');border2.render('qs_box4');border2.render('qs_box5');`;
+const quickstartDomloadExtra = `splitBorderBottom.render('round1');border2.render('qs_box1');border2.render('qs_box2');border2.render('qs_box3');`;
 
 export function renderQuickstartPage(view: PageView = {}): string {
   const body = sidebar(!!view.username, "") + render(quickstartBodyTemplate, {});
@@ -555,6 +572,7 @@ export function renderQuickstartPage(view: PageView = {}): string {
     embedImage: embedImage(view),
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
+    footerMidLink: footerMidLink(!!view.username),
     headExtra: "",
     domloadExtra: quickstartDomloadExtra,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
