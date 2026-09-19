@@ -48,6 +48,16 @@ window.RufflePlayer.config = {
 window.__PLAYSEGA__ = <%~ it.bootstrap %>;
 // Shared delete confirmation (My Levels).
 window.confirmDelete = function(n){return confirm('Delete "' + n + '" permanently?');};
+// Shared rename prompt (My Levels): fills the row's hidden name field.
+window.promptRename = function(n, form){
+  var name = prompt('Rename level to:', n);
+  if (name === null) return false;
+  name = name.trim().replace(/\s+/g, ' ');
+  if (!name) { alert('Name cannot be blank.'); return false; }
+  if (name.length > 60) { alert('Name must be 60 characters or less.'); return false; }
+  form.elements.name.value = name;
+  return true;
+};
 </script>
 <!--
 <script type="text/javascript" src="/fsrscripts/triggerParams.js"></script>

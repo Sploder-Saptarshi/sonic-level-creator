@@ -421,6 +421,7 @@ function renderLevelRows(levels: LevelRow[]): string {
       <div style="float: left"><b>${name}</b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
       <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>
       <a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
+      <form action="/editors/mylevels/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>
       <form action="/editors/mylevels/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
     </div>`;
   });
@@ -493,9 +494,15 @@ export function renderPlayPage(
   levelName: string,
   levelId: number | string,
   view: PageView = {},
+  published: boolean | null = true,
 ): string {
   // Same player as the index page, but the isZoneOne flashvar is omitted:
-  // custom levels carry their own dimensions.
+  // custom levels carry their own dimensions. Owners previewing an
+  // unpublished level get a right-aligned [Unpublished] marker in the
+  // titlebar (floated first so it docks top-right of the heading bar).
+  const unpublishedBadge = published
+    ? ""
+    : `<span style="float: right; padding-right: 12px">[Unpublished]</span>`;
   const gameBody = render(gameBodyTemplate, {
     sessionId: API_CONNECTOR_ID,
     territory: TERRITORIES[0],
@@ -504,7 +511,7 @@ export function renderPlayPage(
     zoneOneFrag: "",
     playerSwf: PRELOADER_SWF,
     reportBlock: reportBlockHtml(view, levelId),
-    playerHeading: `${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
+    playerHeading: `${unpublishedBadge}${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
     contentSwf: GAME_SWF,
   });
   // Same sidebar as the index page.

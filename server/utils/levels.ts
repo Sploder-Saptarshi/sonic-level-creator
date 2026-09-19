@@ -9,7 +9,7 @@
 //                          N rows for N owned levels over the userId index
 //   listPublicLevels       1 query, published-only metadata + author over
 //                          the published index (stock row excluded in SQL)
-//   findVisibleLevelName   1 query, 1 row, name column only (PK + visibility)
+//   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
 //   findGatewayRow         1 query, 1 row, data/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { and, desc, eq, ne, or } from "drizzle-orm";
@@ -157,9 +157,9 @@ export function listPublicLevels(db: RequestDb) {
     .orderBy(desc(level.updatedAt));
 }
 
-// Player lookup: exactly 1 query reading exactly 1 row (name column only)
-// via PK + visibility predicate. Published rows serve everyone; owners
-// additionally see their own unpublished rows.
+// Player lookup: exactly 1 query reading exactly 1 row (name + published
+// columns only) via PK + visibility predicate. Published rows serve
+// everyone; owners additionally see their own unpublished rows.
 export function findVisibleLevelName(
   db: RequestDb,
   id: string,
@@ -169,7 +169,7 @@ export function findVisibleLevelName(
     ? or(eq(level.published, true), eq(level.userId, session.id))
     : eq(level.published, true);
   return db
-    .select({ name: level.name })
+    .select({ name: level.name, published: level.published })
     .from(level)
     .where(and(eq(level.id, id), visible));
 }

@@ -1,7 +1,8 @@
 // GET /play/:id — player for a published level (index player chrome,
 // minus the isZoneOne flashvar: custom levels carry their own dimensions).
 // SQL: 0 for the stock redirect; guests pay exactly 1 app query (PK + name
-// column only), members add 1 session lookup. Rows read: <= 1 level row.
+// and published columns only), members add 1 session lookup. Rows read:
+// <= 1 level row.
 import { defineHandler } from "nitro";
 import { getRouterParam, sendRedirect } from "nitro/h3";
 import { HTTPError } from "nitro";
@@ -26,5 +27,5 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   const rows = await findVisibleLevelName(getRequestDb(event), id, session);
   const row = requireRow(rows);
-  return html(event, renderPlayPage(row.name, id, toPageView(session, event)));
+  return html(event, renderPlayPage(row.name, id, toPageView(session, event), row.published));
 });
