@@ -118,3 +118,49 @@ function moveIt (obj, theHeight, offsetHeight) {
 	obj.style.top = ((theHeight / 2) - offsetHeight) + "px";
 	obj.style.marginLeft = "-135px";
 }
+
+// Language choice (EnglishUK / EnglishUSA): saved to localStorage with no
+// page refresh. Flag clicks are intercepted below; the stored value is
+// re-applied to the flags widget on every page load.
+var PLAYSEGA_LANG_KEY = 'playsega.language';
+
+function playsegaLanguage () {
+    var v = null;
+    try { v = localStorage.getItem(PLAYSEGA_LANG_KEY); } catch (e) {}
+    return (v === 'EnglishUSA' || v === 'EnglishUK') ? v : null;
+}
+
+function playsegaMarkLanguage (lang) {
+    // Show the selected flag on top: move the chosen language div into
+    // .flag_top and park the other one in .footer (anchors move along).
+    var top = document.querySelector ('#flags .flag_top');
+    var foot = document.querySelector ('#flags .footer');
+    var uk = document.querySelector ('#flags .EnglishUK');
+    var usa = document.querySelector ('#flags .EnglishUSA');
+    if (!top || !foot || !uk || !usa) return;
+    var first = (lang === 'EnglishUSA') ? usa : uk;
+    var second = (lang === 'EnglishUSA') ? uk : usa;
+    top.insertBefore (first, top.firstChild);
+    foot.insertBefore (second, foot.firstChild);
+}
+
+function playsegaSetLanguage (lang, ev) {
+    if (ev && ev.preventDefault) ev.preventDefault ();
+    try { localStorage.setItem (PLAYSEGA_LANG_KEY, lang); } catch (e) {}
+    playsegaMarkLanguage (lang);
+    return false;
+}
+
+function playsegaWireLanguageFlags () {
+    var uk = document.querySelector ('#flags .EnglishUK a');
+    var usa = document.querySelector ('#flags .EnglishUSA a');
+    if (uk) uk.onclick = function (ev) { return playsegaSetLanguage ('EnglishUK', ev || window.event); };
+    if (usa) usa.onclick = function (ev) { return playsegaSetLanguage ('EnglishUSA', ev || window.event); };
+    playsegaMarkLanguage (playsegaLanguage ());
+}
+
+if (document.addEventListener) {
+    document.addEventListener ('DOMContentLoaded', playsegaWireLanguageFlags, false);
+} else if (window.attachEvent) {
+    window.attachEvent ('onload', playsegaWireLanguageFlags);
+}

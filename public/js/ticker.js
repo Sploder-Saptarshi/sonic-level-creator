@@ -7,6 +7,9 @@ function changeTitle (whichDiv, theTitle) {
 
 function getTicker (whichDiv, total, whichStyle, types, userid, onlyuniques) {
     tickerText[whichDiv] = document.getElementById (whichDiv);
+    // Pages without this ticker slot (e.g. game pages calling tickerAll)
+    // skip the backend call entirely: no 404 and no null-element errors.
+    if (!tickerText[whichDiv]) return;
 
     xmlhttpNews[whichDiv] = false;
     try {xmlhttpNews[whichDiv] = new ActiveXObject ('Msxml2.XMLHTTP');} catch (e) {try {xmlhttpNews[whichDiv] = new ActiveXObject('Microsoft.XMLHTTP');} catch (E) {xmlhttpNews[whichDiv] = false;}}

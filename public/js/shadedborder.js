@@ -210,6 +210,7 @@ create: function(opts) {
   return {
     render: function(el) {
       if (typeof el == 'string') el = document.getElementById(el);
+      if (!el) return;
       if (el.length != undefined) {
         for (var i=0; i<el.length; ++i) this.render(el[i]);
         return;
