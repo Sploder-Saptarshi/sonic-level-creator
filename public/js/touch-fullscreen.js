@@ -265,6 +265,11 @@
       }
     }
 
+    // Long-press must never raise a context menu (touch right-click).
+    container.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+    });
+
     // Capture phase on window: runs before anything inside the SWF/Ruffle
     // player can stop propagation. Desktop mouse is ignored, as are
     // synthetic (untrusted) events.

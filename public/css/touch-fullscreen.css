@@ -111,11 +111,13 @@ html.tc-stage-active #feedback {
 }
 
 /* While fullscreen, nothing on the page may be text-selectable
-   (long-presses are game input, not selection gestures). */
+   (long-presses are game input, not selection gestures), and iOS must
+   not raise its long-press callout. */
 html.tc-stage-active body,
 html.tc-stage-active body * {
   -webkit-user-select: none !important;
   user-select: none !important;
+  -webkit-touch-callout: none !important;
 }
 
 /* Cropped stages (Ice Shuffle, flagged .tc-cropped by JS): the 600px
