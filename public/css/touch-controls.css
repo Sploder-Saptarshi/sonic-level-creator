@@ -34,13 +34,27 @@
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  display: none; /* JS flips to block only on touch-capable devices */
+  display: none; /* shown only when all three hold: touch device (JS adds
+                    .tc-on), Sonic player page (markup present), and the
+                    stage is fullscreened (selectors below) */
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-#touch-controls.tc-on {
+/* Touch controls appear ONLY on the fullscreen stage. The primary gate
+   is the JS-mirrored .tc-stage-fullscreen class (set from
+   fullscreenchange events + the pseudo path); the :fullscreen selectors
+   are a belt-and-suspenders fallback. NOTE: the webkit-prefixed selector
+   lives in its own rule — one invalid selector in a comma group drops the
+   WHOLE rule, and non-webkit engines (Firefox) reject :-webkit-full-screen. */
+#gamecontainer.tc-stage-fullscreen #touch-controls.tc-on,
+#gamecontainer:fullscreen #touch-controls.tc-on,
+#gamecontainer.tc-pseudo-fullscreen #touch-controls.tc-on {
+  display: block;
+}
+
+#gamecontainer:-webkit-full-screen #touch-controls.tc-on {
   display: block;
 }
 

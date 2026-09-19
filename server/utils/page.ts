@@ -127,6 +127,11 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 // the overlay self-hides otherwise). Shared by the index and /play pages.
 const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" type="text/css" media="screen" />
 `;
+// Fullscreen letterbox stage for touch devices. Loaded on EVERY game page
+// (index, /play, ice-shuffle): it only ever applies while fullscreened,
+// which touch-fullscreen.js enters on a touch inside the SWF.
+const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css" type="text/css" media="screen" />
+`;
 
 // API connector id passed as the game's `id` flashvar (it loads
 // /<id>.swf). A static filename, not a session — real sessions live
@@ -309,7 +314,8 @@ export interface GamePageOptions {
 
 // Touch overlay for the level player (index + /play only): dpad (TL base
 // + BL knob + BR half-ring feedback) and jump button (TR outline + knob).
-// Self-shows only on touch-capable devices (see touch-controls.js).
+// Self-shows only on touch-capable devices while fullscreened (see
+// touch-controls.css + touch-fullscreen.js).
 const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                 <div class="tc-dpad">
                     <div class="tc-base"></div>
@@ -366,7 +372,7 @@ export function renderGamePage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: opts.headExtra ?? gameHeadExtra,
+    headExtra: (opts.headExtra ?? gameHeadExtra) + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
@@ -571,7 +577,7 @@ export function renderPlayPage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: gameHeadExtra,
+    headExtra: gameHeadExtra + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
     body,

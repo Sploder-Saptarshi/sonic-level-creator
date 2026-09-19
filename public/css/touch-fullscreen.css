@@ -1,0 +1,119 @@
+/* Fullscreen game stage for touch devices (Sonic player + Ice Shuffle).
+ *
+ * A touch inside #gameswf fullscreenes #gamecontainer (see
+ * touch-fullscreen.js). The container becomes a black flex stage and the
+ * SWF keeps its 640x448 aspect via shrink-to-fit, so any aspect mismatch
+ * shows as black bars (letterbox). Overrides (with !important) beat the
+ * inline 448px height and the Ice Shuffle 600px crop window.
+ */
+
+/* NOTE: webkit-prefixed selectors live in their own rules throughout
+   this file — one invalid selector in a comma group drops the WHOLE
+   rule, and non-webkit engines (Firefox) reject :-webkit-full-screen. */
+
+#gamecontainer:fullscreen {
+  position: relative;
+  width: 100% !important;
+  max-width: 100vw;
+  height: 100vh !important;
+  max-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#gamecontainer:-webkit-full-screen {
+  position: relative;
+  width: 100% !important;
+  max-width: 100vw;
+  height: 100vh !important;
+  max-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fallback when the Fullscreen API is missing (e.g. iPhone Safari):
+   a fixed full-viewport stage that behaves the same. */
+#gamecontainer.tc-pseudo-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.tc-locked {
+  overflow: hidden;
+}
+
+/* Letterboxed stage: fixed SWF aspect, shrink-to-fit. */
+#gamecontainer:fullscreen #gameswf,
+#gamecontainer.tc-pseudo-fullscreen #gameswf {
+  width: min(100vw, calc(100vh * 640 / 448)) !important;
+  height: auto !important;
+  aspect-ratio: 640 / 448;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto;
+}
+
+#gamecontainer:-webkit-full-screen #gameswf {
+  width: min(100vw, calc(100vh * 640 / 448)) !important;
+  height: auto !important;
+  aspect-ratio: 640 / 448;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto;
+}
+
+#gamecontainer:fullscreen #gameswf ruffle-player,
+#gamecontainer.tc-pseudo-fullscreen #gameswf ruffle-player,
+#gamecontainer:fullscreen #gameswf object,
+#gamecontainer.tc-pseudo-fullscreen #gameswf object,
+#gamecontainer:fullscreen #gameswf embed,
+#gamecontainer.tc-pseudo-fullscreen #gameswf embed {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+#gamecontainer:-webkit-full-screen #gameswf ruffle-player,
+#gamecontainer:-webkit-full-screen #gameswf object,
+#gamecontainer:-webkit-full-screen #gameswf embed {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Exit control (created by touch-fullscreen.js, toggled per mode). */
+.tc-exit-fullscreen {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 60;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  border: 1px solid #666;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}

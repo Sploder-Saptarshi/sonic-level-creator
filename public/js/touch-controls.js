@@ -3,6 +3,9 @@
  * Overlay only activates on touch-capable devices:
  *   ('ontouchstart' in window) || navigator.maxTouchPoints > 0
  * Otherwise the container stays `display:none` and no listeners attach.
+ * Visibility additionally requires the fullscreen stage (see
+ * touch-controls.css): touch-fullscreen.js enters it on a touch inside
+ * the SWF, so the controls only ever appear in fullscreen play.
  *
  * Sprites (see touch-controls.css header for measured bboxes):
  *   TL cell = left dpad outer area (silver base)
