@@ -18,7 +18,7 @@ export default defineHandler(async (event) => {
       // Stock 640x448 movie in a 600px window: the 40px overflow is split
       // evenly and cropped (20px each side).
       headExtra: `<style type="text/css" media="screen">
-#gamecontainer { padding-bottom: 1px; width: 600px; margin: 0 auto; overflow: hidden; }
+#gamecontainer { padding-bottom: 1px; width: 605px; margin: 0 auto; overflow: hidden; }
 #gamecontainer #gameswf { width: 640px; margin: 0 -20px; }
 </style>
 `,
@@ -26,6 +26,7 @@ export default defineHandler(async (event) => {
       hideReport: true,
       hideTitle: true,
       hideEditorButtons: true,
+      hideTouchControls: true,
       sideActive: "ice",
     }),
   );

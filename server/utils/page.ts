@@ -123,6 +123,10 @@ const editorHeadExtra = `<style type="text/css" media="screen">
 </style>
 <link rel="preload" as="image" href="/editors/assets/spritesheet.png" />
 `;
+// Touch dpad + jump button over the level player (touch devices only;
+// the overlay self-hides otherwise). Shared by the index and /play pages.
+const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" type="text/css" media="screen" />
+`;
 
 // API connector id passed as the game's `id` flashvar (it loads
 // /<id>.swf). A static filename, not a session — real sessions live
@@ -295,11 +299,29 @@ export interface GamePageOptions {
   hideReport?: boolean;
   hideTitle?: boolean;
   hideEditorButtons?: boolean;
+  // Ice Shuffle is a different game (own keys): no touch dpad/button.
+  hideTouchControls?: boolean;
   sideActive?: string;
   // Movie embed size (defaults to the stock 640x448).
   gameWidth?: number;
   gameHeight?: number;
 }
+
+// Touch overlay for the level player (index + /play only): dpad (TL base
+// + BL knob + BR half-ring feedback) and jump button (TR outline + knob).
+// Self-shows only on touch-capable devices (see touch-controls.js).
+const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
+                <div class="tc-dpad">
+                    <div class="tc-base"></div>
+                    <div class="tc-feedback"></div>
+                    <div class="tc-knob"></div>
+                </div>
+                <div class="tc-btn">
+                    <div class="tc-btn-ring"></div>
+                    <div class="tc-btn-knob"></div>
+                </div>
+            </div>
+            <script type="text/javascript" src="/js/touch-controls.js"></script>`;
 
 export function renderGamePage(
   query: PageQuery,
@@ -333,6 +355,7 @@ export function renderGamePage(
     contentSwf: opts.contentSwf ?? GAME_SWF,
     gameWidth: opts.gameWidth ?? 640,
     gameHeight: opts.gameHeight ?? 448,
+    touchControls: opts.hideTouchControls ? "" : TOUCH_CONTROLS_HTML,
   };
   const body = sidebar(!!view.username, opts.sideActive) + render(gameBodyTemplate, data);
   return render(layoutTemplate, {
@@ -343,7 +366,7 @@ export function renderGamePage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: opts.headExtra ?? "",
+    headExtra: opts.headExtra ?? gameHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
@@ -538,6 +561,7 @@ export function renderPlayPage(
     contentSwf: GAME_SWF,
     gameWidth: 640,
     gameHeight: 448,
+    touchControls: TOUCH_CONTROLS_HTML,
   });
   // Same sidebar as the index page.
   const body = sidebar(!!view.username) + gameBody;
@@ -547,7 +571,7 @@ export function renderPlayPage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: "",
+    headExtra: gameHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
     body,

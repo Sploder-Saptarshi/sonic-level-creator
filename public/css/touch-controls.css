@@ -1,0 +1,221 @@
+/* Touch controls overlay for the Sonic level player (index + /play routes).
+ *
+ * Sprite facts for /images/controls.png (512x512, 2x2 cells of 256px,
+ * measured with PIL, alpha>50 strict bbox):
+ *   TL dpad base   bbox (2,2)-(251,252)   250x251, ring ~15px, smoky interior
+ *   TR button ring bbox (258,2)-(509,253) 252x252
+ *   BL knob        bbox (44,300)-(211,467) 168x168, center (127.5,383.5)
+ *   BR feedback    bbox (260,259)-(509,509) 250x251, gold ring ~15px, hollow
+ *
+ * Positioning rule: the sheet is divided into 4 equal 256px quadrants and
+ * every sprite is centered on its quadrant center, exactly as laid out in
+ * the sheet:
+ *   TL (128,128)  TR (384,128)  BL (128,384)  BR (384,384)
+ * For an element of size E showing a quadrant through a sheet scaled to
+ * S x S px, the centered background-position is:
+ *   (E/2 - cx*S/512)  (E/2 - cy*S/512)
+ * Full-cell layers (E = S/2) reduce to the plain cell offsets; smaller
+ * windows (knobs) use the same formula so the art stays centered. The one
+ * exception is the BR feedback layer, which carries a measured (-2,-1)
+ * source-px nudge so its ring lands exactly on the TL ring (the two arts
+ * are cut ~1px apart in the sheet).
+ *
+ * Feedback rule: pushing a direction shows that HALF of BR (gold) over the
+ * opposite half of TL (silver), e.g. left = left half of BR + right half
+ * of TL. Implemented with two stacked layers + clip-path halves.
+ */
+
+#gamecontainer {
+  position: relative;
+}
+
+#touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: none; /* JS flips to block only on touch-capable devices */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#touch-controls.tc-on {
+  display: block;
+}
+
+/* Left dpad cluster */
+.tc-dpad {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: 132px;
+  height: 132px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tc-base,
+.tc-feedback {
+  position: absolute;
+  inset: 0;
+  background-image: url("/images/controls.png");
+  /* Whole sheet scaled so one 256px cell == control size (S = 2E). */
+  background-size: 264px 264px;
+  background-repeat: no-repeat;
+}
+
+.tc-base {
+  /* TL cell centered: (66 - 128*264/512) = 0, 0. */
+  background-position: 0 0;
+  opacity: 0.92;
+}
+
+.tc-feedback {
+  /* BR cell: same centering as the base, plus a measured (-2,-1) source-px
+     compensation — the gold art sits ~1px right of the silver art in the
+     sheet (TL center 126.5 vs BR center 384.5), so without this the rings
+     misalign by 1px to the right. */
+  background-position: -133.03px -132.52px;
+  opacity: 0;
+}
+
+/* Directional halves: active half of the gold ring over the silver base.
+   Left push => left half gold + right half silver, etc. The cut edge of
+   each half is pulled back 5px (e.g. left half shows x < center - 5px) so
+   the gap triangles straddling the center line never show half-highlighted;
+   the facing arrow itself is untouched. */
+#touch-controls[data-dir="left"] .tc-feedback {
+  opacity: 1;
+  clip-path: inset(0 calc(50% + 5px) 0 0);
+}
+
+#touch-controls[data-dir="right"] .tc-feedback {
+  opacity: 1;
+  clip-path: inset(0 0 0 calc(50% + 5px));
+}
+
+#touch-controls[data-dir="up"] .tc-feedback {
+  opacity: 1;
+  clip-path: inset(0 0 calc(50% + 5px) 0);
+}
+
+#touch-controls[data-dir="down"] .tc-feedback {
+  opacity: 1;
+  clip-path: inset(calc(50% + 5px) 0 0 0);
+}
+
+/* Draggable knob (BL cell): 168px art fitted to 62px (S = 189px),
+   centered on the quadrant center:
+   (31 - 128*189/512, 31 - 384*189/512) = (-16.25, -110.75). */
+.tc-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
+  background-image: url("/images/controls.png");
+  background-size: 189px 189px;
+  background-position: -16.25px -110.75px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  will-change: transform;
+  /* Tween between the 4-way detents (and back to center) instead of
+     snapping: JS only ever sets one of 5 quantized positions, so a short
+     ease-out glides the knob there. */
+  transition: transform 0.12s ease-out;
+}
+
+/* Right action button: TR outline + BL knob cap. */
+.tc-btn {
+  position: absolute;
+  right: 14px;
+  bottom: 26px;
+  width: 88px;
+  height: 88px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tc-btn-ring {
+  position: absolute;
+  inset: 0;
+  background-image: url("/images/controls.png");
+  background-size: 176px 176px;
+  background-repeat: no-repeat;
+  /* TR cell centered: (44 - 384*176/512, 44 - 128*176/512) = (-88, 0). */
+  background-position: -88px 0;
+  opacity: 0.92;
+}
+
+/* 168px knob art fitted to 52px (S = 158px), centered on BL center:
+   (26 - 128*158/512, 26 - 384*158/512) = (-13.5, -92.5). */
+.tc-btn-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  background-image: url("/images/controls.png");
+  background-size: 158px 158px;
+  background-position: -13.5px -92.5px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  transition: transform 0.1s ease-out, filter 0.1s ease-out;
+}
+
+#touch-controls[data-jump="1"] .tc-btn-knob {
+  transform: scale(0.88);
+  filter: brightness(1.25);
+}
+
+@media (max-width: 700px) {
+  .tc-dpad {
+    width: 112px;
+    height: 112px;
+  }
+
+  .tc-base,
+  .tc-feedback {
+    background-size: 224px 224px;
+  }
+
+  /* Recentered for S = 224 with the same (-2,-1) source-px ring
+     compensation: (55.34 - 384*224/512) = -112.88, ditto y -112.44. */
+  .tc-feedback {
+    background-position: -112.88px -112.44px;
+  }
+
+  .tc-btn {
+    width: 76px;
+    height: 76px;
+  }
+
+  .tc-btn-ring {
+    background-size: 152px 152px;
+    /* Recentered for S = 152: (38 - 384*152/512, 38 - 128*152/512). */
+    background-position: -76px 0;
+  }
+
+  /* Knobs keep their art-fitted sizes/centering at all widths. */
+
+  /* Same 5px cut-edge pullback, scaled for the 112px dpad
+     (5px * 112/132 = 4.25px). */
+  #touch-controls[data-dir="left"] .tc-feedback {
+    clip-path: inset(0 calc(50% + 4.25px) 0 0);
+  }
+
+  #touch-controls[data-dir="right"] .tc-feedback {
+    clip-path: inset(0 0 0 calc(50% + 4.25px));
+  }
+
+  #touch-controls[data-dir="up"] .tc-feedback {
+    clip-path: inset(0 0 calc(50% + 4.25px) 0);
+  }
+
+  #touch-controls[data-dir="down"] .tc-feedback {
+    clip-path: inset(calc(50% + 4.25px) 0 0 0);
+  }
+}
