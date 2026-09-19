@@ -182,6 +182,10 @@ export function showPlaceError(msg: string) {
   showPopup('Cannot place object', msg, true);
 }
 
+export function showDeleteError(msg: string) {
+  showPopup('Cannot delete tile', msg, true);
+}
+
 export function hideSaveOverlay() {
   S.shadow?.querySelector('.save-overlay')?.classList.add('hidden');
 }

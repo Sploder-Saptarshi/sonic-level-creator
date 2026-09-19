@@ -7,8 +7,29 @@ import {
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare, hideSaveOverlay, showPlaceError } from './actions';
+import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare, hideSaveOverlay, showPlaceError, showDeleteError } from './actions';
 import { buildThumbnails, switchTab } from './thumbnails';
+
+// Clearing a tile shrinks the global object budget (each object needs a
+// placed tile): refuse when the remaining tiles could not hold every
+// object. Returns the reason, or null when the tile is already empty or
+// the removal keeps the level within budget.
+function tileClearBlocked(bx: number, by: number): string | null {
+  if (S.grid[by][bx] <= 0) return null;
+  const total = totalObjects(), tiles = countPlacedTiles();
+  if (total > tiles - 1) {
+    return `This tile cannot be removed. There are ${total} objects for ${tiles} placed tiles. Delete an object first, then remove the tile.`;
+  }
+  return null;
+}
+
+function rejectTileClear(bx: number, by: number): boolean {
+  const why = tileClearBlocked(bx, by);
+  if (!why) return false;
+  updateDesc(why);
+  showDeleteError(why);
+  return true;
+}
 
 // ── Canvas: mousedown ──
 
@@ -31,6 +52,7 @@ function onMouseDown(e: MouseEvent) {
   // clears the tile. Checked before the grid bounds so a badge hanging off
   // the grid edge still works.
   if (e.button === 0 && hitTileBadge(mx, my, cellSize())) {
+    if (rejectTileClear(S.selectedTileBx, S.selectedTileBy)) return;
     S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
     S.selectedTileBx = -1;
     S.selectedTileBy = -1;
@@ -57,6 +79,7 @@ function onMouseDown(e: MouseEvent) {
       }
     }
     if (!removedObject) {
+      if (rejectTileClear(bx, by)) return;
       S.grid[by][bx] = 0;
     }
     S.selectedObjIdx = -1;
@@ -257,6 +280,7 @@ function onKeyDown(e: KeyboardEvent) {
       draw();
     } else if (S.selectedTileBx >= 0 && S.selectedTileBy >= 0
       && S.selectedTileBy < S.grid.length && S.selectedTileBx < S.grid[0].length) {
+      if (rejectTileClear(S.selectedTileBx, S.selectedTileBy)) return;
       S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
       S.selectedTileBx = -1;
       S.selectedTileBy = -1;
