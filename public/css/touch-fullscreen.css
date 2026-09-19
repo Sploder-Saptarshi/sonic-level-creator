@@ -110,6 +110,14 @@ html.tc-stage-active #feedback {
   display: none !important;
 }
 
+/* While fullscreen, nothing on the page may be text-selectable
+   (long-presses are game input, not selection gestures). */
+html.tc-stage-active body,
+html.tc-stage-active body * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
 /* Cropped stages (Ice Shuffle, flagged .tc-cropped by JS): the 600px
    crop window moves onto #gameswf itself (the fullscreen container no
    longer clips), and the player keeps its -20px side offsets so the
