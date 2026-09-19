@@ -156,6 +156,15 @@ export async function doSave() {
     if (!res.ok) throw new Error(`save failed: ${res.status}`);
     const saved = (await res.json()) as { id?: string };
     if (saved.id) S.levelId = saved.id;
+    // Pin ?load=<id> in the URL so a refresh reopens this level instead
+    // of prompting a new one. replaceState: no reload, no history spam.
+    if (S.levelId) {
+      const url = new URL(location.href);
+      if (url.searchParams.get('load') !== S.levelId) {
+        url.searchParams.set('load', S.levelId);
+        history.replaceState(null, '', url);
+      }
+    }
     updateDesc(`Saved "${S.levelName}".`);
   } catch {
     updateDesc('Server save failed — downloaded a local copy instead.');
