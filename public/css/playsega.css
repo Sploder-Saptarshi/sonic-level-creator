@@ -794,6 +794,8 @@ a.lozenge2:hover {
 a.lozenge2:hover span {
     background-position: bottom left;
 }
+/* form buttons (mylevels rename/delete, member submit) use the pointer cursor */
+span.button button { cursor: pointer; }
 /*grey lozenge (larger)*/
 a.lozenge3 {
     background: transparent url('../images/bg_button_grey_2_end.gif') no-repeat scroll top right;
