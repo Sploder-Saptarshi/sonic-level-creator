@@ -10,6 +10,7 @@
 //   account.userId        — provider accounts per user
 //   verification.identifier — verification lookups
 import { index, sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { eq } from "drizzle-orm";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -112,8 +113,11 @@ export const level = sqliteTable(
 
 // Level reports: one row per (reporter, level) complaint. `status` is
 // 'open' until a moderator dismisses it; deleting the level cascades its
-// reports away. The partial-shape unique (level, reporter, status) lets a
-// user re-report after a dismiss but never double-queue the same open one.
+// reports away. The partial unique index (open rows only) lets a user
+// re-report after a dismiss but never double-queue the same open one —
+// and lets dismiss flip open→dismissed without colliding with the reporter's
+// earlier dismissed rows (a full (level, reporter, status) key crashes the
+// second dismiss with UNIQUE constraint failed).
 export const report = sqliteTable(
   "report",
   {
@@ -130,7 +134,7 @@ export const report = sqliteTable(
   },
   (t) => [
     index("report_level_id_idx").on(t.levelId),
-    uniqueIndex("report_open_unique").on(t.levelId, t.reporterId, t.status),
+    uniqueIndex("report_open_unique").on(t.levelId, t.reporterId).where(eq(t.status, "open")),
     // Composite over the queue filter + sort: answers both the open COUNT
     // and the ORDER BY createdAt page walk from the index alone (no sort
     // step, no full-table scan).
