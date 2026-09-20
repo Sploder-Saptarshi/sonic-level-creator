@@ -17,6 +17,8 @@ import {
   resolveNext,
   syntheticEmail,
 } from "../../utils/authFlow";
+import { first } from "../../utils/session";
+import { getTurnstileSitekey, verifyTurnstile } from "../../utils/turnstile";
 
 export default defineHandler(async (event) => {
   // Body first (pure parse, 0 SQL) so the bounce below can honor a
@@ -28,8 +30,9 @@ export default defineHandler(async (event) => {
 
   const next = requestNext(event, body);
   const origin = getRequestURL(event).origin;
+  const turnstileSitekey = getTurnstileSitekey(event);
   const fail = (msg: string) =>
-    html(event, renderSignupPage({}, { formError: errorBox(msg), next, origin }));
+    html(event, renderSignupPage({}, { formError: errorBox(msg), next, origin, turnstileSitekey }));
   const username = cleanUsernameInput(body?.username);
   const password = formString(body, "password");
   const confirm = formString(body, "confirmPassword");
@@ -41,6 +44,16 @@ export default defineHandler(async (event) => {
   }
   if (password !== confirm) {
     return fail("Passwords do not match.");
+  }
+  // Bot check before creating the account (fresh widget on every
+  // re-render, so a consumed single-use token never strands the form).
+  const captcha = await verifyTurnstile(
+    event,
+    first(body?.["cf-turnstile-response"]),
+    "signup",
+  );
+  if (!captcha.ok) {
+    return fail(captcha.error);
   }
   const res = await callAuth(event, (auth) =>
     auth.api.signUpEmail({

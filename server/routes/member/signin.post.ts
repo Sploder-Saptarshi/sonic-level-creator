@@ -15,6 +15,8 @@ import {
   requestNext,
   resolveNext,
 } from "../../utils/authFlow";
+import { first } from "../../utils/session";
+import { getTurnstileSitekey, verifyTurnstile } from "../../utils/turnstile";
 
 export default defineHandler(async (event) => {
   // Body first (pure parse, 0 SQL) so the bounce below can honor a
@@ -26,12 +28,23 @@ export default defineHandler(async (event) => {
 
   const next = requestNext(event, body);
   const origin = getRequestURL(event).origin;
+  const turnstileSitekey = getTurnstileSitekey(event);
   const fail = (msg: string) =>
-    html(event, renderSigninPage({}, { formError: errorBox(msg), next, origin }));
+    html(event, renderSigninPage({}, { formError: errorBox(msg), next, origin, turnstileSitekey }));
   const username = formString(body, "signInUsername").trim();
   const password = formString(body, "signInPassword");
   if (!username || !password) {
     return fail("Enter your username and password.");
+  }
+  // Bot check before the auth call (fresh widget on every re-render, so a
+  // consumed single-use token never strands the form).
+  const captcha = await verifyTurnstile(
+    event,
+    first(body?.["cf-turnstile-response"]),
+    "signin",
+  );
+  if (!captcha.ok) {
+    return fail(captcha.error);
   }
   const res = await callAuth(event, (auth) =>
     auth.api.signInUsername({

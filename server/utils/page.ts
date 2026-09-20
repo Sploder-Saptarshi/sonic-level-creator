@@ -14,6 +14,7 @@ import userlevelsBodyTemplate from "../templates/userlevels.html" with { type: "
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml, first, isAsciiUsername, type SessionUser } from "./session";
+import { DEV_TURNSTILE_SITEKEY } from "./turnstile";
 import type { PublicLevelRow } from "./levels";
 import type { H3Event } from "nitro";
 import { getRequestURL, setResponseHeader } from "nitro/h3";
@@ -34,6 +35,10 @@ export interface PageView {
   formError?: string;
   // Validated `next` return target for the member forms ("" when none).
   next?: string;
+  // Per-request Turnstile site key for the member forms (CF env binding
+  // or process env; routes resolve it via getTurnstileSitekey). Falls
+  // back to the dev key when unset.
+  turnstileSitekey?: string;
   // Request origin (scheme + host) for absolute embed URLs. Set by
   // toPageView when the event is passed; "" renders no embed image.
   origin?: string;
@@ -417,7 +422,13 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
 }
 
 const memberHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="text/css" media="screen" />
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async="async" defer="defer"></script>
 `;
+// Fallback site key for the Cloudflare Turnstile widget on the member
+// forms (local always-pass test key). Prod overrides per request via
+// PageView.turnstileSitekey (TURNSTILE_SITEKEY env binding). The secret
+// counterpart lives in env as TURNSTILE_SECRET — never here.
+const TURNSTILE_SITEKEY = DEV_TURNSTILE_SITEKEY;
 // My Account page styles: pure-CSS copy of the editor chrome (ts/ui.ts) —
 // gray gradient bands, glossy orange action buttons, pale inputs. No image
 // assets. Classes are acct- prefixed so nothing leaks into site styles.
@@ -452,6 +463,9 @@ function renderMemberPage(
   // Base <title> (the "| Sonic ReLvl" suffix is applied automatically).
   baseTitle: string,
   view: PageView = {},
+  // Turnstile widget action for this form ("signin" / "signup") — the
+  // backend requires siteverify to echo the same action back.
+  turnstileAction = "",
 ): string {
   // Return target for the hidden form field + the cross-link to the other
   // member form (so switching sign-in <-> sign-up keeps it). Slots are
@@ -464,6 +478,8 @@ function renderMemberPage(
     next,
     signupHref: withNext("/member/signup"),
     signinHref: withNext("/member/signin"),
+    turnstileSitekey: view.turnstileSitekey || TURNSTILE_SITEKEY,
+    turnstileAction,
   });
   return render(layoutTemplate, {
     title: pageTitle(baseTitle),
@@ -479,7 +495,7 @@ function renderMemberPage(
 }
 
 export function renderSigninPage(query: PageQuery, view: PageView = {}): string {
-  return renderMemberPage(signinBodyTemplate, "Member Sign-in", view);
+  return renderMemberPage(signinBodyTemplate, "Member Sign-in", view, "signin");
 }
 
 export interface LevelRow {
@@ -679,7 +695,7 @@ export function renderPlayPage(
 }
 
 export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
-  return renderMemberPage(signupBodyTemplate, "Member Sign-up", view);
+  return renderMemberPage(signupBodyTemplate, "Member Sign-up", view, "signup");
 }
 
 // My Account page (same box3 + sidebar shell as the level-list pages).

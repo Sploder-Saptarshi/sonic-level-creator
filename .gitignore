@@ -6,5 +6,8 @@
 /dist
 /data
 /dist
+# Local env (Turnstile + dev secrets) — never commit.
+/.dev.vars
+/.env
 # esbuild output (built via npm run build:editor / build:editor:prod)
 /public/editors/assets/editor.js

@@ -9,3 +9,10 @@ binding = "DB"
 database_name = "sonic-level-creator"
 database_id = "7112ad7b-4fb4-4f75-b32a-455fefe29a41"
 migrations_dir = "drizzle"
+
+# Turnstile (sign-in/up bot check). Public vars live here; the secret
+# never does — set it via `wrangler pages secret put TURNSTILE_SECRET`
+# (Pages) or `wrangler secret put TURNSTILE_SECRET` (Workers).
+[vars]
+TURNSTILE_SITEKEY = "0x4AAAAAAE9zjsPE26cAcz7h"
+TURNSTILE_HOSTNAMES = "sonicrelvl.pages.dev"

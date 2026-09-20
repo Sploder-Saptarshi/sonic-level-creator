@@ -77,6 +77,21 @@ the primary. No replicas exist locally; dev against remote or miniflare.
   put` (+ `BETTER_AUTH_URL` env var); local dev falls back to an insecure
   default — never deploy it.
 
+## Turnstile (Cloudflare bot check on sign-in/up)
+
+- Widget (`server/templates/signin|signup.html`, `data-action` = signin /
+  signup) + `server/utils/turnstile.ts` `verifyTurnstile()` (siteverify,
+  fails closed, 0 SQL). Requires success + echoed action + allowlisted
+  hostname; test secrets bypass action/hostname via
+  `metadata.result_with_testing_key` — never deploy a test secret.
+- Sitekey is per-request (`getTurnstileSitekey`): `TURNSTILE_SITEKEY` env
+  binding, else the local always-pass test key. Prod vars in `wrangler.toml` (`[vars]`
+  `TURNSTILE_SITEKEY` + `TURNSTILE_HOSTNAMES`); secret via
+  `wrangler pages secret put TURNSTILE_SECRET` (never in the toml).
+- Local: `.dev.vars` (wrangler) + `.env` (nitro dev, gitignored) default
+  to the always-passes test pair when unset. Swap in the real secret +
+  sitekey to test the production widget on localhost.
+
 ## Workflow
 
 After editing any `ts/*.ts` file, run `npm run build:editor`, then
