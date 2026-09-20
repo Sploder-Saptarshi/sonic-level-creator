@@ -144,7 +144,7 @@ const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" typ
 const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css" type="text/css" media="screen" />
 `;
 // Ruffle SWF emulator — only on pages that actually embed SWFs (/, /play/:id,
-// /ice-shuffle). Keeps other pages clean and avoids the extra request.
+// /ice-shuffle, /editors/). Keeps other pages clean and avoids the extra request.
 const ruffleHeadExtra = `<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
 `;
 
@@ -393,7 +393,8 @@ export function renderGamePage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: ruffleHeadExtra + (opts.headExtra ?? gameHeadExtra) + fullscreenHeadExtra,
+    ruffle: ruffleHeadExtra,
+    headExtra: (opts.headExtra ?? gameHeadExtra) + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
@@ -418,6 +419,7 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
+    ruffle: ruffleHeadExtra,
     headExtra: editorHeadExtra,
     domloadExtra: "",
     bootstrap: bootstrap({ sessionId, username, levelId }),
@@ -491,6 +493,7 @@ function renderMemberPage(
     languagebar: NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
+    ruffle: "",
     headExtra: memberHeadExtra,
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
@@ -618,6 +621,7 @@ function renderLevelListPage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view, active),
     footerMidLink: footerMidLink(!!view.username),
+    ruffle: "",
     headExtra: "",
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
@@ -691,7 +695,8 @@ export function renderPlayPage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: ruffleHeadExtra + gameHeadExtra + fullscreenHeadExtra,
+    ruffle: ruffleHeadExtra,
+    headExtra: gameHeadExtra + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
     body,
@@ -718,6 +723,7 @@ export function renderAccountPage(view: PageView = {}, msg = ""): string {
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view, "account"),
     footerMidLink: footerMidLink(!!view.username),
+    ruffle: "",
     headExtra: accountHeadExtra,
     // Draws the rounded content-box border (same as the level-list pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
@@ -739,6 +745,7 @@ export function renderQuickstartPage(view: PageView = {}): string {
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
+    ruffle: "",
     headExtra: "",
     domloadExtra: quickstartDomloadExtra,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
