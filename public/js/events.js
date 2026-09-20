@@ -67,7 +67,7 @@ RUZEE.Events={
       RUZEE.Events.ondomload();
     }else{
       // Not ready yet, wait a little more.
-      setTimeout('RUZEE.Events.domloadCheck()',100);
+      setTimeout(RUZEE.Events.domloadCheck,100);
     }
     return true;
   }
@@ -88,6 +88,6 @@ document.getElementById("__ie_ondomload").onreadystatechange=function() {
 };
 /*@end @*/
 
-setTimeout('RUZEE.Events.domloadCheck()',100);
+setTimeout(RUZEE.Events.domloadCheck,100);
 // Just in case window.onload happens first, add it there, too
 RUZEE.Events.add(window,'load', RUZEE.Events.ondomload);
