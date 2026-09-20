@@ -106,13 +106,13 @@ html.tc-stage-active body * {
    so these win on cropped pages only. */
 #gamecontainer:fullscreen.tc-cropped #gameswf {
   width: 600px !important;
-  height: 448px !important;
+  height: 444px !important;
   overflow: hidden !important;
 }
 
 #gamecontainer:-webkit-full-screen.tc-cropped #gameswf {
   width: 600px !important;
-  height: 448px !important;
+  height: 444px !important;
   overflow: hidden !important;
 }
 
@@ -121,7 +121,7 @@ html.tc-stage-active body * {
 #gamecontainer:fullscreen.tc-cropped #gameswf embed {
   width: 640px !important;
   height: 448px !important;
-  margin: 0 -20px !important;
+  margin: -2px -20px !important;
 }
 
 #gamecontainer:-webkit-full-screen.tc-cropped #gameswf ruffle-player,
@@ -129,7 +129,7 @@ html.tc-stage-active body * {
 #gamecontainer:-webkit-full-screen.tc-cropped #gameswf embed {
   width: 640px !important;
   height: 448px !important;
-  margin: 0 -20px !important;
+  margin: -2px -20px !important;
 }
 
 /* Exit control (created by touch-fullscreen.js, toggled per mode).

@@ -37,9 +37,9 @@
 
     // Natural SWF size. The player renders noscale, so fullscreen scaling
     // is a CSS transform on the stage: largest factor that still fits.
-    // Ice Shuffle crops the movie through a 600px window (20px shaved off
-    // each side); detect that setup so fullscreen preserves the crop
-    // instead of revealing the hidden edges.
+    // Ice Shuffle crops the movie through a 600x444 window (20px shaved
+    // off each side, 2px off top/bottom); detect that setup so fullscreen
+    // preserves the crop instead of revealing the hidden edges.
     var GAME_W = 640;
     var GAME_H = 448;
 
@@ -51,6 +51,7 @@
         cropped = false;
       }
       GAME_W = cropped ? 600 : 640;
+      GAME_H = cropped ? 444 : 448;
       try {
         if (cropped) container.classList.add("tc-cropped");
         else container.classList.remove("tc-cropped");
