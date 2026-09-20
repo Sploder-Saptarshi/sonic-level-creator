@@ -224,45 +224,51 @@
       dpad.addEventListener("pointermove", onMove);
       dpad.addEventListener("pointerup", onUp);
       dpad.addEventListener("pointercancel", onUp);
-    } else {
-      // Legacy touch fallback (multi-touch safe: track identifier).
-      dpad.addEventListener(
-        "touchstart",
-        function (e) {
-          var t = e.changedTouches[0];
-          activePointer = t.identifier;
+    }
+    // Touch events always ride along: whichever fires first (touchstart
+    // or pointerdown) wins via the activePointer guard, so registration
+    // happens ONTAP on every engine instead of waiting for the slower
+    // path. Multi-touch safe: track identifier.
+    dpad.addEventListener(
+      "touchstart",
+      function (e) {
+        if (activePointer !== null) {
+          e.preventDefault();
+          return;
+        }
+        var t = e.changedTouches[0];
+        activePointer = t.identifier;
+        var p = dirFromPoint(t.clientX, t.clientY);
+        if (p) press(p);
+        else release();
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+    dpad.addEventListener(
+      "touchmove",
+      function (e) {
+        for (var i = 0; i < e.changedTouches.length; i++) {
+          var t = e.changedTouches[i];
+          if (t.identifier !== activePointer) continue;
           var p = dirFromPoint(t.clientX, t.clientY);
           if (p) press(p);
           else release();
-          e.preventDefault();
-        },
-        { passive: false }
-      );
-      dpad.addEventListener(
-        "touchmove",
-        function (e) {
-          for (var i = 0; i < e.changedTouches.length; i++) {
-            var t = e.changedTouches[i];
-            if (t.identifier !== activePointer) continue;
-            var p = dirFromPoint(t.clientX, t.clientY);
-            if (p) press(p);
-            else release();
-          }
-          e.preventDefault();
-        },
-        { passive: false }
-      );
-      var end = function (e) {
-        for (var i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier !== activePointer) continue;
-          activePointer = null;
-          release();
         }
         e.preventDefault();
-      };
-      dpad.addEventListener("touchend", end, { passive: false });
-      dpad.addEventListener("touchcancel", end, { passive: false });
-    }
+      },
+      { passive: false }
+    );
+    var end = function (e) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier !== activePointer) continue;
+        activePointer = null;
+        release();
+      }
+      e.preventDefault();
+    };
+    dpad.addEventListener("touchend", end, { passive: false });
+    dpad.addEventListener("touchcancel", end, { passive: false });
     // Leaving the control with the pointer down must not stick a key.
     dpad.addEventListener("pointerleave", function (e) {
       if (activePointer !== null && e.pointerType === "mouse") {
@@ -293,29 +299,35 @@
         jumpBtn.addEventListener("pointerdown", jumpOn);
         jumpBtn.addEventListener("pointerup", jumpOff);
         jumpBtn.addEventListener("pointercancel", jumpOff);
-      } else {
-        jumpBtn.addEventListener(
-          "touchstart",
-          function (e) {
-            jumpPointer = e.changedTouches[0].identifier;
-            root.setAttribute("data-jump", "1");
-            sendKey("keydown", KEYMAP.jump);
-            e.preventDefault();
-          },
-          { passive: false }
-        );
-        var jEnd = function (e) {
-          for (var i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier !== jumpPointer) continue;
-            jumpPointer = null;
-            root.removeAttribute("data-jump");
-            sendKey("keyup", KEYMAP.jump);
-          }
-          e.preventDefault();
-        };
-        jumpBtn.addEventListener("touchend", jEnd, { passive: false });
-        jumpBtn.addEventListener("touchcancel", jEnd, { passive: false });
       }
+      // touchstart rides along unconditionally: whichever fires first
+      // wins via the jumpPointer guard, so the jump registers ONTAP on
+      // every engine.
+      jumpBtn.addEventListener(
+        "touchstart",
+        function (e) {
+          if (jumpPointer !== null) {
+            e.preventDefault();
+            return;
+          }
+          jumpPointer = e.changedTouches[0].identifier;
+          root.setAttribute("data-jump", "1");
+          sendKey("keydown", KEYMAP.jump);
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+      var jEnd = function (e) {
+        for (var i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier !== jumpPointer) continue;
+          jumpPointer = null;
+          root.removeAttribute("data-jump");
+          sendKey("keyup", KEYMAP.jump);
+        }
+        e.preventDefault();
+      };
+      jumpBtn.addEventListener("touchend", jEnd, { passive: false });
+      jumpBtn.addEventListener("touchcancel", jEnd, { passive: false });
     }
 
     // Safety: never leave an arrow held if the page hides.
