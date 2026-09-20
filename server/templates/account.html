@@ -1,0 +1,83 @@
+    <div id="pagecontent">
+<!-- my account section -->
+<div id="box3" style="margin-bottom:10px; z-index: 1000">
+  <h3><span class="fancy" style="color:#ffffff">My Account</span>
+  </h3>
+  <div class="content" id="playGame" style="padding:10px">
+    <div class="acct-bar">
+      <div class="acct-user">Signed in as <b><%= it.username %></b></div>
+      <div class="acct-actions">
+        <a class="acct-btn" href="/editors/mylevels" rel="nofollow">My Levels</a>
+        <form action="/member/signout" method="post"><button class="acct-btn" type="submit" name="submit" value="signout">Log out</button></form>
+      </div>
+    </div>
+    <div class="acct-panels">
+      <div class="acct-panel">
+        <div class="acct-title">Change username</div>
+        <div class="acct-body">
+          <form action="/member/account/username" method="post" id="change_username" onsubmit="return false">
+            <div class="acct-field"><label>New username</label><input type="text" name="username" value="" maxlength="30" /></div>
+            <div class="acct-field"><label>Current password</label><input type="password" name="currentPassword" value="" /></div>
+            <div><button class="acct-btn" type="submit" name="submit" value="change-username" disabled="disabled">Change username</button></div>
+          </form>
+        </div>
+      </div>
+      <div class="acct-panel">
+        <div class="acct-title">Change password</div>
+        <div class="acct-body">
+          <form action="/member/account/password" method="post" id="change_password" onsubmit="return false">
+            <div class="acct-field"><label>Current password</label><input type="password" name="currentPassword" value="" /></div>
+            <div class="acct-field"><label>New password</label><input type="password" name="newPassword" value="" /></div>
+            <div class="acct-field"><label>Confirm new password</label><input type="password" name="confirmPassword" value="" /></div>
+            <div><button class="acct-btn" type="submit" name="submit" value="change-password" disabled="disabled">Change password</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+        <div class="clear">&nbsp;</div>
+    <script type="text/javascript">
+    // Toggles the change-username / change-password submits: they stay
+    // disabled until every field passes the same rules the backend will
+    // enforce (usernames 3-30 printable ASCII, passwords 8+ chars with a
+    // matching confirmation). Submits stay blocked until the POST routes
+    // land.
+    (function () {
+      function field(form, name) {
+        var el = form.querySelector('input[name="' + name + '"]');
+        return el ? el.value : '';
+      }
+      function watch(formId, valid) {
+        var form = document.getElementById(formId);
+        if (!form) return;
+        var btn = form.querySelector('button[type="submit"]');
+        var update = function () { btn.disabled = !valid(form); };
+        var inputs = form.querySelectorAll('input');
+        for (var i = 0; i < inputs.length; i++) {
+          inputs[i].addEventListener('input', update);
+        }
+        update();
+      }
+      watch('change_username', function (form) {
+        var name = field(form, 'username').trim();
+        return name.length >= 3 && name.length <= 30 &&
+          /^[\x20-\x7E]+$/.test(name) && field(form, 'currentPassword') !== '';
+      });
+      watch('change_password', function (form) {
+        var next = field(form, 'newPassword');
+        return field(form, 'currentPassword') !== '' &&
+          next.length >= 8 && next === field(form, 'confirmPassword');
+      });
+    })();
+    </script>
+  </div>
+</div>
+<!-- //my account section -->
+<div style="float: left; width: 420px">
+</div>
+<div style="margin: 0 0 0 10px; float: left">
+  <div class="clear">&nbsp;</div>
+</div>
+<div class="clear">&nbsp;</div>
+</div>
+<div style="clear:both"></div>
+</div>

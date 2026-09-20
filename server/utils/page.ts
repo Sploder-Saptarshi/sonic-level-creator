@@ -6,6 +6,7 @@ import gameBodyTemplate from "../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../templates/editor.html" with { type: "text" };
 import signinBodyTemplate from "../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
+import accountBodyTemplate from "../templates/account.html" with { type: "text" };
 import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
 import quickstartBodyTemplate from "../templates/quickstart.html" with { type: "text" };
 import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
@@ -95,9 +96,9 @@ function topnavFor(view: PageView, active = ""): string {
     topnavItem("two", "/editors/mylevels", "My Levels", active === "mylevels"),
     topnavItem(
       "three",
-      "/member/?action=editMyAccount",
+      "/member/account",
       "My Account",
-      false,
+      active === "account",
       "nofollow",
     ),
   ].join("\n");
@@ -417,6 +418,30 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
 
 const memberHeadExtra = `<link rel="stylesheet" href="/css/signin.css" type="text/css" media="screen" />
 `;
+// My Account page styles: pure-CSS copy of the editor chrome (ts/ui.ts) —
+// gray gradient bands, glossy orange action buttons, pale inputs. No image
+// assets. Classes are acct- prefixed so nothing leaks into site styles.
+// (Panel titles are divs, not h4s: the layout rounds every h4 in light DOM
+// via RUZEE, while the editor's own h4s live safely in shadow DOM.)
+const accountHeadExtra = `<style type="text/css" media="screen">
+.acct-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 8px 12px; background: linear-gradient(#f4f4f4, #d9d9d9); border: 1px solid #c9c9c9; border-radius: 8px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #333; text-align: left; }
+.acct-user { font-size: 14px; }
+.acct-actions { display: flex; align-items: center; gap: 8px; }
+.acct-actions form { display: inline; margin: 0; }
+.acct-panels { display: flex; gap: 8px; align-items: stretch; }
+.acct-panel { flex: 1; min-width: 0; background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; overflow: hidden; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; text-align: left; }
+.acct-title { margin: 0; padding: 8px 14px 6px; font-size: 14px; font-weight: bold; color: #333; background: linear-gradient(#f4f4f4, #d9d9d9); border-bottom: 1px solid #c9c9c9; }
+.acct-body { padding: 12px 14px 14px; }
+.acct-field { margin: 0 0 10px; }
+.acct-body label { display: block; font-weight: bold; margin: 0 0 4px; }
+.acct-body input[type=text], .acct-body input[type=password] { display: block; width: 100%; box-sizing: border-box; padding: 4px 8px; font-size: 12px; font-family: inherit; color: #333; background: #e9e9e9; border: 1px solid #c4c4c4; border-radius: 3px; outline: none; }
+.acct-body input[type=text]:focus, .acct-body input[type=password]:focus { border-color: #1767c9; background: #fff; }
+a.acct-btn, button.acct-btn { display: inline-block; height: 28px; padding: 0 18px; background: linear-gradient(to bottom, #ffedbe 0%, #ffc46a 45%, #ffa028 100%); border: 1px solid #e8932b; border-radius: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); color: #333; font-weight: bold; font-size: 13px; font-family: inherit; text-decoration: none; cursor: pointer; }
+a.acct-btn { line-height: 26px; }
+a.acct-btn:hover, button.acct-btn:not(:disabled):hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%); color: #333; text-decoration: none; outline: none; }
+.acct-btn:disabled { opacity: 0.45; cursor: default; }
+</style>
+`;
 const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
 
 function renderMemberPage(
@@ -652,6 +677,30 @@ export function renderPlayPage(
 
 export function renderSignupPage(query: PageQuery, view: PageView = {}): string {
   return renderMemberPage(signupBodyTemplate, "Member Sign-up", view);
+}
+
+// My Account page (UI shell only for now): same box3 + sidebar shell as
+// the level-list pages, but content-only (no upsell art in the sidebar).
+// Links out to My Levels, posts sign-out to the existing /member/signout
+// endpoint, and shows inert change-username / change-password forms
+// (submits disabled, no POST routes yet — they land as part of the
+// account-functionality pass).
+export function renderAccountPage(view: PageView = {}): string {
+  const body = sidebar(!!view.username, "") + render(accountBodyTemplate, {
+    username: view.username ?? "Guest",
+  });
+  return render(layoutTemplate, {
+    title: pageTitle("My Account"),
+    embedImage: embedImage(view),
+    languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
+    topnav: topnavFor(view, "account"),
+    footerMidLink: footerMidLink(!!view.username),
+    headExtra: accountHeadExtra,
+    // Draws the rounded content-box border (same as the level-list pages).
+    domloadExtra: `splitBorderBottom.render('playGame');`,
+    bootstrap: bootstrap({ username: view.username ?? "Guest" }),
+    body,
+  });
 }
 
 // Quick Start Guide: archive body in revival chrome. Border wiring mirrors
