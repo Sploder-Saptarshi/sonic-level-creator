@@ -29,6 +29,13 @@
       "when": 1789731172439,
       "tag": "0003_mature_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789889730608,
+      "tag": "0004_published_updated_idx",
+      "breakpoints": true
     }
   ]
 }

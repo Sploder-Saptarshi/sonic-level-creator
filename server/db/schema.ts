@@ -101,6 +101,10 @@ export const level = sqliteTable(
   },
   (t) => [
     index("level_user_id_idx").on(t.userId),
-    index("level_published_idx").on(t.published),
+    // Composite over the All Levels filter + sort: answers both the
+    // published COUNT and the ORDER BY updatedAt page walk from the index
+    // alone (no sort step, no full-row scans). Subsumes the old
+    // single-column published index (dropped in the migration).
+    index("level_published_updated_idx").on(t.published, t.updatedAt),
   ],
 );
