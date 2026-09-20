@@ -34,7 +34,7 @@ export default defineHandler(async (event) => {
     event,
     renderAllLevelsPage(
       { ...toPageView(session, event), levels },
-      paginationBar("/editors/alllevels", page, totalPages),
+      total === 0 ? "" : paginationBar("/editors/alllevels", page, totalPages),
     ),
   );
 });

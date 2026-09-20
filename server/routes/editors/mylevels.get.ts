@@ -38,7 +38,7 @@ export default defineHandler(async (event) => {
     event,
     renderMyLevelsPage(
       { ...toPageView(session, event), levels },
-      paginationBar("/editors/mylevels", page, totalPages),
+      total === 0 ? "" : paginationBar("/editors/mylevels", page, totalPages),
     ),
   );
 });
