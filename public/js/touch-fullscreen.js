@@ -203,40 +203,33 @@
 
     function enter() {
       if (isFull() || entering) return;
-      ensureExitBtn();
-      detectCrop();
       var req = container.requestFullscreen || container.webkitRequestFullscreen;
       // No Fullscreen API: silently ignore until a grant happens — every
       // touch retries, nothing half-applies.
       if (!req) return;
+      // Fire the request FIRST, synchronously on gesture entry, before any
+      // DOM work or layout reads: some engines (Firefox Mobile) only honor
+      // requests issued at the very top of a short-running gesture handler.
       entering = true;
-      // If the grant never arrives (denied without rejection, lost
-      // gesture, browser quirk), just unlock for the next touch. Never
-      // fall back: a failed request leaves zero trace.
-      var grantTimer = setTimeout(function () {
-        entering = false;
-      }, 800);
-      var r = null;
       try {
-        r = req.call(container);
+        var r = req.call(container);
+        if (r && typeof r.catch === "function") {
+          r.catch(function () {
+            entering = false;
+          });
+        }
       } catch (e) {
-        clearTimeout(grantTimer);
         entering = false;
         return;
       }
-      if (r && typeof r.catch === "function") {
-        r.catch(function () {
-          clearTimeout(grantTimer);
-          entering = false;
-        });
-      } else {
-        // No promise to observe (older webkit): a later check heals the
-        // flag; the grant itself (if any) arrives via fullscreenchange.
-        setTimeout(function () {
-          clearTimeout(grantTimer);
-          entering = false;
-        }, 800);
-      }
+      ensureExitBtn();
+      detectCrop();
+      // If the grant never arrives (denied without rejection, lost
+      // gesture, browser quirk), just unlock for the next touch. Never
+      // fall back: a failed request leaves zero trace.
+      setTimeout(function () {
+        entering = false;
+      }, 800);
     }
 
     function exit() {
@@ -292,9 +285,19 @@
 
     // Capture phase on window: runs before anything inside the SWF/Ruffle
     // player can stop propagation. Desktop mouse is ignored, as are
-    // synthetic (untrusted) events.
+    // synthetic (untrusted) events. touchend gets its own shot: some
+    // engines only honor the request at a particular point in the gesture,
+    // and activation is still valid at gesture end.
     window.addEventListener(
       "touchstart",
+      function (e) {
+        if (e.isTrusted === false) return;
+        if (inside(e)) enter();
+      },
+      { capture: true, passive: true }
+    );
+    window.addEventListener(
+      "touchend",
       function (e) {
         if (e.isTrusted === false) return;
         if (inside(e)) enter();
