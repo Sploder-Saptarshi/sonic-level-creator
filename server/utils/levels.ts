@@ -107,6 +107,15 @@ export function levelWhere(id: string, userId: string) {
   return and(eq(level.id, id), eq(level.userId, userId));
 }
 
+export function levelWhereForUser(id: string, session: SessionUser) {
+  // Moderators may touch any level except the seeded stock row (the
+  // default playable level — same exclusion as the public listings).
+  if (session.isModerator) {
+    return and(eq(level.id, id), ne(level.id, STOCK_LEVEL_ID));
+  }
+  return and(eq(level.id, id), eq(level.userId, session.id));
+}
+
 type RequestDb = ReturnType<typeof getNodeDb>;
 
 // Seeded stock Green Hill row: the default playable level (also the

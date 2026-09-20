@@ -76,6 +76,13 @@ the primary. No replicas exist locally; dev against remote or miniflare.
   `/api/auth/*`. Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
   put` (+ `BETTER_AUTH_URL` env var); local dev falls back to an insecure
   default — never deploy it.
+- Moderators: `user.role = 'moderator'` (default `'user'`, migration
+  `0005`). Role is output-only (`additionalFields … input: false`), so
+  sign-up can never self-promote — promote via SQL only, e.g.
+  `wrangler d1 execute sonic-level-creator --remote --command "UPDATE user
+  SET role='moderator' WHERE username='…'";`. Mods get rename/delete
+  buttons on All Levels + Levels-by-X and the POST endpoints enforce it
+  server-side (`levelWhereForUser`; stock `2914` excluded even for mods).
 
 ## Turnstile (Cloudflare bot check on sign-in/up)
 

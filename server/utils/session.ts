@@ -8,6 +8,8 @@ import type { H3Event } from "nitro";
 export interface SessionUser {
   id: string;
   username: string;
+  role: string;
+  isModerator: boolean;
 }
 
 // Multivalued query/body params (Nitro may parse ?a=1&a=2 as arrays):
@@ -41,12 +43,16 @@ export async function getSessionUser(
       username?: string;
       displayUsername?: string;
       name?: string;
+      role?: string;
     };
     // Pretty-case display name first (`username` is the lowercased lookup
     // key, so it must never reach the UI).
+    const role = u.role ?? "user";
     return {
       id: u.id,
       username: u.displayUsername ?? u.username ?? u.name ?? "Player",
+      role,
+      isModerator: role === "moderator",
     };
   } catch {
     return null;

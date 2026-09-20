@@ -38,6 +38,14 @@ export function createAuth(event: H3Event) {
       "https://sonicrelvl.pages.dev",
     ],
     database: drizzleAdapter(db as any, { provider: "sqlite" }),
+    user: {
+      // Exposes the DB `role` column on session.user (output only).
+      // `input: false` rejects any client-supplied role at sign-up —
+      // promotion is a direct DB write, never a form field.
+      additionalFields: {
+        role: { type: "string", required: false, input: false },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,

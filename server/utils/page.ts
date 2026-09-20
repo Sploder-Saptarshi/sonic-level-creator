@@ -42,6 +42,7 @@ export interface PageView {
   // Request origin (scheme + host) for absolute embed URLs. Set by
   // toPageView when the event is passed; "" renders no embed image.
   origin?: string;
+  isModerator?: boolean;
 }
 
 // Session -> template view. Null (guest) maps to {} so pages render the
@@ -55,6 +56,7 @@ export function toPageView(session: SessionUser | null, event?: H3Event): PageVi
   return {
     username: session.username,
     languagebar: userLanguageBar(session.username),
+    isModerator: session.isModerator,
     ...(origin ? { origin } : {}),
   };
 }
@@ -552,12 +554,18 @@ export function renderMyLevelsPage(
 // PublicLevelRow (id, authorId, name, author, authorDisplay, dims,
 // updatedAt) lives in server/utils/levels.ts — single source of truth.
 
-function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hideAuthor = false): string {
+function renderPublicLevelRows(
+  levels: PublicLevelRow[],
+  isModerator = false,
+  emptyHtml?: string,
+  hideAuthor = false,
+): string {
   if (!levels.length) {
     return emptyHtml ?? `<p style="padding: 12px 0">No published levels yet. <a href="/editors/">Create one</a>.</p>`;
   }
   const items = levels.map((l, i) => {
     const name = escapeHtml(l.name);
+    const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
     // The per-user page (hideAuthor) skips the byline — every row is by
     // the page owner. All Levels links by user id (usernames may gain
     // spaces / punctuation / capitals later); the link text stays the
@@ -572,9 +580,12 @@ function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hid
     const id = escapeHtml(l.id);
     const d = formatDate(l.updatedAt);
     const border = i === levels.length - 1 ? "none" : "1px solid #e0e0e0";
+    const modButtons = isModerator
+      ? `\n      <form action="/editors/mylevels/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>\n      <form action="/editors/mylevels/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form>`
+      : "";
     return `<div style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
-      <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a></div>
+      <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>${modButtons}</div>
     </div>`;
   });
   return items.join("\n");
@@ -634,7 +645,15 @@ export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
   pagination = "",
 ): string {
-  return renderLevelListPage(view, "alllevels", "All Levels", alllevelsBodyTemplate, renderPublicLevelRows(view.levels), "", pagination);
+  return renderLevelListPage(
+    view,
+    "alllevels",
+    "All Levels",
+    alllevelsBodyTemplate,
+    renderPublicLevelRows(view.levels, !!view.isModerator),
+    "",
+    pagination,
+  );
 }
 
 // Per-user directory ("Levels by X", linked from author names in All
@@ -652,6 +671,7 @@ export function renderUserLevelsPage(
     userlevelsBodyTemplate,
     renderPublicLevelRows(
       view.levels,
+      !!view.isModerator,
       `<p style="padding: 12px 0">${escapeHtml(displayName)} has not published any levels yet. <a href="/editors/">Create one</a>.</p>`,
       true,
     ),

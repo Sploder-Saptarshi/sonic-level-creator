@@ -36,6 +36,13 @@
       "when": 1789889730608,
       "tag": "0004_published_updated_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789900000000,
+      "tag": "0005_moderator_role",
+      "breakpoints": true
     }
   ]
 }
