@@ -7,9 +7,9 @@
 // data/published/userId). The session lookup is lazy — published rows
 // serve with 0 session queries; only unpublished rows pay 1 session
 // lookup (cached across batched calls). Unknown ids serve '' with 1 read.
-import { defineHandler } from "nitro";
+import { defineHandler, HTTPError } from "nitro";
 import { readRawBody, setResponseHeader } from "nitro/h3";
-import { handleAmf } from "../../utils/amf";
+import { handleAmf, MAX_AMF_BYTES } from "../../utils/amf";
 import { levelToCsv } from "../../utils/levelBytes";
 import { findGatewayRow, getRequestDb } from "../../utils/levels";
 import { getSessionUser, type SessionUser } from "../../utils/session";
@@ -26,18 +26,29 @@ export default defineHandler(async (event) => {
   // Lazily resolved + cached: most hits are published levels (0 session
   // SQL); unpublished/owned levels resolve it once per request.
   let session: SessionUser | null | undefined;
-  const reply = await handleAmf(bytes, async (levelId) => {
-    if (!levelId) return "";
-    const rows = await findGatewayRow(db, levelId);
-    const row = rows[0];
-    if (!row) return "";
-    if (row.published) return levelToCsv(row.data) ?? "";
-    if (session === undefined) {
-      session = await getSessionUser(event).catch(() => null);
+  let reply: Uint8Array;
+  try {
+    reply = await handleAmf(bytes, async (levelId) => {
+      // Level ids are numeric-string (or legacy UUID) keys, same charset
+      // the pages enforce. Unbounded strings would each cost a DB lookup
+      // on attacker-chosen bytes — reject before any SQL.
+      if (!levelId || !/^[\w-]{1,128}$/.test(levelId)) return "";
+      const rows = await findGatewayRow(db, levelId);
+      const row = rows[0];
+      if (!row) return "";
+      if (row.published) return levelToCsv(row.data) ?? "";
+      if (session === undefined) {
+        session = await getSessionUser(event).catch(() => null);
+      }
+      if (!session || row.userId !== session.id) return "";
+      return levelToCsv(row.data) ?? "";
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === "amf body too large") {
+      throw new HTTPError({ status: 413, message: "Request Entity Too Large" });
     }
-    if (!session || row.userId !== session.id) return "";
-    return levelToCsv(row.data) ?? "";
-  });
+    throw new HTTPError({ status: 400, message: "Bad Request" });
+  }
   setResponseHeader(event, "content-type", "application/x-amf");
   return Buffer.from(reply.buffer, reply.byteOffset, reply.byteLength);
 });

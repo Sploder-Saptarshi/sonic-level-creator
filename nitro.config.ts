@@ -21,6 +21,19 @@ export default defineConfig({
       },
     },
   },
+  // Baseline hardening headers on every response (static + SSR). No CSP:
+  // the archive pages run inline scripts/SWF embeds by design, so a policy
+  // tight enough to matter would break the player; XSS is handled by
+  // escaping at the render layer instead (see server/utils/page.ts).
+  routeRules: {
+    "/**": {
+      headers: {
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "referrer-policy": "strict-origin-when-cross-origin",
+      },
+    },
+  },
   // Dev-only: nitro dev pipes statics through on-the-fly brotli at max
   // quality when the client accepts it (~8s for the spritesheet, for a 5%
   // saving). Browsers always accept it, so strip the header in dev and

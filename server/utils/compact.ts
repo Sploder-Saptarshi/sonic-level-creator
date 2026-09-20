@@ -52,15 +52,23 @@ export function decodeLevel(
   ) {
     return null;
   }
+  const total = doc.w * doc.h;
   const flat: number[] = [];
+  let runs = 0;
   for (const run of doc.r) {
     if (
       !Array.isArray(run) || run.length !== 2 || !isInt(run[0]) ||
-      !isInt(run[1]) || run[0] < 0 || run[1] < 1
+      !isInt(run[1]) || run[0] < 0 || run[0] > 0xffffffff || run[1] < 1
     ) return null;
+    // RLE-bomb guard: each run must fit the cells still unfilled, and the
+    // run count can't exceed cells + 1. Both are checked BEFORE expanding —
+    // the old trailing flat.length check only ran after a billion-push loop
+    // had already burned CPU on every getLevel/play of the poisoned level.
+    if (++runs > total + 1) return null;
+    if (run[1] > total - flat.length) return null;
     for (let i = 0; i < run[1]; i++) flat.push(run[0]);
   }
-  if (flat.length !== doc.w * doc.h) return null;
+  if (flat.length !== total) return null;
   const grid: number[][] = [];
   for (let r = 0; r < doc.h; r++) {
     grid.push(flat.slice(r * doc.w, (r + 1) * doc.w));

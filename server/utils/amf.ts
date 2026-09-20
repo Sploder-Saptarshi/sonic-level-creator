@@ -59,7 +59,10 @@ class Reader {
   longStr(): string {
     return dec.decode(this.bytes(this.u32()));
   }
-  val(): AmfValue {
+  val(depth = 0): AmfValue {
+    // No unbounded recursion: nested arrays/objects past MAX_DEPTH are a
+    // stack-exhaustion bomb, not game traffic.
+    if (depth > MAX_DEPTH) throw new Error("amf nesting too deep");
     const t = this.u8();
     switch (t) {
       case 0x00:
@@ -69,17 +72,18 @@ class Reader {
       case 0x02:
         return this.str();
       case 0x03:
-        return this.obj();
+        return this.obj(depth);
       case 0x05:
       case 0x06:
         return null;
       case 0x08:
         this.u32(); // ECMA array count, ignored
-        return this.obj();
+        return this.obj(depth);
       case 0x0a: {
         const n = this.u32();
+        if (n > MAX_ARR) throw new Error("amf array too large");
         const a: AmfValue[] = [];
-        for (let i = 0; i < n; i++) a.push(this.val());
+        for (let i = 0; i < n; i++) a.push(this.val(depth + 1));
         return a;
       }
       case 0x0b:
@@ -90,16 +94,20 @@ class Reader {
         throw new Error(`unknown AMF0 type 0x${t.toString(16)} at ${this.p - 1}`);
     }
   }
-  private obj(): { [k: string]: AmfValue } {
+  private obj(depth = 0): { [k: string]: AmfValue } {
     const o: { [k: string]: AmfValue } = {};
+    let keys = 0;
     for (;;) {
       if (this.d.length - this.p < 3) break;
+      if (++keys > MAX_OBJ_KEYS) {
+        throw new Error("amf object too large");
+      }
       const klen = this.v.getUint16(this.p);
       if (klen === 0 && this.d[this.p + 2] === 0x09) {
         this.p += 3;
         break;
       }
-      o[this.str()] = this.val();
+      o[this.str()] = this.val(depth + 1);
     }
     return o;
   }
@@ -147,6 +155,16 @@ function envelope(respId: string, value: AmfValue): number[] {
   ];
 }
 
+// Parser budgets: the gateway serves unauthenticated binary POSTs, so a
+// hostile body must not buy unbounded CPU/memory. Legit SWF traffic is a
+// handful of tiny calls (one short string arg); anything past these caps is
+// a bomb, not a game client.
+export const MAX_AMF_BYTES = 256 * 1024;
+const MAX_MSGS = 64;
+const MAX_ARR = 4096;
+const MAX_OBJ_KEYS = 4096;
+const MAX_DEPTH = 16;
+
 export const API_NONCE = "playsega_offline";
 
 // One AMF0 POST body -> reply bytes. getLevelBytes maps a level id string
@@ -155,15 +173,22 @@ export async function handleAmf(
   raw: Uint8Array,
   getLevelBytes: (levelId: string | null) => Promise<string>,
 ): Promise<Uint8Array> {
+  if (raw.length > MAX_AMF_BYTES) throw new Error("amf body too large");
   const r = new Reader(raw);
   r.u16(); // version
   const hc = r.u16();
+  if (hc > MAX_MSGS) throw new Error("amf headers too many");
   for (let i = 0; i < hc; i++) {
     r.str();
     r.u8();
-    r.p += r.u32();
+    const skip = r.u32();
+    // Unbounded skip lands past the buffer (RangeError) or desyncs the
+    // stream into attacker-chosen bytes — clamp it to the body.
+    if (skip > raw.length - r.p) throw new Error("amf header overrun");
+    r.p += skip;
   }
   const mc = r.u16();
+  if (mc > MAX_MSGS) throw new Error("amf messages too many");
   const out: number[] = [];
   for (let i = 0; i < mc; i++) {
     const tgt = r.str();

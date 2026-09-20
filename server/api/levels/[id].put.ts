@@ -2,10 +2,11 @@
 // SQL: 1 session lookup + exactly 1 indexed write (PK + owner check;
 // RETURNING folds the existence check in — no select round-trip).
 // Rows written: <= 1. Validation is pure (0 SQL) and runs first.
-import { defineHandler } from "nitro";
+import { defineHandler, HTTPError } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { level } from "../../db/schema";
 import {
+  cleanId,
   getRequestDb,
   levelWhere,
   readLevelBody,
@@ -15,7 +16,8 @@ import {
 
 export default defineHandler(async (event) => {
   const user = await requireUser(event);
-  const id = getRouterParam(event, "id") ?? "";
+  const id = cleanId(getRouterParam(event, "id"));
+  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
   const body = (await readBody(event)) as Record<string, unknown>;
   const { name, cols, rows, data } = readLevelBody(body);
   // Single indexed write (PK lookup on id + owner check): RETURNING tells

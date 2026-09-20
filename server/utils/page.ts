@@ -316,6 +316,28 @@ function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
+// Level names inside single-quoted JS strings in double-quoted HTML
+// attributes (onsubmit="...promptRename('...')..."). Two layers, in order:
+// JS-escape first (\ and ' plus control/line separators), then HTML-escape
+// with & FIRST. The & layer is load-bearing: without it an attacker name
+// like `&#39;);alert(1);//` sails through the JS escapes untouched (no
+// literal quote to escape) and HTML-decodes to `'` AFTER our escaping ran,
+// breaking out of the JS string — stored XSS on My Levels (self), All
+// Levels mod buttons, and the reports queue (moderator compromise).
+function escapeJsAttr(s: string): string {
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export interface GamePageOptions {
   contentSwf?: string;
   playerName?: string;
@@ -529,7 +551,7 @@ function renderLevelRows(levels: LevelRow[]): string {
   const items = levels.map((l, i) => {
     const name = escapeHtml(l.name);
     // Single-quoted JS string inside a double-quoted HTML attribute.
-    const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const nameJs = escapeJsAttr(l.name);
     const id = escapeHtml(l.id);
     const d = formatDate(l.updatedAt);
     const border = i === levels.length - 1 ? "none" : "1px solid #e0e0e0";
@@ -565,7 +587,7 @@ function renderPublicLevelRows(
   }
   const items = levels.map((l, i) => {
     const name = escapeHtml(l.name);
-    const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const nameJs = escapeJsAttr(l.name);
     // The per-user page (hideAuthor) skips the byline — every row is by
     // the page owner. All Levels links by user id (usernames may gain
     // spaces / punctuation / capitals later); the link text stays the
@@ -694,7 +716,7 @@ function renderReportRows(groups: ReportGroup[]): string {
   return groups
     .map((g, i) => {
       const name = escapeHtml(g.levelName);
-      const nameJs = g.levelName.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const nameJs = escapeJsAttr(g.levelName);
       const id = escapeHtml(g.levelId);
       const author = escapeHtml(g.authorDisplay);
       const border = i === groups.length - 1 ? "none" : "1px solid #e0e0e0";

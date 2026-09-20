@@ -2,10 +2,11 @@
 // signed-in user's levels. SQL: 1 session lookup + exactly 1 indexed
 // write (RETURNING folds the existence check in); already-published stays
 // published. Rows written: <= 1.
-import { defineHandler } from "nitro";
+import { defineHandler, HTTPError } from "nitro";
 import { getRouterParam } from "nitro/h3";
 import { level } from "../../../db/schema";
 import {
+  cleanId,
   getRequestDb,
   levelWhere,
   requireRow,
@@ -14,7 +15,8 @@ import {
 
 export default defineHandler(async (event) => {
   const user = await requireUser(event);
-  const id = getRouterParam(event, "id") ?? "";
+  const id = cleanId(getRouterParam(event, "id"));
+  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
   const db = getRequestDb(event);
   const published = await db
     .update(level)
