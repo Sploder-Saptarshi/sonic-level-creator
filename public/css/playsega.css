@@ -794,8 +794,11 @@ a.lozenge2:hover {
 a.lozenge2:hover span {
     background-position: bottom left;
 }
-/* form buttons (mylevels rename/delete, member submit) use the pointer cursor */
-span.button button { cursor: pointer; }
+/* form buttons (mylevels rename/delete, member submit) use the pointer cursor.
+   The span itself needs it too: the sliding-doors end cap lives on the
+   span's 16px right padding, outside the inner <button>, so hovering the
+   right end showed the default arrow. */
+span.button, span.button button { cursor: pointer; }
 /*grey lozenge (larger)*/
 a.lozenge3 {
     background: transparent url('../images/bg_button_grey_2_end.gif') no-repeat scroll top right;
