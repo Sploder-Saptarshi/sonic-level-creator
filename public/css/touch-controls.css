@@ -44,13 +44,12 @@
 
 /* Touch controls appear ONLY on the fullscreen stage. The primary gate
    is the JS-mirrored .tc-stage-fullscreen class (set from
-   fullscreenchange events + the pseudo path); the :fullscreen selectors
+   fullscreenchange events); the :fullscreen selectors
    are a belt-and-suspenders fallback. NOTE: the webkit-prefixed selector
    lives in its own rule — one invalid selector in a comma group drops the
    WHOLE rule, and non-webkit engines (Firefox) reject :-webkit-full-screen. */
 #gamecontainer.tc-stage-fullscreen #touch-controls.tc-on.tc-playing,
-#gamecontainer:fullscreen #touch-controls.tc-on.tc-playing,
-#gamecontainer.tc-pseudo-fullscreen #touch-controls.tc-on.tc-playing {
+#gamecontainer:fullscreen #touch-controls.tc-on.tc-playing {
   display: block;
 }
 

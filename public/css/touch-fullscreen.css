@@ -39,33 +39,15 @@
   justify-content: center;
 }
 
-/* Fallback when the Fullscreen API is missing (e.g. iPhone Safari):
-   a fixed full-viewport stage that behaves the same. */
-#gamecontainer.tc-pseudo-fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-body.tc-locked {
-  overflow: hidden;
-}
+/* Fallback stages were removed: only native fullscreen applies. If the
+   grant fails, nothing applies (the next touch retries). */
 
 /* Letterboxed stage: the SWF renders noscale (fixed 640x448), so the
    box is kept at natural size and scaled directly with a CSS transform
    (factor set inline by touch-fullscreen.js: min(vw/640, vh/448)).
    transform-origin center keeps the flex centering exact, and scaling the
    composited frame works regardless of the player's internal scaleMode. */
-#gamecontainer:fullscreen #gameswf,
-#gamecontainer.tc-pseudo-fullscreen #gameswf {
+#gamecontainer:fullscreen #gameswf {
   width: 640px !important;
   height: 448px !important;
   margin: 0 !important;
@@ -84,11 +66,8 @@ body.tc-locked {
 }
 
 #gamecontainer:fullscreen #gameswf ruffle-player,
-#gamecontainer.tc-pseudo-fullscreen #gameswf ruffle-player,
 #gamecontainer:fullscreen #gameswf object,
-#gamecontainer.tc-pseudo-fullscreen #gameswf object,
-#gamecontainer:fullscreen #gameswf embed,
-#gamecontainer.tc-pseudo-fullscreen #gameswf embed {
+#gamecontainer:fullscreen #gameswf embed {
   width: 100% !important;
   height: 100% !important;
   display: block;
@@ -125,8 +104,7 @@ html.tc-stage-active body * {
    longer clips), and the player keeps its -20px side offsets so the
    hidden edges stay hidden. Higher specificity than the base rules above,
    so these win on cropped pages only. */
-#gamecontainer:fullscreen.tc-cropped #gameswf,
-#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf {
+#gamecontainer:fullscreen.tc-cropped #gameswf {
   width: 600px !important;
   height: 448px !important;
   overflow: hidden !important;
@@ -139,11 +117,8 @@ html.tc-stage-active body * {
 }
 
 #gamecontainer:fullscreen.tc-cropped #gameswf ruffle-player,
-#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf ruffle-player,
 #gamecontainer:fullscreen.tc-cropped #gameswf object,
-#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf object,
-#gamecontainer:fullscreen.tc-cropped #gameswf embed,
-#gamecontainer.tc-pseudo-fullscreen.tc-cropped #gameswf embed {
+#gamecontainer:fullscreen.tc-cropped #gameswf embed {
   width: 640px !important;
   height: 448px !important;
   margin: 0 -20px !important;

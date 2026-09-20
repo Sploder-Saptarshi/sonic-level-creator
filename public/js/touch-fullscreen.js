@@ -1,9 +1,10 @@
 /* Fullscreen game stage for touch devices (Sonic player + Ice Shuffle).
  *
- * On touch-capable devices only, a touch inside #gameswf fullscreenes
- * #gamecontainer (styling in touch-fullscreen.css: black letterboxed
- * stage). Where the Fullscreen API is missing (e.g. iPhone Safari) a
- * fixed-position pseudo stage is used instead, with an exit button.
+ * On touch-capable devices only, a touch inside #gameswf requests native
+ * fullscreen on #gamecontainer (styling in touch-fullscreen.css: black
+ * letterboxed stage). There is deliberately NO fallback: a denied or
+ * missing grant is silently ignored and the next touch simply retries,
+ * so a half-applied stage can never exist.
  * Desktop is untouched: no listeners do anything without touch.
  *
  * Listeners use window capture phase: the Ruffle player may stop
@@ -11,9 +12,8 @@
  * swallow bubble-phase listeners on #gameswf.
  *
  * Stage state is mirrored to a `tc-stage-fullscreen` class on the
- * container (set from fullscreenchange events + the pseudo path), which
- * is what reveals the touch controls — never the :fullscreen selector
- * alone.
+ * container (set from fullscreenchange events), which is what reveals
+ * the touch controls — never the :fullscreen selector alone.
  */
 (function () {
   "use strict";
@@ -94,7 +94,7 @@
     function isFull() {
       if (document.fullscreenElement === container) return true;
       if (document.webkitFullscreenElement === container) return true;
-      return container.classList.contains("tc-pseudo-fullscreen");
+      return false;
     }
 
     // Whatever element holds fullscreen (our container, the whole page,
@@ -105,7 +105,6 @@
     }
 
     function stageVisible() {
-      if (container.classList.contains("tc-pseudo-fullscreen")) return true;
       var root = fsRoot();
       if (!root) return false;
       if (root === container) return true;
@@ -201,58 +200,41 @@
       return exitBtn;
     }
 
-    function pseudo() {
-      if (isFull()) {
-        syncStage();
-        return;
-      }
-      container.classList.add("tc-pseudo-fullscreen");
-      if (document.body) document.body.classList.add("tc-locked");
-      entering = false;
-      syncStage();
-    }
-
     function enter() {
       if (isFull() || entering) return;
       ensureExitBtn();
       detectCrop();
       var req = container.requestFullscreen || container.webkitRequestFullscreen;
-      if (!req) {
-        pseudo();
-        return;
-      }
+      // No Fullscreen API: silently ignore until a grant happens — every
+      // touch retries, nothing half-applies.
+      if (!req) return;
       entering = true;
       // If the grant never arrives (denied without rejection, lost
-      // gesture, browser quirk), fall back instead of stranding the
-      // user with no stage until they exit and retry.
+      // gesture, browser quirk), just unlock for the next touch. Never
+      // fall back: a failed request leaves zero trace.
       var grantTimer = setTimeout(function () {
-        if (!isFull()) {
-          entering = false;
-          pseudo();
-        }
-      }, 600);
+        entering = false;
+      }, 800);
       var r = null;
       try {
         r = req.call(container);
       } catch (e) {
         clearTimeout(grantTimer);
-        pseudo();
+        entering = false;
         return;
       }
       if (r && typeof r.catch === "function") {
         r.catch(function () {
           clearTimeout(grantTimer);
           entering = false;
-          pseudo();
         });
       } else {
-        // No promise to observe (older webkit): check shortly whether
-        // the request took, otherwise fall back.
+        // No promise to observe (older webkit): a later check heals the
+        // flag; the grant itself (if any) arrives via fullscreenchange.
         setTimeout(function () {
           clearTimeout(grantTimer);
-          if (!isFull()) pseudo();
-          else syncStage();
-        }, 350);
+          entering = false;
+        }, 800);
       }
     }
 
@@ -265,10 +247,6 @@
         }
       } catch (e) {
         /* exit is best-effort */
-      }
-      if (container.classList.contains("tc-pseudo-fullscreen")) {
-        container.classList.remove("tc-pseudo-fullscreen");
-        if (document.body) document.body.classList.remove("tc-locked");
       }
       entering = false;
       syncStage();
@@ -288,14 +266,12 @@
     } catch (e) {
       /* visualViewport is best-effort */
     }
-    // Some browsers report denial via event instead of promise rejection.
+    // Denial is silent: reset for the next touch, apply nothing.
     document.addEventListener("fullscreenerror", function () {
       entering = false;
-      pseudo();
     });
     document.addEventListener("webkitfullscreenerror", function () {
       entering = false;
-      pseudo();
     });
 
     function inside(e) {
