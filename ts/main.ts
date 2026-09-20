@@ -77,6 +77,21 @@ function blockMobileEditor(shadow: ShadowRoot): void {
     wrap.className = 'mobile-text';
     card.insertBefore(wrap, body);
     wrap.appendChild(body);
+    // All Levels entry, same grey button + navigation as the editor's
+    // own bottom bar (wired directly: editor events never boot here).
+    const actions = document.createElement('div');
+    actions.className = 'mobile-actions';
+    const all = document.createElement('button');
+    all.className = 'btm-btn';
+    all.setAttribute('type', 'button');
+    const label = document.createElement('span');
+    label.textContent = 'All Levels';
+    all.appendChild(label);
+    all.addEventListener('click', () => {
+      location.href = '/editors/alllevels';
+    });
+    actions.appendChild(all);
+    card.appendChild(actions);
   }
 }
 
