@@ -12,7 +12,7 @@ import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "te
 import userlevelsBodyTemplate from "../templates/userlevels.html" with { type: "text" };
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
-import { escapeHtml, first, type SessionUser } from "./session";
+import { escapeHtml, first, isAsciiUsername, type SessionUser } from "./session";
 import type { PublicLevelRow } from "./levels";
 import type { H3Event } from "nitro";
 import { getRequestURL, setResponseHeader } from "nitro/h3";
@@ -173,8 +173,12 @@ export interface PageQuery {
 }
 
 function cleanUsername(v: unknown): string {
+  // Signed-out `?user=` stub (the session name wins whenever signed in).
+  // Passes printable ASCII through untouched so the look is never altered.
   const s = first(v);
-  return typeof s === "string" && /^[\w-]{1,32}$/.test(s) ? s : "Guest";
+  return typeof s === "string" && s.length >= 1 && s.length <= 32 && isAsciiUsername(s)
+    ? s
+    : "Guest";
 }
 
 function cleanSession(v: unknown): string {
