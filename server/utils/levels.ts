@@ -21,11 +21,12 @@
 //   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
 //   findGatewayRow         1 query, 1 row, data/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
+import { alias } from "drizzle-orm/sqlite-core";
 import { and, count, desc, eq, ne, or } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 import { getAuthEnv, getNodeDb } from "../auth/env";
-import { account, level, user } from "../db/schema";
+import { account, level, report, user } from "../db/schema";
 import { first, getSessionUser, type SessionUser } from "./session";
 
 export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
@@ -33,7 +34,7 @@ export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
   if (env.kind === "d1") {
     // Same sqlite query-builder surface as better-sqlite3 for basic CRUD.
     // Full auth tables included (account pages update the user row).
-    return drizzleD1(env.d1!, { schema: { account, level, user } }) as unknown as ReturnType<
+    return drizzleD1(env.d1!, { schema: { account, level, report, user } }) as unknown as ReturnType<
       typeof getNodeDb
     >;
   }
@@ -357,4 +358,120 @@ export function findGatewayRow(db: RequestDb, id: string) {
     .select({ data: level.data, published: level.published, userId: level.userId })
     .from(level)
     .where(eq(level.id, id));
+}
+
+// Report reason from a form/JSON value: trimmed text, 1–500 chars.
+export function cleanReportReason(v: unknown): string | null {
+  const s = first(v);
+  if (typeof s !== "string") return null;
+  const reason = s.trim().replace(/\s+/g, " ");
+  return reason.length >= 1 && reason.length <= 500 ? reason : null;
+}
+
+// File one report (reporter, level). Idempotent per open report: returns
+// { duplicate: true } instead of writing when this user already has an
+// open report on the level (the unique index is the race-safe backstop).
+export async function createReport(
+  db: RequestDb,
+  levelId: string,
+  reporterId: string,
+  reason: string,
+): Promise<{ duplicate: boolean }> {
+  const existing = await db
+    .select({ id: report.id })
+    .from(report)
+    .where(
+      and(
+        eq(report.levelId, levelId),
+        eq(report.reporterId, reporterId),
+        eq(report.status, "open"),
+      ),
+    )
+    .limit(1);
+  if (existing.length > 0) return { duplicate: true };
+  try {
+    await db.insert(report).values({
+      id: crypto.randomUUID(),
+      levelId,
+      reporterId,
+      reason,
+      createdAt: new Date(),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (/unique|constraint/i.test(msg)) return { duplicate: true };
+    throw e;
+  }
+  return { duplicate: false };
+}
+
+export interface OpenReportRow {
+  reportId: string;
+  reason: string;
+  createdAt: unknown;
+  reporterDisplay: string | null;
+  levelId: string;
+  levelName: string;
+  levelCols: number;
+  levelRows: number;
+  authorId: string;
+  authorDisplay: string | null;
+}
+
+// Total open reports for the queue page count: exactly 1 indexed
+// aggregate query reading no report rows.
+export async function countOpenReports(db: RequestDb): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(report)
+    .where(eq(report.status, "open"));
+  return rows[0]?.n ?? 0;
+}
+
+// One page of open reports with level + reporter + author, newest first:
+// exactly 1 query (status walk over the composite index, level/reporter/
+// author joins over PKs, `data` never read). Callers group by levelId for
+// the moderator queue.
+export function listOpenReports(
+  db: RequestDb,
+  limit: number,
+  offset: number,
+): Promise<OpenReportRow[]> {
+  const reporter = alias(user, "reporter");
+  const author = alias(user, "author");
+  return db
+    .select({
+      reportId: report.id,
+      reason: report.reason,
+      createdAt: report.createdAt,
+      reporterDisplay: reporter.displayUsername,
+      levelId: level.id,
+      levelName: level.name,
+      levelCols: level.cols,
+      levelRows: level.rows,
+      authorId: level.userId,
+      authorDisplay: author.displayUsername,
+    })
+    .from(report)
+    .innerJoin(level, eq(report.levelId, level.id))
+    .innerJoin(reporter, eq(report.reporterId, reporter.id))
+    .innerJoin(author, eq(level.userId, author.id))
+    .where(eq(report.status, "open"))
+    .orderBy(desc(report.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+// Dismiss every open report on one level: exactly 1 indexed write.
+// Returns the number of dismissed rows.
+export async function dismissReportsForLevel(
+  db: RequestDb,
+  levelId: string,
+): Promise<number> {
+  const dismissed = await db
+    .update(report)
+    .set({ status: "dismissed" })
+    .where(and(eq(report.levelId, levelId), eq(report.status, "open")))
+    .returning({ id: report.id });
+  return dismissed.length;
 }

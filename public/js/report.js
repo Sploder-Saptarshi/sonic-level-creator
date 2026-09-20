@@ -22,28 +22,29 @@ function newXMLHTTP () {
 }
 
 function postReport () {
-    var xmlhttp = newXMLHTTP ();
-
-    dataString = '?levelid=' + document.getElementById ('frm_levelid').value;
-    dataString += '&reason=' + document.getElementById ('frm_reason').value;
-
-    xmlhttp.open ('GET', HTML_TOP + 'ajax/report.php' + dataString, true);
-    xmlhttp.onreadystatechange = function () {
-        switch (xmlhttp.readyState) {
-            case 1 : case 2 : case 3 :
-                document.getElementById ('reportResult').innerHTML = '<div class="ajax-loader">&nbsp;</div>';
-
-                break;
-            case 4 :
-                theResult = xmlhttp.responseText;
-                if (theResult == 'success') {
-                	document.getElementById ('reportContent').innerHTML = 'Thank you, your report has been sent and we will <br />review it and take action accordingly.';
-                } else {
-                    document.getElementById ('reportResult').innerHTML = theResult;
-                }
-                break;
-        }
+    var levelid = document.getElementById ('frm_levelid').value;
+    var reason = document.getElementById ('frm_reason').value.replace (/^\s+|\s+$/g, '');
+    var result = document.getElementById ('reportResult');
+    if (!reason) {
+        result.innerHTML = 'Please tell us why this level is inappropriate.';
+        return;
     }
-
-    xmlhttp.send (null);
+    result.innerHTML = '<div class="ajax-loader">&nbsp;</div>';
+    fetch ('/api/levels/' + encodeURIComponent (levelid) + '/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify ({ reason: reason })
+    }).then (function (res) {
+        if (res.status === 401) {
+            result.innerHTML = 'Please <a href="/member/signin">sign in</a> to report a level.';
+            return;
+        }
+        if (!res.ok) {
+            result.innerHTML = 'Something went wrong. Please try again.';
+            return;
+        }
+        document.getElementById ('reportContent').innerHTML = 'Thank you, your report has been sent and we will <br />review it and take action accordingly.';
+    }).catch (function () {
+        result.innerHTML = 'Something went wrong. Please try again.';
+    });
 }

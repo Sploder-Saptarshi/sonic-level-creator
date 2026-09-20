@@ -83,6 +83,11 @@ the primary. No replicas exist locally; dev against remote or miniflare.
   SET role='moderator' WHERE username='…'";`. Mods get rename/delete
   buttons on All Levels + Levels-by-X and the POST endpoints enforce it
   server-side (`levelWhereForUser`; stock `2914` excluded even for mods).
+- Reports: `report` table (migration `0006`, one open row per
+  reporter×level) + `POST /api/levels/:id/report` (signed-in only, pretty
+  URL called by `public/js/report.js`). Mod-only `/editors/reports` queue
+  (guests bounce, non-mods 404) with Play/Rename/Delete/Dismiss per level;
+  All Levels shows a Review Reports link to mods.
 
 ## Turnstile (Cloudflare bot check on sign-in/up)
 

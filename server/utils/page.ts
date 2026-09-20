@@ -15,7 +15,7 @@ import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml, first, isAsciiUsername, type SessionUser } from "./session";
 import { DEV_TURNSTILE_SITEKEY } from "./turnstile";
-import type { PublicLevelRow } from "./levels";
+import { STOCK_LEVEL_ID, type PublicLevelRow } from "./levels";
 import type { H3Event } from "nitro";
 import { getRequestURL, setResponseHeader } from "nitro/h3";
 
@@ -585,7 +585,7 @@ function renderPublicLevelRows(
       : "";
     return `<div style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
-      <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>${modButtons}</div>
+      <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>${modButtons}</div>
     </div>`;
   });
   return items.join("\n");
@@ -624,8 +624,10 @@ function renderLevelListPage(
   rows: string,
   heading = "",
   pagination = "",
+  extra: Record<string, unknown> = {},
+  headExtra = "",
 ): string {
-  const body = sidebar(!!view.username) + render(bodyTpl, { rows, heading, pagination });
+  const body = sidebar(!!view.username) + render(bodyTpl, { rows, heading, pagination, ...extra });
   return render(layoutTemplate, {
     title: pageTitle(baseTitle),
     embedImage: embedImage(view),
@@ -633,13 +635,26 @@ function renderLevelListPage(
     topnav: topnavFor(view, active),
     footerMidLink: footerMidLink(!!view.username),
     ruffle: "",
-    headExtra: "",
+    headExtra,
     // Draws the rounded content-box border (same as the game/editor pages).
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
   });
 }
+
+// Reports-queue-only style: the site chrome centers `.content` text, which
+// pulls inline content off-left inside the shrink-wrapped queue rows.
+// Scoped here (loaded on /editors/reports only) so nothing else moves.
+const reportsHeadExtra = `<style type="text/css" media="screen">
+.report-row { text-align: left; }
+</style>
+`;
+
+// Moderator shortcut into the reports queue, in the box title bar like
+// My Levels' Create New Level button (mods only — the queue page itself
+// 404s for everyone else).
+const reportsLinkHtml = `<a href="/editors/reports" rel="nofollow" style="float:right;color:#fff;font-size:12px;font-weight:bold;margin:-20px 8px 0 0;text-decoration:none">Review Reports <img src="/images/popup-btn-blue.gif" alt="" style="vertical-align:middle;border:0" /></a>`;
 
 export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
@@ -653,6 +668,96 @@ export function renderAllLevelsPage(
     renderPublicLevelRows(view.levels, !!view.isModerator),
     "",
     pagination,
+    { reportsLink: view.isModerator ? reportsLinkHtml : "" },
+  );
+}
+
+// One queue group: every open report on a single level.
+export interface ReportGroup {
+  levelId: string;
+  levelName: string;
+  levelCols: number;
+  levelRows: number;
+  authorId: string;
+  authorDisplay: string;
+  reports: Array<{
+    reason: string;
+    reporterDisplay: string;
+    createdAt: unknown;
+  }>;
+}
+
+function renderReportRows(groups: ReportGroup[]): string {
+  if (!groups.length) {
+    return `<p style="padding: 12px 0">No open reports.</p>`;
+  }
+  return groups
+    .map((g, i) => {
+      const name = escapeHtml(g.levelName);
+      const nameJs = g.levelName.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const id = escapeHtml(g.levelId);
+      const author = escapeHtml(g.authorDisplay);
+      const border = i === groups.length - 1 ? "none" : "1px solid #e0e0e0";
+      const byline = `by <a href="/editors/alllevels/${encodeURIComponent(g.authorId)}">${author}</a> &middot; ${g.levelCols} x ${g.levelRows} tiles &middot; ${g.reports.length} report${g.reports.length === 1 ? "" : "s"}`;
+      const reasons = g.reports
+        .map((r) => {
+          const d = formatDate(r.createdAt);
+          return `<div style="margin: 4px 0 4px 12px; color: #333">&ldquo;${escapeHtml(r.reason)}&rdquo; <span style="color: #666">by ${escapeHtml(r.reporterDisplay)}${d ? ` &middot; ${d}` : ""}</span></div>`;
+        })
+        .join("\n");
+      // No Rename/Delete buttons on the seeded stock row — mods can't
+      // touch it (levelWhereForUser), so only Dismiss is offered there.
+      const modForms = g.levelId === STOCK_LEVEL_ID
+        ? ""
+        : `\n      <form action="/editors/reports/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>\n      <form action="/editors/reports/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form>`;
+      return `<div class="report-row" style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
+      <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}</span>
+${reasons}</div>
+      <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>${modForms}
+      <form action="/editors/reports/dismiss" method="post" style="display: inline"><input type="hidden" name="levelId" value="${id}" /><span class="button"><button type="submit" name="submit" value="dismiss">Dismiss</button></span></form></div>
+    </div>`;
+    })
+    .join("\n");
+}
+
+export function renderReportsPage(
+  view: PageView & { reports: import("./levels").OpenReportRow[] },
+  pagination = "",
+): string {
+  // Group flat report rows by level, preserving newest-first order.
+  const groups: ReportGroup[] = [];
+  const byLevel = new Map<string, ReportGroup>();
+  for (const r of view.reports) {
+    let g = byLevel.get(r.levelId);
+    if (!g) {
+      g = {
+        levelId: r.levelId,
+        levelName: r.levelName,
+        levelCols: r.levelCols,
+        levelRows: r.levelRows,
+        authorId: r.authorId,
+        authorDisplay: r.authorDisplay ?? "Player",
+        reports: [],
+      };
+      byLevel.set(r.levelId, g);
+      groups.push(g);
+    }
+    g.reports.push({
+      reason: r.reason,
+      reporterDisplay: r.reporterDisplay ?? "Player",
+      createdAt: r.createdAt,
+    });
+  }
+  return renderLevelListPage(
+    view,
+    "",
+    "Reported Levels",
+    userlevelsBodyTemplate,
+    renderReportRows(groups),
+    "Reported Levels",
+    pagination,
+    {},
+    reportsHeadExtra,
   );
 }
 

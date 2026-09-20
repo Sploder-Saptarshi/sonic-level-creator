@@ -9,7 +9,7 @@
 //   session.userId        — list/revoke a user's sessions
 //   account.userId        — provider accounts per user
 //   verification.identifier — verification lookups
-import { index, sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -107,5 +107,33 @@ export const level = sqliteTable(
     // alone (no sort step, no full-row scans). Subsumes the old
     // single-column published index (dropped in the migration).
     index("level_published_updated_idx").on(t.published, t.updatedAt),
+  ],
+);
+
+// Level reports: one row per (reporter, level) complaint. `status` is
+// 'open' until a moderator dismisses it; deleting the level cascades its
+// reports away. The partial-shape unique (level, reporter, status) lets a
+// user re-report after a dismiss but never double-queue the same open one.
+export const report = sqliteTable(
+  "report",
+  {
+    id: text("id").primaryKey(),
+    levelId: text("level_id")
+      .notNull()
+      .references(() => level.id, { onDelete: "cascade" }),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("open"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [
+    index("report_level_id_idx").on(t.levelId),
+    uniqueIndex("report_open_unique").on(t.levelId, t.reporterId, t.status),
+    // Composite over the queue filter + sort: answers both the open COUNT
+    // and the ORDER BY createdAt page walk from the index alone (no sort
+    // step, no full-table scan).
+    index("report_status_created_idx").on(t.status, t.createdAt),
   ],
 );

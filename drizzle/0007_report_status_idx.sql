@@ -1,0 +1,1 @@
+CREATE INDEX `report_status_created_idx` ON `report` (`status`,`created_at`);
