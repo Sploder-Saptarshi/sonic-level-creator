@@ -24,7 +24,7 @@
   "use strict";
 
   var SPRITE = "/images/controls.png";
-  var TRAVEL = 22; // px knob travel at 132px dpad size (scaled by size/132)
+  var TRAVEL = 16; // px knob travel at 132px dpad size (scaled by size/132)
   var DEADZONE = 10; // px neutral radius at 132px dpad size
 
   // Touch codes match the SWF's Utilities.KEY_*_INDEX values exactly.

@@ -119,19 +119,19 @@
   clip-path: inset(calc(50% + 5px) 0 0 0);
 }
 
-/* Draggable knob (BL cell): 168px art fitted to 62px (S = 189px),
+/* Draggable knob (BL cell): 168px art fitted to 78px (S = 238px),
    centered on the quadrant center:
-   (31 - 128*189/512, 31 - 384*189/512) = (-16.25, -110.75). */
+   (39 - 128*238/512, 39 - 384*238/512) = (-20.5, -139.5). */
 .tc-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 62px;
-  height: 62px;
-  margin: -31px 0 0 -31px;
+  width: 78px;
+  height: 78px;
+  margin: -39px 0 0 -39px;
   background-image: url("/images/controls.png");
-  background-size: 189px 189px;
-  background-position: -16.25px -110.75px;
+  background-size: 238px 238px;
+  background-position: -20.5px -139.5px;
   background-repeat: no-repeat;
   pointer-events: none;
   will-change: transform;
@@ -163,18 +163,18 @@
   opacity: 0.92;
 }
 
-/* 168px knob art fitted to 52px (S = 158px), centered on BL center:
-   (26 - 128*158/512, 26 - 384*158/512) = (-13.5, -92.5). */
+/* 168px knob art fitted to 64px (S = 195px), centered on BL center:
+   (32 - 128*195/512, 32 - 384*195/512) = (-16.75, -114.25). */
 .tc-btn-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52px;
-  height: 52px;
-  margin: -26px 0 0 -26px;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
   background-image: url("/images/controls.png");
-  background-size: 158px 158px;
-  background-position: -13.5px -92.5px;
+  background-size: 195px 195px;
+  background-position: -16.75px -114.25px;
   background-repeat: no-repeat;
   pointer-events: none;
   transition: transform 0.1s ease-out, filter 0.1s ease-out;
