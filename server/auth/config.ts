@@ -24,6 +24,16 @@ export function createAuth(event: H3Event) {
 
   return betterAuth({
     secret: env.secret,
+    advanced: {
+      ipAddress: {
+        // Cloudflare overwrites CF-Connecting-IP at the edge, so it can't
+        // be spoofed in prod and always holds the single real client IP
+        // (plain x-forwarded-for usually carries a multi-IP chain there,
+        // which Better Auth distrusts → empty ip_address). Locally the
+        // header is absent and dev falls back to 127.0.0.1.
+        ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
+      },
+    },
     // Explicit BETTER_AUTH_URL wins (production + local override). Without
     // it the origin is derived per request from an allowlisted host set —
     // the dynamic form silences Better Auth's "Base URL is not set"
