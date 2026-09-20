@@ -545,7 +545,7 @@ export function paginationBar(
       ? `<a href="${basePath}?page=${target}" rel="nofollow" style="display:block;height:30px;">${img}</a>`
       : `<span style="display:block;height:30px;opacity:0.35">${img}</span>`;
   };
-  return `<div style="margin:10px -10px -10px;background:linear-gradient(to bottom,#fee6ba 0.00%,#fee3b5 4.76%,#fee0af 9.52%,#fedda8 14.29%,#fed9a1 19.05%,#fed599 23.81%,#fed091 28.57%,#fecc88 33.33%,#fec77f 38.10%,#ffc376 42.86%,#ffbf6f 47.62%,#ffbb68 52.38%,#ffb761 57.14%,#ffb35a 61.90%,#ffb053 66.67%,#ffad4d 71.43%,#ffa947 76.19%,#ffa641 80.95%,#ffa43c 85.71%,#ffa137 90.48%,#ffa035 95.24%,#ffa035 100.00%);border-radius:0 0 8px 8px;overflow:hidden;height:30px;color:#4c4c4c;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;">${arrow(-1, page > 1, page - 1)}<span>&nbsp;&nbsp;page ${page}/${totalPages}&nbsp;&nbsp;</span>${arrow(1, page < totalPages, page + 1)}</div>`;
+  return `<div style="margin:10px -10px -10px;background:linear-gradient(to bottom,#fee6ba 0.00%,#fee3b5 4.76%,#fee0af 9.52%,#fedda8 14.29%,#fed9a1 19.05%,#fed599 23.81%,#fed091 28.57%,#fecc88 33.33%,#fec77f 38.10%,#ffc376 42.86%,#ffbf6f 47.62%,#ffbb68 52.38%,#ffb761 57.14%,#ffb35a 61.90%,#ffb053 66.67%,#ffad4d 71.43%,#ffa947 76.19%,#ffa641 80.95%,#ffa43c 85.71%,#ffa137 90.48%,#ffa035 95.24%,#ffa035 100.00%);border-radius:0 0 8px 8px;overflow:hidden;height:30px;color:#4c4c4c;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;">${arrow(-1, page > 1, page - 1)}<span>&nbsp;&nbsp;Page ${page}/${totalPages}&nbsp;&nbsp;</span>${arrow(1, page < totalPages, page + 1)}</div>`;
 }
 
 // Shared shell for the level-list pages (My Levels / All Levels / Levels
