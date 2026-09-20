@@ -440,6 +440,9 @@ a.acct-btn, button.acct-btn { display: inline-block; height: 28px; padding: 0 18
 a.acct-btn { line-height: 26px; }
 a.acct-btn:hover, button.acct-btn:not(:disabled):hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%); color: #333; text-decoration: none; outline: none; }
 .acct-btn:disabled { opacity: 0.45; cursor: default; }
+.acct-msg { margin: 0 0 8px; padding: 8px 12px; background: linear-gradient(#f4f4f4, #d9d9d9); border: 1px solid #c9c9c9; border-radius: 8px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; text-align: left; }
+.acct-msg-err { color: #eb7d02; }
+.acct-msg-ok { color: #2f8f4e; }
 </style>
 `;
 const signinDomloadExtra = `;splitBorderBottom.render('round1');border2.render('pagecontent');`;
@@ -679,15 +682,15 @@ export function renderSignupPage(query: PageQuery, view: PageView = {}): string 
   return renderMemberPage(signupBodyTemplate, "Member Sign-up", view);
 }
 
-// My Account page (UI shell only for now): same box3 + sidebar shell as
-// the level-list pages, but content-only (no upsell art in the sidebar).
-// Links out to My Levels, posts sign-out to the existing /member/signout
-// endpoint, and shows inert change-username / change-password forms
-// (submits disabled, no POST routes yet — they land as part of the
-// account-functionality pass).
-export function renderAccountPage(view: PageView = {}): string {
+// My Account page (same box3 + sidebar shell as the level-list pages).
+// Links out to My Levels, posts sign-out to /member/signout, and hosts
+// the change-username / change-password forms (POST routes under
+// /member/account/). `msg` carries a pre-rendered result box (see
+// accountErrorBox/accountOkBox in authFlow.ts).
+export function renderAccountPage(view: PageView = {}, msg = ""): string {
   const body = sidebar(!!view.username, "") + render(accountBodyTemplate, {
     username: view.username ?? "Guest",
+    msg,
   });
   return render(layoutTemplate, {
     title: pageTitle("My Account"),

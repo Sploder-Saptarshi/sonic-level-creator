@@ -25,14 +25,15 @@ import { and, count, desc, eq, ne, or } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 import { getAuthEnv, getNodeDb } from "../auth/env";
-import { level, user } from "../db/schema";
+import { account, level, user } from "../db/schema";
 import { first, getSessionUser, type SessionUser } from "./session";
 
 export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
   const env = getAuthEnv(event);
   if (env.kind === "d1") {
     // Same sqlite query-builder surface as better-sqlite3 for basic CRUD.
-    return drizzleD1(env.d1!, { schema: { level } }) as unknown as ReturnType<
+    // Full auth tables included (account pages update the user row).
+    return drizzleD1(env.d1!, { schema: { account, level, user } }) as unknown as ReturnType<
       typeof getNodeDb
     >;
   }

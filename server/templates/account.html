@@ -4,6 +4,7 @@
   <h3><span class="fancy" style="color:#ffffff">My Account</span>
   </h3>
   <div class="content" id="playGame" style="padding:10px">
+<%~ it.msg %>
     <div class="acct-bar">
       <div class="acct-user">Signed in as <b><%= it.username %></b></div>
       <div class="acct-actions">
@@ -15,7 +16,7 @@
       <div class="acct-panel">
         <div class="acct-title">Change username</div>
         <div class="acct-body">
-          <form action="/member/account/username" method="post" id="change_username" onsubmit="return false">
+          <form action="/member/account/username" method="post" id="change_username">
             <div class="acct-field"><label>New username</label><input type="text" name="username" value="" maxlength="30" /></div>
             <div class="acct-field"><label>Current password</label><input type="password" name="currentPassword" value="" /></div>
             <div><button class="acct-btn" type="submit" name="submit" value="change-username" disabled="disabled">Change username</button></div>
@@ -25,7 +26,7 @@
       <div class="acct-panel">
         <div class="acct-title">Change password</div>
         <div class="acct-body">
-          <form action="/member/account/password" method="post" id="change_password" onsubmit="return false">
+          <form action="/member/account/password" method="post" id="change_password">
             <div class="acct-field"><label>Current password</label><input type="password" name="currentPassword" value="" /></div>
             <div class="acct-field"><label>New password</label><input type="password" name="newPassword" value="" /></div>
             <div class="acct-field"><label>Confirm new password</label><input type="password" name="confirmPassword" value="" /></div>
@@ -37,10 +38,9 @@
         <div class="clear">&nbsp;</div>
     <script type="text/javascript">
     // Toggles the change-username / change-password submits: they stay
-    // disabled until every field passes the same rules the backend will
-    // enforce (usernames 3-30 printable ASCII, passwords 8+ chars with a
-    // matching confirmation). Submits stay blocked until the POST routes
-    // land.
+    // disabled until every field passes the same rules the backend
+    // enforces (usernames 3-30 printable ASCII, passwords 8+ chars with a
+    // matching confirmation).
     (function () {
       function field(form, name) {
         var el = form.querySelector('input[name="' + name + '"]');

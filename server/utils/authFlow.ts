@@ -15,6 +15,23 @@ export function errorBox(msg: string): string {
 </div>`;
 }
 
+// Account-page result boxes. The account page doesn't load signin.css, so
+// these carry their own acct- styles (see accountHeadExtra in page.ts).
+// Colors match the member forms (orange errors) and the editor go-button
+// green (success).
+function accountBox(msg: string, cls: string): string {
+  if (!msg) return "";
+  return `<div class="acct-msg ${cls}">${escapeHtml(msg)}</div>`;
+}
+
+export function accountErrorBox(msg: string): string {
+  return accountBox(msg, "acct-msg-err");
+}
+
+export function accountOkBox(msg: string): string {
+  return accountBox(msg, "acct-msg-ok");
+}
+
 export function forwardCookies(event: H3Event, headers: Headers): void {
   const cookies =
     typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
