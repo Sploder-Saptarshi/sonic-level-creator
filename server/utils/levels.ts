@@ -9,6 +9,10 @@
 //                          N rows for N owned levels over the userId index
 //   listPublicLevels       1 query, published-only metadata + author over
 //                          the published index (stock row excluded in SQL)
+//   listPublicLevelsByUserId 1 query, published-only metadata + author over
+//                          the userId index (stock row excluded in SQL)
+//   findUserById           1 query, 1 row, id + username only (PK;
+//                          empty per-user pages only, to 404 unknown ids)
 //   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
 //   findGatewayRow         1 query, 1 row, data/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
@@ -141,12 +145,29 @@ export function listMyLevels(db: RequestDb, userId: string, withPublished?: bool
 
 // Published directory, metadata + author, stock excluded in SQL:
 // exactly 1 query over the published index. `data` is never selected.
-export function listPublicLevels(db: RequestDb) {
+// Per-user directory ("Levels by X") rows. `authorId` is the stable link
+// target: per-user URLs are keyed by user id (never the username, whose
+// charset may grow spaces/punctuation/capitals later). The heading and
+// bylines show the pretty-case `authorDisplay`. `data` is never selected.
+export interface PublicLevelRow {
+  id: string;
+  authorId: string;
+  name: string;
+  author: string | null;
+  authorDisplay: string | null;
+  cols: number;
+  rows: number;
+  updatedAt: unknown;
+}
+
+export function listPublicLevels(db: RequestDb): Promise<PublicLevelRow[]> {
   return db
     .select({
       id: level.id,
+      authorId: level.userId,
       name: level.name,
       author: user.username,
+      authorDisplay: user.displayUsername,
       cols: level.cols,
       rows: level.rows,
       updatedAt: level.updatedAt,
@@ -155,6 +176,53 @@ export function listPublicLevels(db: RequestDb) {
     .innerJoin(user, eq(level.userId, user.id))
     .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)))
     .orderBy(desc(level.updatedAt));
+}
+
+// Per-user directory ("Levels by X"), published only: exactly 1 query
+// over the userId index (published predicate + stock exclusion in SQL).
+// The joined user columns double as the page heading source, so pages
+// with levels cost no second lookup; empty results need findUserById to
+// tell unknown ids (404) apart from unpublished creators.
+export function listPublicLevelsByUserId(
+  db: RequestDb,
+  userId: string,
+): Promise<PublicLevelRow[]> {
+  return db
+    .select({
+      id: level.id,
+      authorId: level.userId,
+      name: level.name,
+      author: user.username,
+      authorDisplay: user.displayUsername,
+      cols: level.cols,
+      rows: level.rows,
+      updatedAt: level.updatedAt,
+    })
+    .from(level)
+    .innerJoin(user, eq(level.userId, user.id))
+    .where(
+      and(
+        eq(level.userId, userId),
+        eq(level.published, true),
+        ne(level.id, STOCK_LEVEL_ID),
+      ),
+    )
+    .orderBy(desc(level.updatedAt));
+}
+
+export interface PublicUser {
+  id: string;
+  username: string | null;
+  displayUsername: string | null;
+}
+
+// User lookup for empty per-user pages: exactly 1 query reading exactly
+// 1 row via the PK. Skipped entirely when the listing above returns rows.
+export function findUserById(db: RequestDb, id: string) {
+  return db
+    .select({ id: user.id, username: user.username, displayUsername: user.displayUsername })
+    .from(user)
+    .where(eq(user.id, id));
 }
 
 // Player lookup: exactly 1 query reading exactly 1 row (name + published

@@ -34,7 +34,7 @@ export default defineHandler(async (event) => {
   const password = formString(body, "password");
   const confirm = formString(body, "confirmPassword");
   if (!username) {
-    return fail("Pick a username, 3–30 characters.");
+    return fail("Pick a username, 3–30 printable ASCII characters.");
   }
   if (password.length < 8) {
     return fail("Passwords need at least 8 characters.");

@@ -36,11 +36,30 @@ export async function getSessionUser(
     const auth = createAuth(event);
     const data = await auth.api.getSession({ headers: event.req.headers });
     if (!data?.user) return null;
-    const u = data.user as { id: string; username?: string; name?: string };
-    return { id: u.id, username: u.username ?? u.name ?? "Player" };
+    const u = data.user as {
+      id: string;
+      username?: string;
+      displayUsername?: string;
+      name?: string;
+    };
+    // Pretty-case display name first (`username` is the lowercased lookup
+    // key, so it must never reach the UI).
+    return {
+      id: u.id,
+      username: u.displayUsername ?? u.username ?? u.name ?? "Player",
+    };
   } catch {
     return null;
   }
+}
+
+// Printable-ASCII usernames (0x20–0x7E: spaces, punctuation, capitals all
+// allowed; control/DEL/non-ASCII rejected). Length is enforced separately
+// (3–30, matching the better-auth plugin defaults). Single source of truth
+// for the signup form (authFlow) and the better-auth username plugin
+// (auth/config, which gates sign-up AND sign-in).
+export function isAsciiUsername(s: string): boolean {
+  return /^[\x20-\x7E]+$/.test(s);
 }
 
 export function escapeHtml(s: string): string {

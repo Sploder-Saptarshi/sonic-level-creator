@@ -9,9 +9,11 @@ import signupBodyTemplate from "../templates/signup.html" with { type: "text" };
 import mylevelsBodyTemplate from "../templates/mylevels.html" with { type: "text" };
 import quickstartBodyTemplate from "../templates/quickstart.html" with { type: "text" };
 import alllevelsBodyTemplate from "../templates/alllevels.html" with { type: "text" };
+import userlevelsBodyTemplate from "../templates/userlevels.html" with { type: "text" };
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml, first, type SessionUser } from "./session";
+import type { PublicLevelRow } from "./levels";
 import type { H3Event } from "nitro";
 import { getRequestURL, setResponseHeader } from "nitro/h3";
 
@@ -490,43 +492,50 @@ export function renderMyLevelsPage(
   return renderLevelListPage(view, "mylevels", "My Levels", mylevelsBodyTemplate, renderLevelRows(view.levels));
 }
 
-export interface PublicLevelRow {
-  id: string;
-  name: string;
-  author: string;
-  cols: number;
-  rows: number;
-  updatedAt: unknown;
-}
+// PublicLevelRow (id, authorId, name, author, authorDisplay, dims,
+// updatedAt) lives in server/utils/levels.ts — single source of truth.
 
-function renderPublicLevelRows(levels: PublicLevelRow[]): string {
+function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hideAuthor = false): string {
   if (!levels.length) {
-    return `<p style="padding: 12px 0">No published levels yet. <a href="/editors/">Create one</a>.</p>`;
+    return emptyHtml ?? `<p style="padding: 12px 0">No published levels yet. <a href="/editors/">Create one</a>.</p>`;
   }
   const items = levels.map((l) => {
     const name = escapeHtml(l.name);
-    const author = escapeHtml(l.author);
+    // The per-user page (hideAuthor) skips the byline — every row is by
+    // the page owner. All Levels links by user id (usernames may gain
+    // spaces / punctuation / capitals later); the link text stays the
+    // username.
+    let byline = "";
+    if (!hideAuthor) {
+      const display = escapeHtml(l.authorDisplay ?? l.author ?? "Player");
+      byline = l.author
+        ? `by <a href="/editors/alllevels/${encodeURIComponent(l.authorId)}">${display}</a> &middot; `
+        : `by ${display} &middot; `;
+    }
     const id = escapeHtml(l.id);
     const d = formatDate(l.updatedAt);
     return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
-      <div style="float: left"><b>${name}</b> <span style="color: #666">by ${author} &middot; ${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
+      <div style="float: left"><b>${name}</b> <span style="color: #666">${byline}${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
       <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a></div>
     </div>`;
   });
   return items.join("\n");
 }
 
-// Shared shell for the two level-list pages (My Levels / All Levels):
-// same sidebar + layout + border wiring, only the active nav tab, base
-// title, body template, and pre-rendered rows differ.
+// Shared shell for the level-list pages (My Levels / All Levels / Levels
+// by X): same sidebar + layout + border wiring, only the active nav tab,
+// base title, body template, pre-rendered rows, and (for the per-user page)
+// the heading differ. Extra `heading` keys are ignored by templates without
+// the slot (the interpolator only replaces known placeholders).
 function renderLevelListPage(
   view: PageView,
   active: string,
   baseTitle: string,
   bodyTpl: string,
   rows: string,
+  heading = "",
 ): string {
-  const body = sidebar(!!view.username) + render(bodyTpl, { rows });
+  const body = sidebar(!!view.username) + render(bodyTpl, { rows, heading });
   return render(layoutTemplate, {
     title: pageTitle(baseTitle),
     embedImage: embedImage(view),
@@ -545,6 +554,27 @@ export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
 ): string {
   return renderLevelListPage(view, "alllevels", "All Levels", alllevelsBodyTemplate, renderPublicLevelRows(view.levels));
+}
+
+// Per-user directory ("Levels by X", linked from author names in All
+// Levels): published levels only, All Levels tab stays active.
+export function renderUserLevelsPage(
+  view: PageView & { levels: PublicLevelRow[] },
+  displayName: string,
+): string {
+  const heading = `Levels by ${displayName}`;
+  return renderLevelListPage(
+    view,
+    "alllevels",
+    heading,
+    userlevelsBodyTemplate,
+    renderPublicLevelRows(
+      view.levels,
+      `<p style="padding: 12px 0">${escapeHtml(displayName)} has not published any levels yet. <a href="/editors/">Create one</a>.</p>`,
+      true,
+    ),
+    heading,
+  );
 }
 
 export function renderPlayPage(

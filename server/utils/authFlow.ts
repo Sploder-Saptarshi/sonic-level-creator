@@ -2,7 +2,7 @@
 // HTML forms POST here; we call Better Auth server-side so validation
 // errors re-render in-page and session cookies are set on our own responses.
 import { createAuth } from "../auth/config";
-import { escapeHtml, first, getSessionUser } from "./session";
+import { escapeHtml, first, getSessionUser, isAsciiUsername } from "./session";
 import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";
 import type { H3Event } from "nitro";
 
@@ -33,7 +33,7 @@ export function cleanUsernameInput(v: unknown): string | null {
   const s = first(v);
   if (typeof s !== "string") return null;
   const t = s.trim();
-  return t.length >= 3 && t.length <= 30 ? t : null;
+  return t.length >= 3 && t.length <= 30 && isAsciiUsername(t) ? t : null;
 }
 
 // First string value of a form field ("" when missing/non-string).
@@ -100,8 +100,22 @@ export function redirectToSignin(event: H3Event, returnTo?: string) {
   return sendRedirect(event, `/member/signin?next=${encodeURIComponent(target)}`);
 }
 
+// base64url without padding. Input is always printable ASCII (usernames
+// are validated first), so btoa is safe on both Node and Workers.
+function base64Url(s: string): string {
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Deterministic placeholder email for password auth (real inboxes are
+// never used; sign-in is by username). Email-safe names keep the historic
+// plain form — every pre-existing account uses it, so it must not change.
+// Anything else (spaces, punctuation) is base64url-encoded so the result
+// always passes email validation. Theoretical collision (a plain name
+// literally shaped like an encoded one, `u-…`) just fails signup dedupe.
 export function syntheticEmail(username: string): string {
-  return `${username.toLowerCase()}@users.sonicrelvl.local`;
+  const lower = username.toLowerCase();
+  if (/^[a-z0-9._-]+$/.test(lower)) return `${lower}@users.sonicrelvl.local`;
+  return `u-${base64Url(lower)}@users.sonicrelvl.local`;
 }
 
 export async function callAuth<T>(

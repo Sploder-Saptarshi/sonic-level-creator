@@ -13,9 +13,6 @@ export default defineHandler(async (event) => {
   const levels = await listPublicLevels(getRequestDb(event));
   return html(
     event,
-    renderAllLevelsPage({
-      ...toPageView(session, event),
-      levels: levels.map((l) => ({ ...l, author: l.author ?? "Player" })),
-    }),
+    renderAllLevelsPage({ ...toPageView(session, event), levels }),
   );
 });

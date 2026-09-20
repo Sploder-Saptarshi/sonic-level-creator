@@ -9,6 +9,7 @@ import { drizzle as drizzleNode } from "drizzle-orm/better-sqlite3";
 import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "./argon2";
 import { ensureNodeMigrated, getAuthEnv, getNodeClient } from "./env";
+import { isAsciiUsername } from "../utils/session";
 import type { H3Event } from "nitro";
 
 export function createAuth(event: H3Event) {
@@ -48,7 +49,11 @@ export function createAuth(event: H3Event) {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
     },
-    plugins: [username()],
+    // Printable-ASCII usernames (spaces, punctuation, capitals allowed).
+    // Replaces the plugin default (/^[a-zA-Z0-9_.]+$/), which would reject
+    // them at sign-up AND sign-in. Length stays at the plugin defaults
+    // (3–30, matching the signup form).
+    plugins: [username({ usernameValidator: isAsciiUsername })],
   });
 }
 
