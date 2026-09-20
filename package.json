@@ -9,7 +9,7 @@
   "scripts": {
     "build": "npm run build:editor:prod && nitro build",
     "build:editor": "esbuild ts/main.ts --bundle --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
-    "build:editor:prod": "esbuild ts/main.ts --bundle --minify --format=iife --outfile=public/editors/assets/editor.js --log-level=info",
+    "build:editor:prod": "esbuild ts/main.ts --bundle --minify --format=iife --outfile=public/editors/assets/editor.js --drop:console --log-level=info",
     "dev": "nitro dev",
     "preview": "nitro preview",
     "serve": "node .output/server/index.mjs",

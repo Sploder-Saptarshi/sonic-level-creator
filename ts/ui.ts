@@ -236,13 +236,14 @@ canvas.display { display: block; cursor: crosshair; border: none;
 /* Mobile blocker variant: heading pinned inside the top edge (fully
    inside the box), message text left + Sonic render right below it. */
 .start-card.mobile-block { display: flex; flex-wrap: wrap; align-items: center;
-  gap: 0 14px; width: 560px; min-height: 0; padding: 30px 12px 6px; }
+  gap: 0 14px; width: 560px; min-height: 0; padding: 6px 12px; }
 .start-card.mobile-block h2 { position: absolute; top: 6px; left: 12px;
   margin: 0; width: auto; }
-.start-card.mobile-block .mobile-text { flex: 1; min-width: 0; }
+.start-card.mobile-block .mobile-text { flex: 1; min-width: 0;
+  padding-top: 36px; }
 .start-card.mobile-block p { margin: 0; }
 .start-card.mobile-block .start-sonic { position: static; height: 190px;
-  flex-shrink: 0; }
+  flex-shrink: 0; align-self: flex-start; }
 
 /* ── step 2: Select Map Size — nested hover regions, outer = largest.
    Counts are grid cells (the original UI calls them "tiles"). */

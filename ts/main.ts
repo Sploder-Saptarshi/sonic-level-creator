@@ -62,8 +62,17 @@ function blockMobileEditor(shadow: ShadowRoot): void {
   const card = overlay.querySelector('.start-card');
   const heading = overlay.querySelector('.start-card h2');
   const body = overlay.querySelector('.start-card p');
+  const art = overlay.querySelector('.start-sonic') as HTMLImageElement | null;
   if (card && heading && body) {
     card.classList.add('mobile-block');
+    // Toolbox art for the blocker (552x512 landscape); the desktop
+    // create screen keeps sonic.png.
+    if (art) {
+      art.src = '/images/sonictoolbox.webp';
+      art.width = 552;
+      art.height = 512;
+      art.alt = 'Sonic with a toolbox';
+    }
     const wrap = document.createElement('div');
     wrap.className = 'mobile-text';
     card.insertBefore(wrap, body);
