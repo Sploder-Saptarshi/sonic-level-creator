@@ -4,6 +4,7 @@
 import { createAuth } from "../auth/config";
 import { escapeHtml, first, getSessionUser, isAsciiUsername } from "./session";
 import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";
+import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 
 export function errorBox(msg: string): string {
@@ -101,6 +102,30 @@ export function resolveNext(
   body?: Record<string, unknown>,
 ): string {
   return requestNext(event, body) || DEFAULT_LANDING;
+}
+
+// CSRF guard for mutating routes (every POST/PUT/DELETE under /member/*,
+// /editors/*, and /api/levels/*). Browsers always send Origin on
+// POST/PUT/DELETE and page JS can never spoof it cross-site (forbidden
+// header), so a present-but-foreign Origin is always a forgery — reject
+// with 403. Absent Origin means a non-browser client (curl, the game SWF):
+// nothing to forge, so nothing to check — and a victim's browser can never
+// take this branch on a cross-site POST. Compared against the request Host
+// (the site the browser actually addressed — attacker Host-spoofing can't
+// help them, since the browser still stamps the real attacker Origin).
+// This backs up the SameSite=Lax session cookie (which already withholds
+// cookies on cross-site POSTs) for ancient browsers, and it kills login
+// CSRF on the member forms outright.
+export function enforceSameOrigin(event: H3Event): void {
+  const origin = event.req.headers.get("origin");
+  if (!origin) return;
+  let ok = false;
+  try {
+    ok = new URL(origin).host === getRequestURL(event).host;
+  } catch {
+    ok = false;
+  }
+  if (!ok) throw new HTTPError({ status: 403, message: "Forbidden" });
 }
 
 // Guest guard for protected pages: 302 to sign-in with the return target

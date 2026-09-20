@@ -8,10 +8,11 @@ import {
   dismissReportsForLevel,
   getRequestDb,
 } from "../../../utils/levels";
-import { redirectToSignin } from "../../../utils/authFlow";
+import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event, "/editors/reports");
   if (!session.isModerator) {

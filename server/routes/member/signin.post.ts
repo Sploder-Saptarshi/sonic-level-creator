@@ -9,6 +9,7 @@ import { html, renderSigninPage } from "../../utils/page";
 import {
   alreadySignedIn,
   callAuth,
+  enforceSameOrigin,
   errorBox,
   forwardCookies,
   formString,
@@ -19,6 +20,7 @@ import { first } from "../../utils/session";
 import { getTurnstileSitekey, verifyTurnstile } from "../../utils/turnstile";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   // Body first (pure parse, 0 SQL) so the bounce below can honor a
   // posted `next` target too.
   const body = (await readBody(event)) as Record<string, unknown>;

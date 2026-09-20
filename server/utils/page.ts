@@ -69,8 +69,12 @@ function embedImage(view: PageView): string {
 
 // HTML page responder: sets the content-type and returns the body.
 // Replaces the per-route setResponseHeader clone (was cloned in 8 routes).
+// no-store: SSR pages render per-session chrome (signed-in name, mod-only
+// buttons, level rows), so they must never sit in disk cache — a shared
+// machine's back button must not resurrect another user's My Levels.
 export function html(event: H3Event, body: string): string {
   setResponseHeader(event, "content-type", "text/html; charset=utf-8");
+  setResponseHeader(event, "cache-control", "no-store");
   return body;
 }
 

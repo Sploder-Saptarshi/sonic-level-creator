@@ -18,9 +18,11 @@ import {
   requireUser,
   STOCK_LEVEL_ID,
 } from "../../../utils/levels";
+import { enforceSameOrigin } from "../../../utils/authFlow";
 import { eq } from "drizzle-orm";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const id = getRouterParam(event, "id") ?? "";
   if (!/^[\w-]{1,128}$/.test(id)) {
     throw new HTTPError({ status: 404, message: "Level not found" });

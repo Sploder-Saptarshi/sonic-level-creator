@@ -13,8 +13,10 @@ import {
   requireRow,
   requireUser,
 } from "../../utils/levels";
+import { enforceSameOrigin } from "../../utils/authFlow";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const user = await requireUser(event);
   const id = cleanId(getRouterParam(event, "id"));
   if (!id) throw new HTTPError({ status: 404, message: "Level not found" });

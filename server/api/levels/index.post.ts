@@ -8,6 +8,7 @@ import { HTTPError } from "nitro";
 import { sql } from "drizzle-orm";
 import { level } from "../../db/schema";
 import { getRequestDb, readLevelBody, requireUser } from "../../utils/levels";
+import { enforceSameOrigin } from "../../utils/authFlow";
 
 function isConflict(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
@@ -15,6 +16,7 @@ function isConflict(e: unknown): boolean {
 }
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const user = await requireUser(event);
   const body = (await readBody(event)) as Record<string, unknown>;
   const { name, cols, rows, data } = readLevelBody(body);

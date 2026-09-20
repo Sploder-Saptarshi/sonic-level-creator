@@ -10,6 +10,7 @@ import {
   accountErrorBox,
   accountOkBox,
   callAuth,
+  enforceSameOrigin,
   forwardCookies,
   formString,
   redirectToSignin,
@@ -17,6 +18,7 @@ import {
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const body = (await readBody(event)) as Record<string, unknown>;
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event, "/member/account");

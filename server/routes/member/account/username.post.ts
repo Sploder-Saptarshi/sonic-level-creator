@@ -16,6 +16,7 @@ import {
   accountOkBox,
   callAuth,
   cleanUsernameInput,
+  enforceSameOrigin,
   formString,
   redirectToSignin,
   syntheticEmail,
@@ -24,6 +25,7 @@ import { getRequestDb } from "../../../utils/levels";
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
   const body = (await readBody(event)) as Record<string, unknown>;
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event, "/member/account");
