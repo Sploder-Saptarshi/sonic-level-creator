@@ -287,12 +287,16 @@
     // player can stop propagation. Desktop mouse is ignored, as are
     // synthetic (untrusted) events. touchend gets its own shot: some
     // engines only honor the request at a particular point in the gesture,
-    // and activation is still valid at gesture end.
+    // and activation is still valid at gesture end. While staged, every
+    // gesture re-attempts the landscape lock (some engines only honor it
+    // inside a genuine gesture, not from fullscreenchange).
     window.addEventListener(
       "touchstart",
       function (e) {
         if (e.isTrusted === false) return;
-        if (inside(e)) enter();
+        if (!inside(e)) return;
+        enter();
+        if (isFull()) lockLandscape();
       },
       { capture: true, passive: true }
     );

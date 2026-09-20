@@ -19,6 +19,11 @@
  * exception is the BR feedback layer, which carries a measured (-2,-1)
  * source-px nudge so its ring lands exactly on the TL ring (the two arts
  * are cut ~1px apart in the sheet).
+ * Sizing: the cluster scales with the viewport (--pad/--btn in vmin)
+ * so the controls keep a constant proportion of the screen instead of
+ * shrinking on bigger screens. --du/--bu are unit lengths (pad/132,
+ * btn/88); every sprite number below is the original validated 132/88-px
+ * measurement multiplied by its unit, preserving the geometry exactly.
  *
  * Feedback rule: pushing a direction shows that HALF of BR (gold) over the
  * opposite half of TL (silver), e.g. left = left half of BR + right half
@@ -59,11 +64,13 @@
 
 /* Left dpad cluster */
 .tc-dpad {
+  --pad: 34vmin;
+  --du: calc(var(--pad) / 132);
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  width: 132px;
-  height: 132px;
+  left: calc(var(--pad) * 12 / 132);
+  bottom: calc(var(--pad) * 12 / 132);
+  width: var(--pad);
+  height: var(--pad);
   pointer-events: auto;
   touch-action: none;
 }
@@ -74,7 +81,7 @@
   inset: 0;
   background-image: url("/images/controls.png");
   /* Whole sheet scaled so one 256px cell == control size (S = 2E). */
-  background-size: 264px 264px;
+  background-size: calc(var(--pad) * 2) calc(var(--pad) * 2);
   background-repeat: no-repeat;
 }
 
@@ -88,49 +95,48 @@
   /* BR cell: same centering as the base, plus a measured (-2,-1) source-px
      compensation — the gold art sits ~1px right of the silver art in the
      sheet (TL center 126.5 vs BR center 384.5), so without this the rings
-     misalign by 1px to the right. */
-  background-position: -133.03px -132.52px;
+     misalign by 1px to the right. (-133.03, -132.52) at 132px. */
+  background-position: calc(-133.03 * var(--du)) calc(-132.52 * var(--du));
   opacity: 0;
 }
 
 /* Directional halves: active half of the gold ring over the silver base.
    Left push => left half gold + right half silver, etc. The cut edge of
-   each half is pulled back 5px (e.g. left half shows x < center - 5px) so
-   the gap triangles straddling the center line never show half-highlighted;
-   the facing arrow itself is untouched. */
+   each half is pulled back 5px-at-132 (e.g. left half shows x < center -
+   pullback) so the gap triangles straddling the center line never show
+   half-highlighted; the facing arrow itself is untouched. */
 #touch-controls[data-dir="left"] .tc-feedback {
   opacity: 1;
-  clip-path: inset(0 calc(50% + 5px) 0 0);
+  clip-path: inset(0 calc(50% + var(--pad) * 5 / 132) 0 0);
 }
 
 #touch-controls[data-dir="right"] .tc-feedback {
   opacity: 1;
-  clip-path: inset(0 0 0 calc(50% + 5px));
+  clip-path: inset(0 0 0 calc(50% + var(--pad) * 5 / 132));
 }
 
 #touch-controls[data-dir="up"] .tc-feedback {
   opacity: 1;
-  clip-path: inset(0 0 calc(50% + 5px) 0);
+  clip-path: inset(0 0 calc(50% + var(--pad) * 5 / 132) 0);
 }
 
 #touch-controls[data-dir="down"] .tc-feedback {
   opacity: 1;
-  clip-path: inset(calc(50% + 5px) 0 0 0);
+  clip-path: inset(calc(50% + var(--pad) * 5 / 132) 0 0 0);
 }
 
-/* Draggable knob (BL cell): 168px art fitted to 78px (S = 238px),
-   centered on the quadrant center:
-   (39 - 128*238/512, 39 - 384*238/512) = (-20.5, -139.5). */
+/* Draggable knob (BL cell): 168px art fitted to 78px-at-132, centered on
+   the quadrant center: (-20.5, -139.5) at 132px. */
 .tc-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 78px;
-  height: 78px;
-  margin: -39px 0 0 -39px;
+  width: calc(78 * var(--du));
+  height: calc(78 * var(--du));
+  margin: calc(-39 * var(--du)) 0 0 calc(-39 * var(--du));
   background-image: url("/images/controls.png");
-  background-size: 238px 238px;
-  background-position: -20.5px -139.5px;
+  background-size: calc(238 * var(--du)) calc(238 * var(--du));
+  background-position: calc(-20.5 * var(--du)) calc(-139.5 * var(--du));
   background-repeat: no-repeat;
   pointer-events: none;
   will-change: transform;
@@ -142,11 +148,13 @@
 
 /* Right action button: TR outline + BL knob cap. */
 .tc-btn {
+  --btn: 23vmin;
+  --bu: calc(var(--btn) / 88);
   position: absolute;
-  right: 14px;
-  bottom: 26px;
-  width: 88px;
-  height: 88px;
+  right: calc(var(--btn) * 14 / 88);
+  bottom: calc(var(--btn) * 26 / 88);
+  width: var(--btn);
+  height: var(--btn);
   pointer-events: auto;
   touch-action: none;
 }
@@ -155,25 +163,25 @@
   position: absolute;
   inset: 0;
   background-image: url("/images/controls.png");
-  background-size: 176px 176px;
+  background-size: calc(var(--btn) * 2) calc(var(--btn) * 2);
   background-repeat: no-repeat;
   /* TR cell centered: (44 - 384*176/512, 44 - 128*176/512) = (-88, 0). */
-  background-position: -88px 0;
+  background-position: calc(-88 * var(--bu)) 0;
   opacity: 0.92;
 }
 
-/* 168px knob art fitted to 64px (S = 195px), centered on BL center:
-   (32 - 128*195/512, 32 - 384*195/512) = (-16.75, -114.25). */
+/* 168px knob art fitted to 64px-at-88, centered on BL center:
+   (-16.75, -114.25) at 88px. */
 .tc-btn-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 64px;
-  height: 64px;
-  margin: -32px 0 0 -32px;
+  width: calc(64 * var(--bu));
+  height: calc(64 * var(--bu));
+  margin: calc(-32 * var(--bu)) 0 0 calc(-32 * var(--bu));
   background-image: url("/images/controls.png");
-  background-size: 195px 195px;
-  background-position: -16.75px -114.25px;
+  background-size: calc(195 * var(--bu)) calc(195 * var(--bu));
+  background-position: calc(-16.75 * var(--bu)) calc(-114.25 * var(--bu));
   background-repeat: no-repeat;
   pointer-events: none;
   transition: transform 0.1s ease-out, filter 0.1s ease-out;
@@ -182,53 +190,4 @@
 #touch-controls[data-jump="1"] .tc-btn-knob {
   transform: scale(0.88);
   filter: brightness(1.25);
-}
-
-@media (max-width: 700px) {
-  .tc-dpad {
-    width: 112px;
-    height: 112px;
-  }
-
-  .tc-base,
-  .tc-feedback {
-    background-size: 224px 224px;
-  }
-
-  /* Recentered for S = 224 with the same (-2,-1) source-px ring
-     compensation: (55.34 - 384*224/512) = -112.88, ditto y -112.44. */
-  .tc-feedback {
-    background-position: -112.88px -112.44px;
-  }
-
-  .tc-btn {
-    width: 76px;
-    height: 76px;
-  }
-
-  .tc-btn-ring {
-    background-size: 152px 152px;
-    /* Recentered for S = 152: (38 - 384*152/512, 38 - 128*152/512). */
-    background-position: -76px 0;
-  }
-
-  /* Knobs keep their art-fitted sizes/centering at all widths. */
-
-  /* Same 5px cut-edge pullback, scaled for the 112px dpad
-     (5px * 112/132 = 4.25px). */
-  #touch-controls[data-dir="left"] .tc-feedback {
-    clip-path: inset(0 calc(50% + 4.25px) 0 0);
-  }
-
-  #touch-controls[data-dir="right"] .tc-feedback {
-    clip-path: inset(0 0 0 calc(50% + 4.25px));
-  }
-
-  #touch-controls[data-dir="up"] .tc-feedback {
-    clip-path: inset(0 0 calc(50% + 4.25px) 0);
-  }
-
-  #touch-controls[data-dir="down"] .tc-feedback {
-    clip-path: inset(calc(50% + 4.25px) 0 0 0);
-  }
 }
