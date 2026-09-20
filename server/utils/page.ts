@@ -73,7 +73,7 @@ export function html(event: H3Event, body: string): string {
 }
 
 const GAME_SWF = "/games/swf/52/52.swf";
-const PRELOADER_SWF = "/swf/preloader/as3/v2/preloader-guest.swf";
+const PRELOADER_SWF = "/swf/preloader/as3/v2/preloader-signedin.swf";
 const PRELOADER_SIGNEDIN_SWF = "/swf/preloader/as3/v2/preloader-signedin.swf";
 const DEFAULT_PLAYER_NAME = "Sonic The Hedgehog Level Player";
 const REPORTER_HTML =
