@@ -24,6 +24,53 @@ function resourceMs(name: string): string {
   return hit ? ` (net ${Math.round(hit.responseEnd - hit.startTime)}ms)` : '';
 }
 
+// The level creator needs precise mouse input: on mobile devices the
+// editor is blocked entirely and the start overlay instead tells the
+// visitor to come back on desktop. Coarse pointers (phones, most
+// tablets) always match; otherwise a small touch viewport counts.
+function isMobileDevice(): boolean {
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+      return true;
+    }
+  } catch (_) { /* matchMedia is best-effort */ }
+  const touch = 'ontouchstart' in window ||
+    (typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints > 0);
+  if (!touch) return false;
+  const w = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+  return w > 0 && w < 700;
+}
+
+// Repurpose the create-level overlay as a desktop-only notice: swap the
+// heading/text and drop the name field + start button so the editor can
+// never be entered. The overlay stays up (no ?load= handling either).
+function blockMobileEditor(shadow: ShadowRoot): void {
+  const overlay = shadow.querySelector('.start-overlay');
+  if (!overlay) return;
+  const title = overlay.querySelector('.start-card h2');
+  if (title) title.textContent = 'Desktop required';
+  const msg = overlay.querySelector('.start-card p');
+  if (msg) {
+    msg.textContent =
+      'The level creator needs a mouse and keyboard. ' +
+      'Please visit on a desktop computer to build levels.';
+  }
+  overlay.querySelector('.start-row')?.remove();
+  overlay.querySelector('.start-card label')?.remove();
+  // Side-by-side layout: "Desktop required" on top, then message text
+  // left and the Sonic render right.
+  const card = overlay.querySelector('.start-card');
+  const heading = overlay.querySelector('.start-card h2');
+  const body = overlay.querySelector('.start-card p');
+  if (card && heading && body) {
+    card.classList.add('mobile-block');
+    const wrap = document.createElement('div');
+    wrap.className = 'mobile-text';
+    card.insertBefore(wrap, body);
+    wrap.appendChild(body);
+  }
+}
+
 function boot() {
   timingLog(`boot DOMContentLoaded readyState=${document.readyState}`);
   console.log('[editor] build 20260913T1849 (object subtypes + thumb-blit canvas)');
@@ -54,6 +101,14 @@ function boot() {
   wrapper.style.cssText = 'height:100%;display:flex;flex-direction:column;position:relative;';
   wrapper.innerHTML = EDITOR_HTML;
   shadow.appendChild(wrapper);
+
+  // Mobile gate: show the desktop notice instead of the editor and run
+  // no further editor code (no canvas, events, sprite downloads, or
+  // test-player warmup).
+  if (isMobileDevice()) {
+    blockMobileEditor(shadow);
+    return;
+  }
 
   // Grab DOM refs into state
   S.canvas = shadow.querySelector('canvas.display')!;

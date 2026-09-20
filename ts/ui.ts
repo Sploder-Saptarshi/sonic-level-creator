@@ -233,6 +233,16 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
 .start-go:disabled { opacity: 0.45; cursor: default; }
 .start-go:disabled:hover { background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%); }
+/* Mobile blocker variant: heading pinned inside the top edge (fully
+   inside the box), message text left + Sonic render right below it. */
+.start-card.mobile-block { display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0 14px; width: 560px; min-height: 0; padding: 30px 12px 6px; }
+.start-card.mobile-block h2 { position: absolute; top: 6px; left: 12px;
+  margin: 0; width: auto; }
+.start-card.mobile-block .mobile-text { flex: 1; min-width: 0; }
+.start-card.mobile-block p { margin: 0; }
+.start-card.mobile-block .start-sonic { position: static; height: 190px;
+  flex-shrink: 0; }
 
 /* ── step 2: Select Map Size — nested hover regions, outer = largest.
    Counts are grid cells (the original UI calls them "tiles"). */
