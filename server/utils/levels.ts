@@ -114,7 +114,7 @@ type RequestDb = ReturnType<typeof getNodeDb>;
 export const STOCK_LEVEL_ID = "2914";
 
 // Rows per listing page (All Levels, Levels by X, My Levels).
-export const LEVELS_PER_PAGE = 10;
+export const LEVELS_PER_PAGE = 15;
 
 // `?page=` query value: positive integer, 1 when missing/invalid.
 // Callers clamp to the page count from below (count query first).

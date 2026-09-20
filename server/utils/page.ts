@@ -533,13 +533,12 @@ function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hid
 // sampled from the orange lozenge button bg_button_span.gif, text
 // #4c4c4c like the lozenge label), full-bleed flush to the box bottom,
 // centered `page N/T` with popup-btn.gif chevrons (prev mirrored via CSS).
-// Empty string when there is a single page (no bar rendered).
+// Always rendered, even for a single page (`page 1/1`).
 export function paginationBar(
   basePath: string,
   page: number,
   totalPages: number,
 ): string {
-  if (totalPages <= 1) return "";
   const arrow = (dir: 1 | -1, enabled: boolean, target: number): string => {
     const img = `<img src="/images/popup-btn.gif" alt="" style="display:block;height:30px;width:auto;border:0${dir < 0 ? ";transform:scaleX(-1)" : ""}" />`;
     return enabled
