@@ -1,9 +1,10 @@
 // POST /member/account/username — change username (requires password).
 // SQL: 1 session lookup; guests bounce with 0 writes. Validation failures
-// re-render with 0 writes. Authed renames cost exactly 1 account read
-// (password check) + 1 availability read (Better Auth, plugin
-// normalization) + 1 user-row write. The freak synthetic-email collision
-// surfaces as a write-time UNIQUE failure, mapped back to "taken".
+// re-render with 0 writes. Authed renames cost 1 account read (password
+// check) + 1 availability read (Better Auth) + 1 user-row write;
+// case-only renames (own name, different casing) skip the availability
+// read. The freak synthetic-email collision surfaces as a write-time UNIQUE
+// failure, mapped back to "taken".
 import { defineHandler } from "nitro";
 import { eq } from "drizzle-orm";
 import { readBody } from "nitro/h3";
@@ -37,9 +38,11 @@ export default defineHandler(async (event) => {
   if (!currentPassword) {
     return fail("Enter your current password.");
   }
-  if (username.toLowerCase() === session.username.toLowerCase()) {
+  if (username === session.username) {
     return fail("That's already your username.");
   }
+  const isCaseOnlyChange =
+    username.toLowerCase() === session.username.toLowerCase();
 
   // Current password first (same verifier Better Auth signs in with — no
   // hand-rolled crypto). Failing here skips the availability read below.
@@ -55,14 +58,18 @@ export default defineHandler(async (event) => {
   }
 
   // Availability through the username plugin (exact sign-up normalization).
-  const avail = await callAuth(event, (auth) =>
-    auth.api.isUsernameAvailable({
-      body: { username },
-      headers: event.req.headers,
-    }),
-  );
-  if (!avail.ok || !avail.value.available) {
-    return fail(avail.ok ? "That username is taken." : avail.error);
+  // Case-only changes (own username, different casing) skip this — the
+  // lookup key stays the same, so no other account can be colliding.
+  if (!isCaseOnlyChange) {
+    const avail = await callAuth(event, (auth) =>
+      auth.api.isUsernameAvailable({
+        body: { username },
+        headers: event.req.headers,
+      }),
+    );
+    if (!avail.ok || !avail.value.available) {
+      return fail(avail.ok ? "That username is taken." : avail.error);
+    }
   }
 
   // One write: lookup key (lowercased) + pretty display + synthetic email.
