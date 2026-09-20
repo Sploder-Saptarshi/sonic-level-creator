@@ -473,13 +473,14 @@ function renderLevelRows(levels: LevelRow[]): string {
   if (!levels.length) {
     return `<p style="padding: 12px 0">You have not created any levels yet. <a href="/editors/">Create your first level</a>.</p>`;
   }
-  const items = levels.map((l) => {
+  const items = levels.map((l, i) => {
     const name = escapeHtml(l.name);
     // Single-quoted JS string inside a double-quoted HTML attribute.
     const nameJs = l.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
     const id = escapeHtml(l.id);
     const d = formatDate(l.updatedAt);
-    return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
+    const border = i === levels.length - 1 ? "none" : "1px solid #e0e0e0";
+    return `<div style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
       <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>
       <a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
@@ -492,8 +493,9 @@ function renderLevelRows(levels: LevelRow[]): string {
 
 export function renderMyLevelsPage(
   view: PageView & { levels: LevelRow[] },
+  pagination = "",
 ): string {
-  return renderLevelListPage(view, "mylevels", "My Levels", mylevelsBodyTemplate, renderLevelRows(view.levels));
+  return renderLevelListPage(view, "mylevels", "My Levels", mylevelsBodyTemplate, renderLevelRows(view.levels), "", pagination);
 }
 
 // PublicLevelRow (id, authorId, name, author, authorDisplay, dims,
@@ -503,7 +505,7 @@ function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hid
   if (!levels.length) {
     return emptyHtml ?? `<p style="padding: 12px 0">No published levels yet. <a href="/editors/">Create one</a>.</p>`;
   }
-  const items = levels.map((l) => {
+  const items = levels.map((l, i) => {
     const name = escapeHtml(l.name);
     // The per-user page (hideAuthor) skips the byline — every row is by
     // the page owner. All Levels links by user id (usernames may gain
@@ -518,7 +520,8 @@ function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hid
     }
     const id = escapeHtml(l.id);
     const d = formatDate(l.updatedAt);
-    return `<div style="padding: 6px 0; border-bottom: 1px solid #e0e0e0; overflow: hidden">
+    const border = i === levels.length - 1 ? "none" : "1px solid #e0e0e0";
+    return `<div style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
       <div style="float: right"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a></div>
     </div>`;
@@ -526,11 +529,32 @@ function renderPublicLevelRows(levels: PublicLevelRow[], emptyHtml?: string, hid
   return items.join("\n");
 }
 
+// Pagination bar for the level-list pages: orange-gradient bar (gradient
+// sampled from the orange lozenge button bg_button_span.gif, text
+// #4c4c4c like the lozenge label), full-bleed flush to the box bottom,
+// centered `page N/T` with popup-btn.gif chevrons (prev mirrored via CSS).
+// Empty string when there is a single page (no bar rendered).
+export function paginationBar(
+  basePath: string,
+  page: number,
+  totalPages: number,
+): string {
+  if (totalPages <= 1) return "";
+  const arrow = (dir: 1 | -1, enabled: boolean, target: number): string => {
+    const img = `<img src="/images/popup-btn.gif" alt="" style="display:block;height:30px;width:auto;border:0${dir < 0 ? ";transform:scaleX(-1)" : ""}" />`;
+    return enabled
+      ? `<a href="${basePath}?page=${target}" rel="nofollow" style="display:block;height:30px;">${img}</a>`
+      : `<span style="display:block;height:30px;opacity:0.35">${img}</span>`;
+  };
+  return `<div style="margin:10px -10px -10px;background:linear-gradient(to bottom,#fee6ba 0.00%,#fee3b5 4.76%,#fee0af 9.52%,#fedda8 14.29%,#fed9a1 19.05%,#fed599 23.81%,#fed091 28.57%,#fecc88 33.33%,#fec77f 38.10%,#ffc376 42.86%,#ffbf6f 47.62%,#ffbb68 52.38%,#ffb761 57.14%,#ffb35a 61.90%,#ffb053 66.67%,#ffad4d 71.43%,#ffa947 76.19%,#ffa641 80.95%,#ffa43c 85.71%,#ffa137 90.48%,#ffa035 95.24%,#ffa035 100.00%);border-radius:0 0 8px 8px;overflow:hidden;height:30px;color:#4c4c4c;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;">${arrow(-1, page > 1, page - 1)}<span>&nbsp;&nbsp;page ${page}/${totalPages}&nbsp;&nbsp;</span>${arrow(1, page < totalPages, page + 1)}</div>`;
+}
+
 // Shared shell for the level-list pages (My Levels / All Levels / Levels
 // by X): same sidebar + layout + border wiring, only the active nav tab,
 // base title, body template, pre-rendered rows, and (for the per-user page)
-// the heading differ. Extra `heading` keys are ignored by templates without
-// the slot (the interpolator only replaces known placeholders).
+// the heading differ. Extra `heading`/`pagination` keys are ignored by
+// templates without the slot (the interpolator only replaces known
+// placeholders).
 function renderLevelListPage(
   view: PageView,
   active: string,
@@ -538,8 +562,9 @@ function renderLevelListPage(
   bodyTpl: string,
   rows: string,
   heading = "",
+  pagination = "",
 ): string {
-  const body = sidebar(!!view.username) + render(bodyTpl, { rows, heading });
+  const body = sidebar(!!view.username) + render(bodyTpl, { rows, heading, pagination });
   return render(layoutTemplate, {
     title: pageTitle(baseTitle),
     embedImage: embedImage(view),
@@ -556,8 +581,9 @@ function renderLevelListPage(
 
 export function renderAllLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
+  pagination = "",
 ): string {
-  return renderLevelListPage(view, "alllevels", "All Levels", alllevelsBodyTemplate, renderPublicLevelRows(view.levels));
+  return renderLevelListPage(view, "alllevels", "All Levels", alllevelsBodyTemplate, renderPublicLevelRows(view.levels), "", pagination);
 }
 
 // Per-user directory ("Levels by X", linked from author names in All
@@ -565,6 +591,7 @@ export function renderAllLevelsPage(
 export function renderUserLevelsPage(
   view: PageView & { levels: PublicLevelRow[] },
   displayName: string,
+  pagination = "",
 ): string {
   const heading = `Levels by ${displayName}`;
   return renderLevelListPage(
@@ -578,6 +605,7 @@ export function renderUserLevelsPage(
       true,
     ),
     heading,
+    pagination,
   );
 }
 

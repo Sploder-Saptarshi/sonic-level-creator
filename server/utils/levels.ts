@@ -7,16 +7,21 @@
 //   requireRow             0 SQL (folds a 404 check onto an existing result)
 //   listMyLevels           1 query, metadata-only columns (never `data`),
 //                          N rows for N owned levels over the userId index
-//   listPublicLevels       1 query, published-only metadata + author over
-//                          the published index (stock row excluded in SQL)
-//   listPublicLevelsByUserId 1 query, published-only metadata + author over
-//                          the userId index (stock row excluded in SQL)
+//   listPublicLevels       1 query, one page of published metadata + author
+//                          over the published index (LIMIT/OFFSET in SQL)
+//   countPublicLevels      1 aggregate query, total published rows (no rows)
+//   listMyLevelsPage       1 query, one page of owned metadata (never `data`)
+//   countMyLevels          1 aggregate query, total owned rows (no rows)
+//   listPublicLevelsByUserId 1 query, one page of published metadata +
+//                          author over the userId index (LIMIT/OFFSET in SQL)
+//   countPublicLevelsByUserId 1 aggregate query, total rows for one
+//                          creator (no rows)
 //   findUserById           1 query, 1 row, id + username only (PK;
 //                          empty per-user pages only, to 404 unknown ids)
 //   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
 //   findGatewayRow         1 query, 1 row, data/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
-import { and, desc, eq, ne, or } from "drizzle-orm";
+import { and, count, desc, eq, ne, or } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 import { getAuthEnv, getNodeDb } from "../auth/env";
@@ -108,6 +113,16 @@ type RequestDb = ReturnType<typeof getNodeDb>;
 // listed in All Levels and /play/2914 redirects home.
 export const STOCK_LEVEL_ID = "2914";
 
+// Rows per listing page (All Levels, Levels by X, My Levels).
+export const LEVELS_PER_PAGE = 10;
+
+// `?page=` query value: positive integer, 1 when missing/invalid.
+// Callers clamp to the page count from below (count query first).
+export function cleanPageParam(v: unknown): number {
+  const n = Number(first(v));
+  return Number.isInteger(n) && n >= 1 && n <= 100000 ? n : 1;
+}
+
 // The signed-in user's levels, metadata only (never the ~MB `data`
 // column): exactly 1 query over the userId index. Shared by
 // GET /api/levels and GET /editors/mylevels (params pick the column set).
@@ -143,6 +158,44 @@ export function listMyLevels(db: RequestDb, userId: string, withPublished?: bool
     .orderBy(desc(level.updatedAt));
 }
 
+// One page of the signed-in user's levels (the withPublished column set,
+// metadata only): exactly 1 query over the userId index. Powers
+// GET /editors/mylevels; GET /api/levels keeps using the unpaged helper.
+export function listMyLevelsPage(
+  db: RequestDb,
+  userId: string,
+  limit: number,
+  offset: number,
+) {
+  return db
+    .select({
+      id: level.id,
+      name: level.name,
+      cols: level.cols,
+      rows: level.rows,
+      published: level.published,
+      updatedAt: level.updatedAt,
+    })
+    .from(level)
+    .where(eq(level.userId, userId))
+    .orderBy(desc(level.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+// Total owned rows for the My Levels page count: exactly 1 indexed
+// aggregate query reading no level rows.
+export async function countMyLevels(
+  db: RequestDb,
+  userId: string,
+): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(level)
+    .where(eq(level.userId, userId));
+  return rows[0]?.n ?? 0;
+}
+
 // Published directory, metadata + author, stock excluded in SQL:
 // exactly 1 query over the published index. `data` is never selected.
 // Per-user directory ("Levels by X") rows. `authorId` is the stable link
@@ -160,7 +213,11 @@ export interface PublicLevelRow {
   updatedAt: unknown;
 }
 
-export function listPublicLevels(db: RequestDb): Promise<PublicLevelRow[]> {
+export function listPublicLevels(
+  db: RequestDb,
+  limit: number,
+  offset: number,
+): Promise<PublicLevelRow[]> {
   return db
     .select({
       id: level.id,
@@ -175,7 +232,19 @@ export function listPublicLevels(db: RequestDb): Promise<PublicLevelRow[]> {
     .from(level)
     .innerJoin(user, eq(level.userId, user.id))
     .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)))
-    .orderBy(desc(level.updatedAt));
+    .orderBy(desc(level.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+// Total published rows (stock excluded) for the All Levels page count:
+// exactly 1 indexed aggregate query reading no level rows.
+export async function countPublicLevels(db: RequestDb): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(level)
+    .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)));
+  return rows[0]?.n ?? 0;
 }
 
 // Per-user directory ("Levels by X"), published only: exactly 1 query
@@ -186,6 +255,8 @@ export function listPublicLevels(db: RequestDb): Promise<PublicLevelRow[]> {
 export function listPublicLevelsByUserId(
   db: RequestDb,
   userId: string,
+  limit: number,
+  offset: number,
 ): Promise<PublicLevelRow[]> {
   return db
     .select({
@@ -207,7 +278,28 @@ export function listPublicLevelsByUserId(
         ne(level.id, STOCK_LEVEL_ID),
       ),
     )
-    .orderBy(desc(level.updatedAt));
+    .orderBy(desc(level.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+// Total published rows for one creator (stock excluded) for the Levels by
+// X page count: exactly 1 indexed aggregate query reading no level rows.
+export async function countPublicLevelsByUserId(
+  db: RequestDb,
+  userId: string,
+): Promise<number> {
+  const rows = await db
+    .select({ n: count() })
+    .from(level)
+    .where(
+      and(
+        eq(level.userId, userId),
+        eq(level.published, true),
+        ne(level.id, STOCK_LEVEL_ID),
+      ),
+    );
+  return rows[0]?.n ?? 0;
 }
 
 export interface PublicUser {
