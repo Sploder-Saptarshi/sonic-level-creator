@@ -12,6 +12,13 @@ text-align:center;
 background-color: #fff;
 }
 
+/* Kill the WebKit tap highlight everywhere (inherited from the root):
+   Chrome mobile flashes a blue box on every tap, which fights the game's
+   own touch feedback (dpad/jump overlays). */
+html {
+-webkit-tap-highlight-color: transparent;
+}
+
 p, td, body, div {
 color:#666666;
 }
