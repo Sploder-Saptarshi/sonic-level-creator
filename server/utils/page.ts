@@ -143,6 +143,10 @@ const gameHeadExtra = `<link rel="stylesheet" href="/css/touch-controls.css" typ
 // which touch-fullscreen.js enters on a touch inside the SWF.
 const fullscreenHeadExtra = `<link rel="stylesheet" href="/css/touch-fullscreen.css" type="text/css" media="screen" />
 `;
+// Ruffle SWF emulator — only on pages that actually embed SWFs (/, /play/:id,
+// /ice-shuffle). Keeps other pages clean and avoids the extra request.
+const ruffleHeadExtra = `<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+`;
 
 // API connector id passed as the game's `id` flashvar (it loads
 // /<id>.swf). A static filename, not a session — real sessions live
@@ -389,7 +393,7 @@ export function renderGamePage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: (opts.headExtra ?? gameHeadExtra) + fullscreenHeadExtra,
+    headExtra: ruffleHeadExtra + (opts.headExtra ?? gameHeadExtra) + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
@@ -687,7 +691,7 @@ export function renderPlayPage(
     languagebar: view.languagebar ?? NAV_LANGUAGEBAR,
     topnav: topnavFor(view),
     footerMidLink: footerMidLink(!!view.username),
-    headExtra: gameHeadExtra + fullscreenHeadExtra,
+    headExtra: ruffleHeadExtra + gameHeadExtra + fullscreenHeadExtra,
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
     body,
