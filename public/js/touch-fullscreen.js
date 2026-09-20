@@ -141,7 +141,38 @@
       if (full) {
         fit();
         refitSoon();
-      } else unfit();
+        lockLandscape();
+      } else {
+        unfit();
+        unlockOrientation();
+      }
+    }
+
+    // Rotate to landscape automatically while staged. Needs real
+    // fullscreen on supporting browsers; best-effort everywhere else.
+    function lockLandscape() {
+      try {
+        var o = window.screen && window.screen.orientation;
+        if (o && typeof o.lock === "function") {
+          var p = o.lock("landscape");
+          if (p && typeof p.catch === "function") {
+            p.catch(function () {
+              /* orientation lock is best-effort */
+            });
+          }
+        }
+      } catch (e) {
+        /* orientation lock is best-effort */
+      }
+    }
+
+    function unlockOrientation() {
+      try {
+        var o = window.screen && window.screen.orientation;
+        if (o && typeof o.unlock === "function") o.unlock();
+      } catch (e) {
+        /* orientation unlock is best-effort */
+      }
     }
 
     function ensureExitBtn() {
@@ -191,15 +222,26 @@
         return;
       }
       entering = true;
+      // If the grant never arrives (denied without rejection, lost
+      // gesture, browser quirk), fall back instead of stranding the
+      // user with no stage until they exit and retry.
+      var grantTimer = setTimeout(function () {
+        if (!isFull()) {
+          entering = false;
+          pseudo();
+        }
+      }, 600);
       var r = null;
       try {
         r = req.call(container);
       } catch (e) {
+        clearTimeout(grantTimer);
         pseudo();
         return;
       }
       if (r && typeof r.catch === "function") {
         r.catch(function () {
+          clearTimeout(grantTimer);
           entering = false;
           pseudo();
         });
@@ -207,6 +249,7 @@
         // No promise to observe (older webkit): check shortly whether
         // the request took, otherwise fall back.
         setTimeout(function () {
+          clearTimeout(grantTimer);
           if (!isFull()) pseudo();
           else syncStage();
         }, 350);
