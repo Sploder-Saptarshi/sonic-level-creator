@@ -55,5 +55,5 @@ export function timingBadge(event: H3Event): string {
   const s = stateOf(event);
   if (!s) return "";
   const wall = performance.now() - s.start;
-  return `<div style="position:fixed;right:0.7vw;bottom:0.7vw;font-size:0.8vw;color:#333333;opacity:50%;z-index:1000;text-align:right;cursor:default;user-select:none;"><span title="Page Execution Time">${wall.toFixed(1)}ms</span><br><span title="Database Queries">${s.queries} queries</span></div>`;
+  return `<div style="position:fixed;right:0.7vw;bottom:0.7vw;font-size:0.8vw;color:#000;opacity:50%;z-index:1000;text-align:right;cursor:default;user-select:none;"><span title="Page Execution Time">${wall.toFixed(1)}ms</span><br><span title="Database Queries">${s.queries} queries</span></div>`;
 }
