@@ -6,7 +6,9 @@ import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3"
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import type { H3Event } from "nitro";
 import * as schema from "./schema";
+import { dbLogger } from "../utils/timing";
 
 const DB_PATH = process.env.AUTH_DB_PATH ?? "./data/auth.db";
 
@@ -38,10 +40,17 @@ export function ensureNodeMigrated(): void {
   getNodeDb();
 }
 
-export function getNodeDb(): BetterSQLite3Database<typeof schema> {
-  if (!db) {
-    db = drizzle(getNodeClient(), { schema });
+export function getNodeDb(event?: H3Event): BetterSQLite3Database<typeof schema> {
+  if (!migrated) {
+    migrated = true;
+    if (!db) db = drizzle(getNodeClient(), { schema });
     migrate(db, { migrationsFolder: "./drizzle" });
   }
+  // Per-request wrapper when the caller carries a timing context, so the
+  // badge counts exactly this request's statements (a cached wrapper
+  // would pin the first request's logger forever). Wrapper construction
+  // is cheap; the SQLite client underneath stays shared.
+  if (event) return drizzle(getNodeClient(), { schema, logger: dbLogger(event) });
+  if (!db) db = drizzle(getNodeClient(), { schema });
   return db;
 }

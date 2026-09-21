@@ -14,6 +14,7 @@ import userlevelsBodyTemplate from "../templates/userlevels.html" with { type: "
 import reportBodyTemplate from "../templates/report.html" with { type: "text" };
 import sidenavTemplate from "../templates/sidenav.html" with { type: "text" };
 import { escapeHtml, first, isAsciiUsername, type SessionUser } from "./session";
+import { timingBadge } from "./timing";
 import { DEV_TURNSTILE_SITEKEY } from "./turnstile";
 import { STOCK_LEVEL_ID, type PublicLevelRow } from "./levels";
 import type { H3Event } from "nitro";
@@ -43,6 +44,10 @@ export interface PageView {
   // toPageView when the event is passed; "" renders no embed image.
   origin?: string;
   isModerator?: boolean;
+  // The request event itself, stashed so layout render can compute the
+  // server-timing badge at the last step (never read by templates — the
+  // interpolator only replaces known placeholders).
+  event?: H3Event;
 }
 
 // Session -> template view. Null (guest) maps to {} so pages render the
@@ -52,13 +57,25 @@ export interface PageView {
 // absolute og:/twitter: image URLs — never hardcoded).
 export function toPageView(session: SessionUser | null, event?: H3Event): PageView {
   const origin = event ? getRequestURL(event).origin : undefined;
-  if (!session) return origin ? { origin } : {};
+  const base: PageView = {
+    ...(origin ? { origin } : {}),
+    ...(event ? { event } : {}),
+  };
+  if (!session) return base;
   return {
+    ...base,
     username: session.username,
     languagebar: userLanguageBar(session.username),
     isModerator: session.isModerator,
-    ...(origin ? { origin } : {}),
   };
+}
+
+// Server-timing badge for the layout's <%~ it.srvTiming %> slot. Resolved
+// at layout-render time — the last step of the request — so wall/cpu/
+// queries/heap cover the whole render. "" without a request event (never
+// in practice: every route builds its view via toPageView(session, event)).
+function timingFor(view: PageView): string {
+  return view.event ? timingBadge(view.event) : "";
 }
 
 // Absolute embed image for link unfurls (Discord/Twitter require absolute
@@ -430,6 +447,7 @@ export function renderGamePage(
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -456,6 +474,7 @@ export function renderEditorPage(query: PageQuery, view: PageView = {}): string 
     domloadExtra: "",
     bootstrap: bootstrap({ sessionId, username, levelId }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -530,6 +549,7 @@ function renderMemberPage(
     domloadExtra: signinDomloadExtra,
     bootstrap: bootstrap({ username: "Guest" }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -680,6 +700,7 @@ function renderLevelListPage(
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -865,6 +886,7 @@ export function renderPlayPage(
     domloadExtra: gameDomloadExtra,
     bootstrap: bootstrap({ sessionId: API_CONNECTOR_ID, username: view.username ?? "Guest", levelId }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -894,6 +916,7 @@ export function renderAccountPage(view: PageView = {}, msg = ""): string {
     domloadExtra: `splitBorderBottom.render('playGame');`,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
+    srvTiming: timingFor(view),
   });
 }
 
@@ -915,5 +938,6 @@ export function renderQuickstartPage(view: PageView = {}): string {
     domloadExtra: quickstartDomloadExtra,
     bootstrap: bootstrap({ username: view.username ?? "Guest" }),
     body,
+    srvTiming: timingFor(view),
   });
 }

@@ -11,6 +11,7 @@ import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "./argon2";
 import { ensureNodeMigrated, getAuthEnv, getNodeClient } from "./env";
 import { isAsciiUsername } from "../utils/session";
+import { dbLogger } from "../utils/timing";
 import type { H3Event } from "nitro";
 
 export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
@@ -20,10 +21,10 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
     // A replica session serves auth reads from a caught-up replica; writes
     // through it still go to the primary. Only the session lookup passes
     // one (getSessionUser) — every write path stays on the primary.
-    db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, { schema });
+    db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, { schema, logger: dbLogger(event) });
   } else {
     ensureNodeMigrated();
-    db = drizzleNode(getNodeClient(), { schema });
+    db = drizzleNode(getNodeClient(), { schema, logger: dbLogger(event) });
   }
 
   return betterAuth({

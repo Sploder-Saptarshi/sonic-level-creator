@@ -37,6 +37,7 @@ import type { H3Event } from "nitro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { getAuthEnv, getNodeDb } from "../auth/env";
 import { account, level, report, stats, user } from "../db/schema";
+import { dbLogger } from "./timing";
 import { first, getSessionUser, type SessionUser } from "./session";
 import { getReplicaSession, readBookmark } from "./replica";
 
@@ -45,11 +46,12 @@ export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
   if (env.kind === "d1") {
     // Same sqlite query-builder surface as better-sqlite3 for basic CRUD.
     // Full auth tables included (account pages update the user row).
-    return drizzleD1(env.d1!, { schema: { account, level, report, user } }) as unknown as ReturnType<
+    // Per-request logger feeds the timing badge's query count.
+    return drizzleD1(env.d1!, { schema: { account, level, report, user }, logger: dbLogger(event) }) as unknown as ReturnType<
       typeof getNodeDb
     >;
   }
-  return getNodeDb();
+  return getNodeDb(event);
 }
 
 export async function requireUser(event: H3Event): Promise<SessionUser> {
@@ -69,6 +71,7 @@ export function getReplicaDb(event: H3Event): RequestDb {
   if (!session) return getRequestDb(event);
   return drizzleD1(session as unknown as D1Database, {
     schema: { account, level, report, user },
+    logger: dbLogger(event),
   }) as unknown as RequestDb;
 }
 

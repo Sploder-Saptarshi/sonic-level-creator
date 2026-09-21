@@ -13,6 +13,7 @@ import { getCookie, setCookie } from "nitro/h3";
 import type { H3Event } from "nitro";
 import type { D1Database, D1DatabaseSession } from "@cloudflare/workers-types";
 import { getAuthEnv } from "../auth/env";
+import { countQuery } from "./timing";
 
 const BOOKMARK_COOKIE = "d1-bookmark";
 
@@ -80,6 +81,7 @@ export async function pinFreshBookmark(event: H3Event): Promise<void> {
   if (!session) return;
   try {
     await session.prepare("SELECT 1").all();
+    countQuery(event);
     writeBookmark(event, session.getBookmark());
   } catch {
     // Chaining is best-effort; the app stays correct on the primary.
