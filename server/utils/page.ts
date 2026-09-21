@@ -364,7 +364,10 @@ export interface GamePageOptions {
 // Touch overlay for the level player (index + /play only): dpad (TL base
 // + BL knob + BR half-ring feedback) and jump button (TR outline + knob).
 // Self-shows only on touch-capable devices while fullscreened (see
-// touch-controls.css + touch-fullscreen.js).
+// touch-controls.css + touch-fullscreen.js). Gamepad support rides along
+// in the same slot (same SWF tcKeyDown/tcKeyUp hooks, no SWF changes):
+// standard-mapping controllers drive arrows + jump, so Ice Shuffle (own
+// keys, hideTouchControls) opts out of both together.
 const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                 <div class="tc-dpad">
                     <div class="tc-base"></div>
@@ -376,7 +379,8 @@ const TOUCH_CONTROLS_HTML = `            <div id="touch-controls">
                     <div class="tc-btn-knob"></div>
                 </div>
             </div>
-            <script type="text/javascript" src="/js/touch-controls.js"></script>`;
+            <script type="text/javascript" src="/js/touch-controls.js"></script>
+            <script type="text/javascript" src="/js/gamepad-controls.js"></script>`;
 
 export function renderGamePage(
   query: PageQuery,
