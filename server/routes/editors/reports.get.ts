@@ -2,10 +2,13 @@
 // SQL: 1 session lookup + 1-row stats counter read (trigger-kept
 // open_reports); the listing query runs only when the queue is non-empty
 // (one keyset page over the (status, createdAt) index, `data` never
-// read). No COUNT(*), no OFFSET. Listing queries run on read replicas
-// when available (a just-filed report appears seconds later at worst).
-// Guests bounce to sign-in; signed-in non-moderators get a 404 (the page
-// must not reveal its existence).
+// read). No COUNT(*), no OFFSET. Stays sequential on purpose: the
+// moderator gate must precede any listing read, and the empty-queue
+// short-circuit avoids a wasted page fetch — unlike the public listings,
+// there is nothing independent to race here. Listing queries run on read
+// replicas when available (a just-filed report appears seconds later at
+// worst). Guests bounce to sign-in; signed-in non-moderators get a 404
+// (the page must not reveal its existence).
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, paginationBar, renderReportsPage, toPageView } from "../../utils/page";

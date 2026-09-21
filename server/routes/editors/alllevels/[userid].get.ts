@@ -5,10 +5,11 @@
 // SQL: guests pay exactly 2 app queries (1-row user PK read carrying both
 // the heading and the trigger-kept published counter, + one keyset page
 // over the (userId, published, updatedAt) index, stock excluded in SQL,
-// `data` never read). Unknown ids 404 even with zero rows; known creators
-// render empty. No COUNT(*), no OFFSET. Listing queries run on read
-// replicas when available (seconds-stale at worst). Signed-in adds 1
-// session lookup. No login required.
+// `data` never read). Session check and user lookup are independent, so
+// both race on the one replica session. Unknown ids 404 even with zero
+// rows; known creators render empty. No COUNT(*), no OFFSET. Listing
+// queries run on read replicas when available (seconds-stale at worst).
+// Signed-in adds 1 session lookup. No login required.
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery, getRouterParam } from "nitro/h3";
 import {
@@ -34,10 +35,14 @@ export default defineHandler(async (event) => {
   if (!/^[\w-]{1,128}$/.test(userId)) {
     throw new HTTPError({ status: 404, message: "Unknown creator" });
   }
-  const session = await getSessionUser(event);
   const db = getReplicaDb(event);
-  // Existence, heading name, and page total in a single PK row.
-  const found = (await findUserById(db, userId))[0];
+  // Existence, heading name, and page total in a single PK row — raced
+  // with the session check on the same session.
+  const [session, foundRows] = await Promise.all([
+    getSessionUser(event),
+    findUserById(db, userId),
+  ]);
+  const found = foundRows[0];
   if (!found) throw new HTTPError({ status: 404, message: "Unknown creator" });
   const display = found.displayUsername ?? found.username ?? "Player";
   const total = found.publishedLevelCount ?? 0;
