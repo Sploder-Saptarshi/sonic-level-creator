@@ -1,9 +1,10 @@
 // GET /editors/mylevels — the signed-in user's saved levels.
 // SQL: 0 for guests (fast-path redirect), else 1 session lookup + exactly
-// 2 replica queries (aggregate count + one metadata-only page over the
-// userId index; `data` never read). Mutations pin bookmarks, so the
-// redirect back here after create/rename/delete/publish observes the
-// write. Guests resume here after sign-in via the attached ?next= target.
+// 2 replica queries (1-row user.level_count counter read + one keyset page
+// of metadata over the (userId, updatedAt) index; `data` never read).
+// No COUNT(*), no OFFSET. Mutations pin bookmarks, so the redirect back
+// here after create/rename/delete/publish observes the write. Guests
+// resume here after sign-in via the attached ?next= target.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import {
@@ -13,8 +14,11 @@ import {
   toPageView,
 } from "../../utils/page";
 import {
+  cleanCursorParam,
   cleanPageParam,
-  countMyLevels,
+  cursorFor,
+  encodePageCursor,
+  getMyLevelTotal,
   getReplicaDb,
   LEVELS_PER_PAGE,
   listMyLevelsPage,
@@ -26,20 +30,35 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event);
   const db = getReplicaDb(event);
-  const total = await countMyLevels(db, session.id);
+  const total = await getMyLevelTotal(db, session.id);
   const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
-  const page = Math.min(cleanPageParam(getQuery(event).page), totalPages);
-  const levels = await listMyLevelsPage(
+  // Display-only page number: rows are fetched purely from the cursor.
+  const q = getQuery(event);
+  const page = Math.min(Math.max(cleanPageParam(q.page), 1), totalPages);
+  const after = cleanCursorParam(q.after);
+  const incoming = after ?? cleanCursorParam(q.before);
+  const { rows: levels, hasMore, hasPrev } = await listMyLevelsPage(
     db,
     session.id,
     LEVELS_PER_PAGE,
-    (page - 1) * LEVELS_PER_PAGE,
+    after ? { after } : incoming ? { before: incoming } : {},
   );
+  const prevCursor =
+    levels.length > 0
+      ? hasPrev
+        ? cursorFor(levels[0]!.updatedAt, levels[0]!.id)
+        : null
+      : incoming
+        ? encodePageCursor(incoming.ts, incoming.id)
+        : null;
+  const last = levels[levels.length - 1];
+  const nextCursor =
+    last && hasMore ? cursorFor(last.updatedAt, last.id) : null;
   return html(
     event,
     renderMyLevelsPage(
       { ...toPageView(session, event), levels },
-      total === 0 ? "" : paginationBar("/editors/mylevels", page, totalPages),
+      total === 0 ? "" : paginationBar("/editors/mylevels", page, totalPages, prevCursor, nextCursor),
     ),
   );
 });

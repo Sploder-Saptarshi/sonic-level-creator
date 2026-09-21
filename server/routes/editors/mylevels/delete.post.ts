@@ -1,13 +1,15 @@
 // POST /editors/mylevels/delete — ownership-checked delete (moderators may
 // delete any level). SQL: 0 for guests (fast-path redirect), else 1 session
-// lookup + exactly 1 indexed write (RETURNING folds the existence check in,
-// no select round-trip). Rows written: <= 1. The write pins a fresh D1
-// bookmark for replica chaining (+1 primary read on the edge), so the
-// redirect back to My Levels observes it. Guests land on My Levels after
-// sign-in (the POST endpoint itself isn't landable, so no ?next= to it).
+// lookup + 1 report cleanup write + exactly 1 indexed level write
+// (RETURNING folds the existence check in, no select round-trip). Rows
+// written: <= 2. The write pins a fresh D1 bookmark for replica chaining
+// (+1 primary read on the edge), so the redirect back to My Levels
+// observes it. Guests land on My Levels after sign-in (the POST endpoint
+// itself isn't landable, so no ?next= to it).
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import { level } from "../../../db/schema";
+import { eq } from "drizzle-orm";
+import { level, report } from "../../../db/schema";
 import { cleanId, getRequestDb, levelWhereForUser } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
@@ -21,7 +23,11 @@ export default defineHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, unknown>;
   const id = cleanId(body?.id);
   if (id) {
-    const deleted = await getRequestDb(event)
+    const db = getRequestDb(event);
+    // Explicit report cleanup first (see api/levels/[id].delete.ts):
+    // D1 cannot rely on PRAGMA foreign_keys, so the cascade may not fire.
+    await db.delete(report).where(eq(report.levelId, id));
+    const deleted = await db
       .delete(level)
       .where(levelWhereForUser(id, session))
       .returning({ id: level.id, name: level.name, published: level.published });

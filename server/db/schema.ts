@@ -21,6 +21,14 @@ export const user = sqliteTable("user", {
   username: text("username").unique(),
   displayUsername: text("display_username"),
   role: text("role").notNull().default("user"),
+  // Trigger-maintained listing counters (migration 0009): total owned
+  // levels (any state, stock row included — mirrors countMyLevels) and
+  // owned published levels (stock excluded — mirrors
+  // countPublicLevelsByUserId). Better Auth never reads/writes them;
+  // they exist so listing pages serve totals from a 1-row PK lookup
+  // instead of COUNT(*). Never set from application code.
+  levelCount: integer("level_count").notNull().default(0),
+  publishedLevelCount: integer("published_level_count").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
@@ -108,8 +116,25 @@ export const level = sqliteTable(
     // alone (no sort step, no full-row scans). Subsumes the old
     // single-column published index (dropped in the migration).
     index("level_published_updated_idx").on(t.published, t.updatedAt),
+    // Keyset page walks: My Levels filters userId and seeks on
+    // (updatedAt, id); the per-user public page adds the published
+    // predicate. Both walks stay inside these indexes.
+    index("level_user_updated_idx").on(t.userId, t.updatedAt),
+    index("level_user_pub_updated_idx").on(t.userId, t.published, t.updatedAt),
   ],
 );
+
+// Global listing counters (migration 0009): single row, id = 1.
+// publishedLevels mirrors countPublicLevels (published, stock row
+// excluded); openReports mirrors countOpenReports (status = 'open').
+// Maintained by triggers on level/report — never written from
+// application code — so listing pages serve totals from a 1-row PK
+// lookup instead of COUNT(*).
+export const stats = sqliteTable("stats", {
+  id: integer("id").primaryKey(),
+  publishedLevels: integer("published_levels").notNull().default(0),
+  openReports: integer("open_reports").notNull().default(0),
+});
 
 // Level reports: one row per (reporter, level) complaint. `status` is
 // 'open' until a moderator dismisses it; deleting the level cascades its

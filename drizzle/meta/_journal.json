@@ -64,6 +64,13 @@
       "when": 1789920000001,
       "tag": "0008_report-open-partial",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789930000000,
+      "tag": "0009_level_counters",
+      "breakpoints": true
     }
   ]
 }

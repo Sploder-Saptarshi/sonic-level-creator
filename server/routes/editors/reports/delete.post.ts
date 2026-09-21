@@ -1,13 +1,15 @@
 // POST /editors/reports/delete — moderator-only level delete from the
-// reports queue (deleting the level cascades its reports away). Guests
-// bounce to sign-in, non-mods 404. SQL: 1 session lookup + exactly 1
-// indexed write (owner-or-mod predicate, stock excluded). The write pins a
-// fresh D1 bookmark for replica chaining (+1 primary read on the edge), so
-// the redirect back to the queue observes it. Always lands back on the
-// queue.
+// reports queue (deleting the level cascades its reports away where FK
+// enforcement is on; an explicit report delete below covers paths where
+// it is not). Guests bounce to sign-in, non-mods 404. SQL: 1 session
+// lookup + 1 report cleanup write + exactly 1 indexed level write
+// (owner-or-mod predicate, stock excluded). The write pins a fresh D1
+// bookmark for replica chaining (+1 primary read on the edge), so the
+// redirect back to the queue observes it. Always lands back on the queue.
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import { level } from "../../../db/schema";
+import { eq } from "drizzle-orm";
+import { level, report } from "../../../db/schema";
 import { cleanId, getRequestDb, levelWhereForUser } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
@@ -24,7 +26,10 @@ export default defineHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, unknown>;
   const id = cleanId(body?.id);
   if (id) {
-    const deleted = await getRequestDb(event)
+    const db = getRequestDb(event);
+    // Explicit report cleanup first (see api/levels/[id].delete.ts).
+    await db.delete(report).where(eq(report.levelId, id));
+    const deleted = await db
       .delete(level)
       .where(levelWhereForUser(id, session))
       .returning({ id: level.id, name: level.name, published: level.published });

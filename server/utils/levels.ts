@@ -7,17 +7,22 @@
 //   requireRow             0 SQL (folds a 404 check onto an existing result)
 //   listMyLevels           1 query, metadata-only columns (never `data`),
 //                          N rows for N owned levels over the userId index
-//   listPublicLevels       1 query, one page of published metadata + author
-//                          over the published index (LIMIT/OFFSET in SQL)
-//   countPublicLevels      1 aggregate query, total published rows (no rows)
-//   listMyLevelsPage       1 query, one page of owned metadata (never `data`)
-//   countMyLevels          1 aggregate query, total owned rows (no rows)
-//   listPublicLevelsByUserId 1 query, one page of published metadata +
-//                          author over the userId index (LIMIT/OFFSET in SQL)
-//   countPublicLevelsByUserId 1 aggregate query, total rows for one
-//                          creator (no rows)
-//   findUserById           1 query, 1 row, id + username only (PK;
-//                          empty per-user pages only, to 404 unknown ids)
+//   listMyLevelsPage       1 query, one keyset page of owned metadata over
+//                          the (userId, updatedAt) index (LIMIT n+1 probe,
+//                          no OFFSET — deep pages cost what shallow ones do)
+//   getMyLevelTotal        1 query, 1 row (trigger-kept user.level_count)
+//   listPublicLevels       1 query, one keyset page of published metadata +
+//                          author over the (published, updatedAt) index
+//   getPublishedLevelTotal 1 query, 1 row (trigger-kept stats row)
+//   listPublicLevelsByUserId 1 query, one keyset page of published metadata
+//                          + author over the (userId, published, updatedAt)
+//                          index
+//   findUserById           1 query, 1 row (id + username + both per-user
+//                          counters; existence check and page total in one —
+//                          replaces countPublicLevelsByUserId entirely)
+//   listOpenReports        1 query, one keyset page over the (status,
+//                          createdAt) index (LIMIT n+1 probe, no OFFSET)
+//   getOpenReportTotal     1 query, 1 row (trigger-kept stats row)
 //   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
 //   findReportedLevelName  1 query, <= 1 row, name + published only (PK +
 //                          one open-report join; moderator fallback only)
@@ -26,12 +31,12 @@
 //   findGatewayRow         1 query, 1 row, data/name/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
-import { and, count, desc, eq, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { getAuthEnv, getNodeDb } from "../auth/env";
-import { account, level, report, user } from "../db/schema";
+import { account, level, report, stats, user } from "../db/schema";
 import { first, getSessionUser, type SessionUser } from "./session";
 import { getReplicaSession, readBookmark } from "./replica";
 
@@ -189,41 +194,149 @@ export function listMyLevels(db: RequestDb, userId: string, withPublished?: bool
     .orderBy(desc(level.updatedAt));
 }
 
+// Keyset (cursor) pagination: every listing sorts (ts DESC, id DESC) with
+// the id tiebreak making the order total even when timestamps collide
+// (publish/rename stamp updatedAt at ms resolution — ties are routine).
+// A cursor pins the last row of the current page; the next page seeks
+// strictly past it inside the index instead of scanning + discarding
+// OFFSET rows. Cost per page is O(page size) at any depth. Trade-off vs
+// OFFSET: no random jumps — navigation is prev/next from a known row, and
+// rows inserted ahead shift later pages (same staleness the replica reads
+// already accept). The displayed `Page N/T` number rides along in the
+// prev/next links for continuity but is never used for fetching.
+export interface PageCursor {
+  // updatedAt/createdAt in the raw stored unit (unix seconds — drizzle's
+  // sqlite timestamp mode) + the row id tiebreak.
+  ts: number;
+  id: string;
+}
+
+export interface KeysetPage {
+  // Forward from here (next page) / backward from here (prev page). Routes
+  // never send both; `after` wins when they do.
+  after?: PageCursor | null;
+  before?: PageCursor | null;
+}
+
+export interface PageResult<T> {
+  rows: T[];
+  hasMore: boolean;
+  hasPrev: boolean;
+}
+
+// Opaque cursor token for URLs: base64url of [ts, id]. TextEncoder-based
+// (never btoa on raw input) so any id charset survives; works unchanged
+// on Workers and node.
+export function encodePageCursor(ts: number, id: string): string {
+  const bytes = new TextEncoder().encode(JSON.stringify([ts, id]));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Validated `after=`/`before=` query value: null when missing/malformed
+// (callers fall back to the first page — a tampered cursor degrades to
+// page one, never to an error or a scan).
+export function cleanCursorParam(v: unknown): PageCursor | null {
+  const s = first(v);
+  if (typeof s !== "string" || s.length < 1 || s.length > 512) return null;
+  if (!/^[A-Za-z0-9\-_]+$/.test(s)) return null;
+  try {
+    const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+    const [ts, id] = JSON.parse(new TextDecoder().decode(bytes));
+    if (!Number.isInteger(ts) || ts < 0 || ts > 1e15) return null;
+    if (typeof id !== "string" || id.length < 1 || id.length > 128) return null;
+    return { ts, id };
+  } catch {
+    return null;
+  }
+}
+
+// updatedAt/createdAt arrive as Date (drizzle timestamp mode) — fold to
+// the stored unit (unix seconds) so the cursor binds the exact integer
+// the index holds. Raw numbers are accepted too: values past 1e12 can
+// only be ms (seconds reach that in the year 33658) and fold down.
+function storedTs(v: unknown): number {
+  const ms = v instanceof Date ? v.getTime() : Number(v);
+  if (!Number.isFinite(ms)) return 0;
+  const t = Math.trunc(ms);
+  return t > 1e12 ? Math.floor(t / 1000) : t;
+}
+
+// Cursor token for the edge row of a fetched page (first row for `before`
+// links, last row for `after` links).
+export function cursorFor(tsValue: unknown, id: string): string {
+  return encodePageCursor(storedTs(tsValue), id);
+}
+
 // One page of the signed-in user's levels (the withPublished column set,
-// metadata only): exactly 1 query over the userId index. Powers
-// GET /editors/mylevels; GET /api/levels keeps using the unpaged helper.
-export function listMyLevelsPage(
+// metadata only): exactly 1 query over the (userId, updatedAt) index.
+// Fetches limit+1 rows; the extra row is the next/prev existence probe
+// (popped before return), so no COUNT query is ever needed for chevrons.
+export async function listMyLevelsPage(
   db: RequestDb,
   userId: string,
   limit: number,
-  offset: number,
-) {
-  return db
-    .select({
-      id: level.id,
-      name: level.name,
-      cols: level.cols,
-      rows: level.rows,
-      published: level.published,
-      updatedAt: level.updatedAt,
-    })
+  page: KeysetPage,
+): Promise<PageResult<{ id: string; name: string; cols: number; rows: number; published: boolean | null; updatedAt: Date }>> {
+  const cols = {
+    id: level.id,
+    name: level.name,
+    cols: level.cols,
+    rows: level.rows,
+    published: level.published,
+    updatedAt: level.updatedAt,
+  };
+  const base = eq(level.userId, userId);
+  if (page.before) {
+    const c = page.before;
+    const rows = await db
+      .select(cols)
+      .from(level)
+      .where(
+        and(
+          base,
+          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
+        ),
+      )
+      .orderBy(asc(level.updatedAt), asc(level.id))
+      .limit(limit + 1);
+    // The +1 row is the farthest one; drop it, then restore DESC order.
+    const hasPrev = rows.length > limit;
+    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
+    return { rows: kept, hasMore: true, hasPrev };
+  }
+  const c = page.after;
+  const rows = await db
+    .select(cols)
     .from(level)
-    .where(eq(level.userId, userId))
-    .orderBy(desc(level.updatedAt))
-    .limit(limit)
-    .offset(offset);
+    .where(
+      c
+        ? and(
+            base,
+            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
+          )
+        : base,
+    )
+    .orderBy(desc(level.updatedAt), desc(level.id))
+    .limit(limit + 1);
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+  return { rows, hasMore, hasPrev: !!c };
 }
 
-// Total owned rows for the My Levels page count: exactly 1 indexed
-// aggregate query reading no level rows.
-export async function countMyLevels(
+// Total owned rows for the My Levels page count: 1 query reading exactly
+// 1 row (trigger-kept user.level_count — mirrors the unpaged countMyLevels
+// predicate: any state, stock row included).
+export async function getMyLevelTotal(
   db: RequestDb,
   userId: string,
 ): Promise<number> {
   const rows = await db
-    .select({ n: count() })
-    .from(level)
-    .where(eq(level.userId, userId));
+    .select({ n: user.levelCount })
+    .from(user)
+    .where(eq(user.id, userId));
   return rows[0]?.n ?? 0;
 }
 
@@ -244,37 +357,67 @@ export interface PublicLevelRow {
   updatedAt: unknown;
 }
 
-export function listPublicLevels(
+export async function listPublicLevels(
   db: RequestDb,
   limit: number,
-  offset: number,
-): Promise<PublicLevelRow[]> {
-  return db
-    .select({
-      id: level.id,
-      authorId: level.userId,
-      name: level.name,
-      author: user.username,
-      authorDisplay: user.displayUsername,
-      cols: level.cols,
-      rows: level.rows,
-      updatedAt: level.updatedAt,
-    })
+  page: KeysetPage,
+): Promise<PageResult<PublicLevelRow>> {
+  const cols = {
+    id: level.id,
+    authorId: level.userId,
+    name: level.name,
+    author: user.username,
+    authorDisplay: user.displayUsername,
+    cols: level.cols,
+    rows: level.rows,
+    updatedAt: level.updatedAt,
+  };
+  const base = and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID));
+  if (page.before) {
+    const c = page.before;
+    const rows = await db
+      .select(cols)
+      .from(level)
+      .innerJoin(user, eq(level.userId, user.id))
+      .where(
+        and(
+          base,
+          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
+        ),
+      )
+      .orderBy(asc(level.updatedAt), asc(level.id))
+      .limit(limit + 1);
+    const hasPrev = rows.length > limit;
+    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
+    return { rows: kept, hasMore: true, hasPrev };
+  }
+  const c = page.after;
+  const rows = await db
+    .select(cols)
     .from(level)
     .innerJoin(user, eq(level.userId, user.id))
-    .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)))
-    .orderBy(desc(level.updatedAt))
-    .limit(limit)
-    .offset(offset);
+    .where(
+      c
+        ? and(
+            base,
+            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
+          )
+        : base,
+    )
+    .orderBy(desc(level.updatedAt), desc(level.id))
+    .limit(limit + 1);
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+  return { rows, hasMore, hasPrev: !!c };
 }
 
 // Total published rows (stock excluded) for the All Levels page count:
-// exactly 1 indexed aggregate query reading no level rows.
-export async function countPublicLevels(db: RequestDb): Promise<number> {
+// 1 query reading exactly 1 row (trigger-kept stats row).
+export async function getPublishedLevelTotal(db: RequestDb): Promise<number> {
   const rows = await db
-    .select({ n: count() })
-    .from(level)
-    .where(and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID)));
+    .select({ n: stats.publishedLevels })
+    .from(stats)
+    .where(eq(stats.id, 1));
   return rows[0]?.n ?? 0;
 }
 
@@ -283,54 +426,63 @@ export async function countPublicLevels(db: RequestDb): Promise<number> {
 // The joined user columns double as the page heading source, so pages
 // with levels cost no second lookup; empty results need findUserById to
 // tell unknown ids (404) apart from unpublished creators.
-export function listPublicLevelsByUserId(
+export async function listPublicLevelsByUserId(
   db: RequestDb,
   userId: string,
   limit: number,
-  offset: number,
-): Promise<PublicLevelRow[]> {
-  return db
-    .select({
-      id: level.id,
-      authorId: level.userId,
-      name: level.name,
-      author: user.username,
-      authorDisplay: user.displayUsername,
-      cols: level.cols,
-      rows: level.rows,
-      updatedAt: level.updatedAt,
-    })
+  page: KeysetPage,
+): Promise<PageResult<PublicLevelRow>> {
+  const cols = {
+    id: level.id,
+    authorId: level.userId,
+    name: level.name,
+    author: user.username,
+    authorDisplay: user.displayUsername,
+    cols: level.cols,
+    rows: level.rows,
+    updatedAt: level.updatedAt,
+  };
+  const base = and(
+    eq(level.userId, userId),
+    eq(level.published, true),
+    ne(level.id, STOCK_LEVEL_ID),
+  );
+  if (page.before) {
+    const c = page.before;
+    const rows = await db
+      .select(cols)
+      .from(level)
+      .innerJoin(user, eq(level.userId, user.id))
+      .where(
+        and(
+          base,
+          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
+        ),
+      )
+      .orderBy(asc(level.updatedAt), asc(level.id))
+      .limit(limit + 1);
+    const hasPrev = rows.length > limit;
+    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
+    return { rows: kept, hasMore: true, hasPrev };
+  }
+  const c = page.after;
+  const rows = await db
+    .select(cols)
     .from(level)
     .innerJoin(user, eq(level.userId, user.id))
     .where(
-      and(
-        eq(level.userId, userId),
-        eq(level.published, true),
-        ne(level.id, STOCK_LEVEL_ID),
-      ),
+      c
+        ? and(
+            base,
+            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
+          )
+        : base,
     )
-    .orderBy(desc(level.updatedAt))
-    .limit(limit)
-    .offset(offset);
-}
-
-// Total published rows for one creator (stock excluded) for the Levels by
-// X page count: exactly 1 indexed aggregate query reading no level rows.
-export async function countPublicLevelsByUserId(
-  db: RequestDb,
-  userId: string,
-): Promise<number> {
-  const rows = await db
-    .select({ n: count() })
-    .from(level)
-    .where(
-      and(
-        eq(level.userId, userId),
-        eq(level.published, true),
-        ne(level.id, STOCK_LEVEL_ID),
-      ),
-    );
-  return rows[0]?.n ?? 0;
+    .orderBy(desc(level.updatedAt), desc(level.id))
+    .limit(limit + 1);
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+  return { rows, hasMore, hasPrev: !!c };
 }
 
 export interface PublicUser {
@@ -339,11 +491,19 @@ export interface PublicUser {
   displayUsername: string | null;
 }
 
-// User lookup for empty per-user pages: exactly 1 query reading exactly
-// 1 row via the PK. Skipped entirely when the listing above returns rows.
+// User lookup for the per-user pages: exactly 1 query reading exactly
+// 1 row via the PK — existence (404 unknown ids), heading name, AND the
+// published page total (trigger-kept user.published_level_count) in one.
+// Skipped entirely when not needed; empty results render from this row.
 export function findUserById(db: RequestDb, id: string) {
   return db
-    .select({ id: user.id, username: user.username, displayUsername: user.displayUsername })
+    .select({
+      id: user.id,
+      username: user.username,
+      displayUsername: user.displayUsername,
+      levelCount: user.levelCount,
+      publishedLevelCount: user.publishedLevelCount,
+    })
     .from(user)
     .where(eq(user.id, id));
 }
@@ -474,48 +634,84 @@ export interface OpenReportRow {
   authorDisplay: string | null;
 }
 
-// Total open reports for the queue page count: exactly 1 indexed
-// aggregate query reading no report rows.
-export async function countOpenReports(db: RequestDb): Promise<number> {
+// Total open reports for the queue page count: 1 query reading exactly
+// 1 row (trigger-kept stats row).
+export async function getOpenReportTotal(db: RequestDb): Promise<number> {
   const rows = await db
-    .select({ n: count() })
-    .from(report)
-    .where(eq(report.status, "open"));
+    .select({ n: stats.openReports })
+    .from(stats)
+    .where(eq(stats.id, 1));
   return rows[0]?.n ?? 0;
 }
 
 // One page of open reports with level + reporter + author, newest first:
 // exactly 1 query (status walk over the composite index, level/reporter/
-// author joins over PKs, `data` never read). Callers group by levelId for
-// the moderator queue.
-export function listOpenReports(
+// author joins over PKs, `data` never read). Keyset on (createdAt, id);
+// fetches limit+1 rows as the next/prev existence probe. Callers group by
+// levelId for the moderator queue.
+export async function listOpenReports(
   db: RequestDb,
   limit: number,
-  offset: number,
-): Promise<OpenReportRow[]> {
+  page: KeysetPage,
+): Promise<PageResult<OpenReportRow>> {
   const reporter = alias(user, "reporter");
   const author = alias(user, "author");
-  return db
-    .select({
-      reportId: report.id,
-      reason: report.reason,
-      createdAt: report.createdAt,
-      reporterDisplay: reporter.displayUsername,
-      levelId: level.id,
-      levelName: level.name,
-      levelCols: level.cols,
-      levelRows: level.rows,
-      authorId: level.userId,
-      authorDisplay: author.displayUsername,
-    })
-    .from(report)
-    .innerJoin(level, eq(report.levelId, level.id))
-    .innerJoin(reporter, eq(report.reporterId, reporter.id))
-    .innerJoin(author, eq(level.userId, author.id))
-    .where(eq(report.status, "open"))
-    .orderBy(desc(report.createdAt))
-    .limit(limit)
-    .offset(offset);
+  const cols = {
+    reportId: report.id,
+    reason: report.reason,
+    createdAt: report.createdAt,
+    reporterDisplay: reporter.displayUsername,
+    levelId: level.id,
+    levelName: level.name,
+    levelCols: level.cols,
+    levelRows: level.rows,
+    authorId: level.userId,
+    authorDisplay: author.displayUsername,
+  };
+  const base = eq(report.status, "open");
+  const join = (q: any) =>
+    q
+      .innerJoin(level, eq(report.levelId, level.id))
+      .innerJoin(reporter, eq(report.reporterId, reporter.id))
+      .innerJoin(author, eq(level.userId, author.id));
+  if (page.before) {
+    const c = page.before;
+    const rows = await join(
+      db
+        .select(cols)
+        .from(report)
+        .where(
+          and(
+            base,
+            sql`(${report.createdAt} > ${c.ts} OR (${report.createdAt} = ${c.ts} AND ${report.id} > ${c.id}))`,
+          ),
+        )
+        .orderBy(asc(report.createdAt), asc(report.id))
+        .limit(limit + 1),
+    );
+    const hasPrev = rows.length > limit;
+    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
+    return { rows: kept, hasMore: true, hasPrev };
+  }
+  const c = page.after;
+  const rows = await join(
+    db
+      .select(cols)
+      .from(report)
+      .where(
+        c
+          ? and(
+              base,
+              sql`(${report.createdAt} < ${c.ts} OR (${report.createdAt} = ${c.ts} AND ${report.id} < ${c.id}))`,
+            )
+          : base,
+      )
+      .orderBy(desc(report.createdAt), desc(report.id))
+      .limit(limit + 1),
+  );
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+  return { rows, hasMore, hasPrev: !!c };
 }
 
 // Dismiss every open report on one level: exactly 1 indexed write.
