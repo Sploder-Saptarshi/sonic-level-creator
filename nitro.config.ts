@@ -43,6 +43,9 @@ export default defineConfig({
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://challenges.cloudflare.com",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
+          // Ruffle synthesizes game audio as data: URLs at runtime (the
+          // pasted violation); shipped MP3s stay same-origin under 'self'.
+          "media-src 'self' data:",
           "font-src 'self'",
           "connect-src 'self' https://unpkg.com",
           // 'self', not 'none': the player embeds same-origin SWFs as

@@ -545,8 +545,20 @@ export function stopTest() {
 
 export function doFullscreen() {
   const el = S.shadow!.host as HTMLElement;
-  if (document.fullscreenElement) document.exitFullscreen();
-  else el.requestFullscreen();
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+    return;
+  }
+  // A denial (stale gesture, policy, headless) is not actionable from a
+  // button: swallow it like the game pages do — the next tap just retries.
+  // Without the catch, the rejected promise logs a console error that looks
+  // like a bug in our call (it isn't: this always runs inside the click).
+  try {
+    const r = el.requestFullscreen();
+    if (r && typeof r.catch === "function") r.catch(() => {});
+  } catch {
+    /* fullscreen unsupported: ignore */
+  }
 }
 
 export function doClearAll() {
