@@ -19,6 +19,10 @@
 //   findUserById           1 query, 1 row, id + username only (PK;
 //                          empty per-user pages only, to 404 unknown ids)
 //   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
+//   findReportedLevelName  1 query, <= 1 row, name + published only (PK +
+//                          one open-report join; moderator fallback only)
+//   hasOpenReport          1 query, <= 1 row, report id only (levelId +
+//                          status probe; gateway moderator fallback only)
 //   findGatewayRow         1 query, 1 row, data/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -331,6 +335,9 @@ export function findUserById(db: RequestDb, id: string) {
 // Player lookup: exactly 1 query reading exactly 1 row (name + published
 // columns only) via PK + visibility predicate. Published rows serve
 // everyone; owners additionally see their own unpublished rows.
+// Moderators with an open report on the level fall through to
+// findReportedLevelName below (a second query only on that rare miss path
+// — the hot path stays at 1 query).
 export function findVisibleLevelName(
   db: RequestDb,
   id: string,
@@ -343,6 +350,36 @@ export function findVisibleLevelName(
     .select({ name: level.name, published: level.published })
     .from(level)
     .where(and(eq(level.id, id), visible));
+}
+
+// Moderator fallback for the player: the same name + published columns for
+// an unpublished level that still has >= 1 open report. Exactly 1 query:
+// PK lookup on the level plus a probe into the open-report index that stops
+// at the first match (LIMIT 1, `data` never read). Call only after
+// findVisibleLevelName misses with a moderator session, so guests, members,
+// and owners never pay for it.
+export function findReportedLevelName(db: RequestDb, id: string) {
+  return db
+    .select({ name: level.name, published: level.published })
+    .from(level)
+    .innerJoin(
+      report,
+      and(eq(report.levelId, level.id), eq(report.status, "open")),
+    )
+    .where(eq(level.id, id))
+    .limit(1);
+}
+
+// Open-report probe for the gateway: exactly 1 query reading <= 1 report
+// row (id only) via the levelId + open-status indexes. Call only for an
+// unpublished row a moderator doesn't own, so published/owned hits never
+// pay for it.
+export function hasOpenReport(db: RequestDb, levelId: string) {
+  return db
+    .select({ id: report.id })
+    .from(report)
+    .where(and(eq(report.levelId, levelId), eq(report.status, "open")))
+    .limit(1);
 }
 
 export interface GatewayRow {

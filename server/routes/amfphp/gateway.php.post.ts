@@ -6,12 +6,14 @@
 // SQL (minimum): 1 indexed PK read per getLevel call (1 row, 3 columns:
 // data/published/userId). The session lookup is lazy — published rows
 // serve with 0 session queries; only unpublished rows pay 1 session
-// lookup (cached across batched calls). Unknown ids serve '' with 1 read.
+// lookup (cached across batched calls). Moderators pay one extra
+// open-report probe (<= 1 row) only on unpublished rows they don't own.
+// Unknown ids serve '' with 1 read.
 import { defineHandler, HTTPError } from "nitro";
 import { readRawBody, setResponseHeader } from "nitro/h3";
 import { handleAmf, MAX_AMF_BYTES } from "../../utils/amf";
 import { levelToCsv } from "../../utils/levelBytes";
-import { findGatewayRow, getRequestDb } from "../../utils/levels";
+import { findGatewayRow, getRequestDb, hasOpenReport } from "../../utils/levels";
 import { getSessionUser, type SessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
@@ -40,7 +42,13 @@ export default defineHandler(async (event) => {
       if (session === undefined) {
         session = await getSessionUser(event).catch(() => null);
       }
-      if (!session || row.userId !== session.id) return "";
+      if (!session) return "";
+      if (row.userId === session.id) return levelToCsv(row.data) ?? "";
+      // Moderators can load unpublished levels with an active report
+      // (review flow). One indexed probe, only on this rare path.
+      if (!session.isModerator) return "";
+      const open = await hasOpenReport(db, levelId);
+      if (!open[0]) return "";
       return levelToCsv(row.data) ?? "";
     });
   } catch (e) {
