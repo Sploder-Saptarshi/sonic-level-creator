@@ -46,8 +46,14 @@ export interface WebhookBody {
   // ping — mentions inside embeds don't trigger notifications.
   content?: string;
   allowed_mentions?: { parse: string[] };
-  // Discord embed (description carries the exact message text below).
-  embeds: Array<{ description: string; color: number; timestamp: string }>;
+  // Discord embed (description carries the exact message text below;
+  // title+url render as a clickable heading).
+  embeds: Array<{
+    title?: string;
+    url?: string;
+    description: string;
+    color: number;
+  }>;
   level?: WebhookLevel;
   user?: { username: string };
   // Signed-in actor that triggered the event, when known.
@@ -144,13 +150,14 @@ function base(
   evt: WebhookEventName,
   description: string,
   color: number,
+  title?: { title: string; url?: string },
 ): WebhookBody {
   const at = new Date().toISOString();
   return {
     event: evt,
     site: requestOrigin(event),
     at,
-    embeds: [{ description, color, timestamp: at }],
+    embeds: [{ ...title, description, color }],
   };
 }
 
@@ -164,11 +171,13 @@ export function notifyLevelPublished(
   event: H3Event,
   level: { id: string; name: string; author: string },
 ): void {
+  const url = playUrl(event, level.id);
   const body = base(
     event,
     "level.published",
     `${level.name} has just been uploaded by ${level.author}, Try it out!`,
     COLOR_PUBLISHED,
+    { title: level.name, ...(url ? { url } : {}) },
   );
   body.level = {
     id: level.id,
@@ -201,6 +210,8 @@ export function notifyLevelDeleted(
     "level.deleted",
     `${level.name} was bulldozed by Dr. Eggman, better luck next time!`,
     COLOR_DELETED,
+    // Title only, no link — the level is gone, so a play URL would 404.
+    { title: level.name },
   );
   body.level = {
     id: level.id,
@@ -221,11 +232,13 @@ export function notifyLevelPlayed(
   actor?: string | null,
 ): void {
   const player = actor || "A guest";
+  const url = playUrl(event, level.id);
   const body = base(
     event,
     "level.played",
     `${player} is currently playing ${level.name}!`,
     COLOR_PLAYED,
+    { title: level.name, ...(url ? { url } : {}) },
   );
   body.level = { id: level.id, name: level.name, url: playUrl(event, level.id) };
   if (actor) body.actor = actor;
@@ -233,22 +246,26 @@ export function notifyLevelPlayed(
 }
 
 export function notifyUserSignedIn(event: H3Event, username: string): void {
+  const origin = requestOrigin(event);
   const body = base(
     event,
     "user.signed_in",
     `${username} just logged in, Welcome back!`,
     COLOR_SIGNED_IN,
+    { title: "Guess who's back?", ...(origin ? { url: origin } : {}) },
   );
   body.user = { username };
   send(event, body);
 }
 
 export function notifyUserSignedUp(event: H3Event, username: string): void {
+  const origin = requestOrigin(event);
   const body = base(
     event,
     "user.signed_up",
     `${username} just signed up, Welcome to Sonic ReLvl!`,
     COLOR_SIGNED_UP,
+    { title: "A new hero joins the adventure!", ...(origin ? { url: origin } : {}) },
   );
   body.user = { username };
   send(event, body);
