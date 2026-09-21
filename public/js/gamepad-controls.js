@@ -17,6 +17,11 @@
  *   game; keyboard alone cannot). The click only fires while tcMode() != 2
  *   (MainCanvas.MODE_FIELD), so gameplay clicks can never stick.
  *
+ * Ruffle-only: the player lookup targets <ruffle-player> and nothing
+ * else. On browsers running the real Flash plugin there is no
+ * ruffle-player, so every sendKey/click is a no-op and the plugin object
+ * (<object>/<embed>) is never touched.
+ *
  * Polling runs on requestAnimationFrame and ORs every connected pad, so
  * pad index never matters. All held keys release on blur/hide/disconnect.
  */
@@ -42,13 +47,16 @@
   // Jump-capable buttons (standard mapping): face + bumpers + triggers.
   var JUMP_BUTTONS = [0, 1, 2, 3, 4, 5, 6, 7];
 
+  // Ruffle-only lookup with deliberately NO <object>/<embed> fallback:
+  // on legacy browsers those elements are the real Flash plugin object,
+  // which this script must never call into. Returns null there, making
+  // every sendKey/click below a harmless no-op.
   function getPlayer() {
-    return (
-      document.querySelector("#gameswf ruffle-player") ||
-      document.querySelector("#gameswf object") ||
-      document.querySelector("#gameswf embed") ||
-      document.getElementById("gameswf")
-    );
+    try {
+      return document.querySelector("#gameswf ruffle-player");
+    } catch (e) {
+      return null;
+    }
   }
 
   // Same delivery pattern as touch-controls.js sendKey: element method
