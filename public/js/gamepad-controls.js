@@ -22,8 +22,10 @@
  * ruffle-player, so every sendKey/click is a no-op and the plugin object
  * (<object>/<embed>) is never touched.
  *
- * Polling runs on requestAnimationFrame and ORs every connected pad, so
- * pad index never matters. All held keys release on blur/hide/disconnect.
+ * Polling runs on requestAnimationFrame but only while a gamepad is
+ * connected (starts on gamepadconnected, parks itself when the last pad
+ * leaves) and ORs every connected pad, so pad index never matters and
+ * there is zero idle cost. All held keys release on blur/hide/disconnect.
  */
 (function () {
   "use strict";
@@ -189,6 +191,14 @@
     var prevStart = false; // Start(9): pause tap + click edge
     var prevSelect = false; // Select(8): escape tap edge
 
+    // Idle-loop guard: the 60fps poll runs only while at least one pad is
+    // connected. gamepadconnected starts it (init also catches pads that
+    // were already plugged in); the loop parks itself — releasing held
+    // keys — once the last pad goes away. No pad, no polling.
+    var useRaf = !!window.requestAnimationFrame;
+    var looping = false;
+    var timerId = 0;
+
     function setHeld(name, want) {
       if (want && !held[name]) {
         held[name] = true;
@@ -211,9 +221,56 @@
       prevSelect = false;
     }
 
+    function anyPadConnected() {
+      try {
+        if (typeof navigator.getGamepads !== "function") return false;
+        var pads = navigator.getGamepads();
+        for (var i = 0; i < pads.length; i++) {
+          if (pads[i] && pads[i].connected) return true;
+        }
+      } catch (e) {
+        /* Gamepad API is best-effort */
+      }
+      return false;
+    }
+
+    function schedule() {
+      if (useRaf) {
+        timerId = window.requestAnimationFrame(poll);
+      } else {
+        timerId = setTimeout(poll, 16);
+      }
+    }
+
+    function stopLoop() {
+      looping = false;
+      if (timerId) {
+        try {
+          if (useRaf && typeof window.cancelAnimationFrame === "function") {
+            window.cancelAnimationFrame(timerId);
+          } else {
+            clearTimeout(timerId);
+          }
+        } catch (e) {
+          /* cancel is best-effort */
+        }
+        timerId = 0;
+      }
+    }
+
+    function maybeStart() {
+      if (looping) return;
+      if (!anyPadConnected()) return;
+      looping = true;
+      schedule();
+    }
+
     function poll() {
+      timerId = 0;
+      if (!looping) return;
       try {
         var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        var seen = false;
         var wantLeft = false;
         var wantRight = false;
         var wantUp = false;
@@ -226,6 +283,7 @@
         for (var i = 0; i < pads.length; i++) {
           var gp = pads[i];
           if (!gp || !gp.connected) continue;
+          seen = true;
           var b = gp.buttons || [];
           var ax = gp.axes || [];
 
@@ -243,6 +301,14 @@
           if (btnPressed(b[0])) confirm = true;
           if (btnPressed(b[9])) start = true;
           if (btnPressed(b[8])) select = true;
+        }
+
+        // Last pad gone mid-loop: release keys and park until the next
+        // gamepadconnected event. No idle polling.
+        if (!seen) {
+          releaseAll();
+          stopLoop();
+          return;
         }
 
         // Opposites cancel rather than stick (both sticks + dpad ORed).
@@ -280,24 +346,22 @@
       } catch (e) {
         /* polling never throws */
       }
-      if (window.requestAnimationFrame) {
-        window.requestAnimationFrame(poll);
-      } else {
-        setTimeout(poll, 16);
-      }
+      if (looping) schedule();
     }
 
+    window.addEventListener("gamepadconnected", maybeStart);
+    window.addEventListener("gamepaddisconnected", function () {
+      if (!anyPadConnected()) {
+        releaseAll();
+        stopLoop();
+      }
+    });
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) releaseAll();
     });
     window.addEventListener("blur", releaseAll);
-    window.addEventListener("gamepaddisconnected", releaseAll);
 
-    if (window.requestAnimationFrame) {
-      window.requestAnimationFrame(poll);
-    } else {
-      setTimeout(poll, 16);
-    }
+    maybeStart();
   }
 
   if (document.readyState === "loading") {
