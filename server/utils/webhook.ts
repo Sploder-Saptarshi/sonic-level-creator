@@ -6,7 +6,11 @@
 // Privacy: level details (name/author/url) are only ever attached for
 // PUBLISHED levels. Unpublished rows (owner previews, mod-review lookups)
 // never trigger a webhook at all — unpublished deletes and unpublished
-// plays stay fully silent.
+// plays stay fully silent. Played events originate at the AMF gateway
+// (the game downloads the bytes there after click-to-continue — page
+// views would let crawlers spam it), deduped by a last-played cookie so
+// one boot's repeated getLevel calls notify once but 1 -> 2 -> 1 notifies
+// twice.
 //
 // Message texts (exact) + Discord embed colors (site "puck" palette):
 //   played     BLACK #222222      "%player% is currently playing %lvlname%!"

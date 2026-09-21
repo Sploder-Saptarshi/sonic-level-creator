@@ -23,7 +23,7 @@
 //                          one open-report join; moderator fallback only)
 //   hasOpenReport          1 query, <= 1 row, report id only (levelId +
 //                          status probe; gateway moderator fallback only)
-//   findGatewayRow         1 query, 1 row, data/published/userId only
+//   findGatewayRow         1 query, 1 row, data/name/published/userId only
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
 import { and, count, desc, eq, ne, or } from "drizzle-orm";
@@ -401,15 +401,17 @@ export function hasOpenReport(db: RequestDb, levelId: string) {
 
 export interface GatewayRow {
   data: string;
+  name: string;
   published: boolean | null;
   userId: string;
 }
 
 // Gateway lookup: exactly 1 query reading exactly 1 row (PK), fetching
-// only the columns the visibility check + byte encoder need.
+// only the columns the visibility check + byte encoder + played webhook
+// need.
 export function findGatewayRow(db: RequestDb, id: string) {
   return db
-    .select({ data: level.data, published: level.published, userId: level.userId })
+    .select({ data: level.data, name: level.name, published: level.published, userId: level.userId })
     .from(level)
     .where(eq(level.id, id));
 }

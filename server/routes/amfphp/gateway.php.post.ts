@@ -3,20 +3,32 @@
 // relative path). getLevel resolves the level id to its stored bytes;
 // every other method mirrors the legacy stub replies. GET -> 405.
 //
-// SQL (minimum): 1 indexed replica PK read per getLevel call (1 row, 3
-// columns: data/published/userId). The session lookup is lazy — published
+// SQL (minimum): 1 indexed replica PK read per getLevel call (1 row, 4
+// columns: data/name/published/userId). The session lookup is lazy — published
 // rows serve with 0 session queries; only unpublished rows pay 1 session
 // lookup (cached across batched calls). Replica misses with a session get
 // one primary retry; unpublished rows always resolve fully on the primary
 // (fresh bytes/flags for owner previews, fresh reports for mod review).
 // Unknown ids serve '' with 1 replica read (guests/junk never touch the
-// primary).
+// primary). Serving published bytes also records the level for the
+// level.played webhook below (deduped by a last-played cookie, so one
+// game boot's repeated getLevel calls notify once but 1 -> 2 -> 1
+// notifies twice; 0 extra SQL, silent no-op in dev / without WEBHOOK_URL).
 import { defineHandler, HTTPError } from "nitro";
-import { readRawBody, setResponseHeader } from "nitro/h3";
+import { getCookie, readRawBody, setCookie, setResponseHeader } from "nitro/h3";
 import { handleAmf, MAX_AMF_BYTES } from "../../utils/amf";
 import { levelToCsv } from "../../utils/levelBytes";
-import { findGatewayRow, getReplicaDb, getRequestDb, hasOpenReport } from "../../utils/levels";
+import { findGatewayRow, getReplicaDb, getRequestDb, hasOpenReport, STOCK_LEVEL_ID } from "../../utils/levels";
 import { getSessionUser, type SessionUser } from "../../utils/session";
+import { notifyLevelPlayed } from "../../utils/webhook";
+
+// Played-cookie window: one game boot (and its immediate retries) fires
+// exactly one webhook. A single cookie holds the last played level id —
+// replaying the same level stays silent, but playing a different level
+// moves the marker, so going 1 -> 2 -> 1 notifies twice (once per visit).
+// Replays after expiry count as new plays.
+const PLAYED_COOKIE = "slc_played";
+const PLAYED_COOKIE_TTL = 600;
 
 export default defineHandler(async (event) => {
   const raw = await readRawBody(event, false);
@@ -37,6 +49,16 @@ export default defineHandler(async (event) => {
   // Lazily resolved + cached: most hits are published levels (0 session
   // SQL); unpublished/owned levels resolve it once per request.
   let session: SessionUser | null | undefined;
+  // Published levels actually served in this request (id -> name), deduped
+  // here so batched duplicate getLevel messages notify once. Only rows
+  // served with real bytes land here — unpublished previews, empty rows,
+  // and misses never do.
+  const served = new Map<string, string>();
+  const servePublished = (id: string, name: string, data: string): string => {
+    const csv = levelToCsv(data) ?? "";
+    if (csv !== "") served.set(id, name);
+    return csv;
+  };
   let reply: Uint8Array;
   try {
     reply = await handleAmf(bytes, async (levelId) => {
@@ -57,7 +79,7 @@ export default defineHandler(async (event) => {
         if (!row) return "";
         onPrimary = true;
       }
-      if (row.published) return levelToCsv(row.data) ?? "";
+      if (row.published) return servePublished(levelId, row.name, row.data);
       if (session === undefined) {
         session = await getSessionUser(event).catch(() => null);
       }
@@ -67,7 +89,7 @@ export default defineHandler(async (event) => {
         // bytes/flags before the owner/mod checks below.
         row = (await findGatewayRow(primary(), levelId))[0];
         if (!row) return "";
-        if (row.published) return levelToCsv(row.data) ?? "";
+        if (row.published) return servePublished(levelId, row.name, row.data);
       }
       if (row.userId === session.id) return levelToCsv(row.data) ?? "";
       // Moderators can load unpublished levels with an active report
@@ -83,6 +105,43 @@ export default defineHandler(async (event) => {
       throw new HTTPError({ status: 413, message: "Request Entity Too Large" });
     }
     throw new HTTPError({ status: 400, message: "Bad Request" });
+  }
+  // Played webhooks for the published levels served above: stock excluded
+  // (same as the listings). The last-played cookie dedupes one game boot's
+  // repeated getLevel calls, but a different level moves the marker — so
+  // 1 -> 2 -> 1 notifies for level 1 twice. Guests pay 0 extra SQL
+  // (getSessionUser fast-paths without a cookie); signed-in players pay 1
+  // session lookup, resolved once here.
+  if (served.size > 0) {
+    if (session === undefined) {
+      session = await getSessionUser(event).catch(() => null);
+    }
+    let lastPlayed: string | null = null;
+    try {
+      const raw = getCookie(event, PLAYED_COOKIE);
+      lastPlayed =
+        typeof raw === "string" && /^[\w-]{1,128}$/.test(raw) ? raw : null;
+    } catch {
+      lastPlayed = null;
+    }
+    for (const [id, name] of served) {
+      if (id === STOCK_LEVEL_ID) continue;
+      // Same level as the last notified play: the boot/retry double —
+      // stay silent without moving the marker.
+      if (lastPlayed === id) continue;
+      try {
+        setCookie(event, PLAYED_COOKIE, id, {
+          path: "/",
+          sameSite: "lax",
+          maxAge: PLAYED_COOKIE_TTL,
+          httpOnly: true,
+        });
+      } catch {
+        // Headers already sent: best-effort, the bytes above still served.
+      }
+      lastPlayed = id;
+      notifyLevelPlayed(event, { id, name }, session?.username ?? null);
+    }
   }
   setResponseHeader(event, "content-type", "application/x-amf");
   return Buffer.from(reply.buffer, reply.byteOffset, reply.byteLength);

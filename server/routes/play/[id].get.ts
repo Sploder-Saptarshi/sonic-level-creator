@@ -7,9 +7,9 @@
 // primary query (<= 1 level + 1 report row) for unpublished levels with
 // >= 1 open report. Guest misses stop at the replica (junk probes never
 // touch the primary). Rows read: <= 1 level row on the hot path.
-// Published hits also queue a level.played webhook as a background task
-// (0 SQL, silent no-op in dev / without WEBHOOK_URL); unpublished views
-// stay silent.
+// (No played webhook here: plays are counted at the gateway, where the
+// game actually downloads the bytes after the click-to-continue screen —
+// page views alone would let crawlers spam it.)
 import { defineHandler } from "nitro";
 import { getRouterParam, sendRedirect } from "nitro/h3";
 import { HTTPError } from "nitro";
@@ -22,7 +22,6 @@ import {
   getRequestDb,
 } from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
-import { notifyLevelPlayed } from "../../utils/webhook";
 
 export default defineHandler(async (event) => {
   const id = getRouterParam(event, "id") ?? "";
@@ -48,11 +47,5 @@ export default defineHandler(async (event) => {
     }
   }
   if (!row) throw new HTTPError({ status: 404, message: "Level not found" });
-  // Background "played" webhook (no-op in dev / when WEBHOOK_URL is
-  // unset). Published plays only — owner previews and mod-review views of
-  // unpublished levels stay silent, so only published details ever leave.
-  if (row.published) {
-    notifyLevelPlayed(event, { id, name: row.name }, session?.username);
-  }
   return html(event, renderPlayPage(row.name, id, toPageView(session, event), row.published));
 });
