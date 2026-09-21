@@ -27,12 +27,10 @@ export default defineConfig({
   // - Framing is fully off (DENY + frame-ancestors 'none'): our markup has
   //   zero <iframe>s of its own. The single exception is frame-src for
   //   Turnstile, which injects its challenge iframe at runtime.
-  // - No CSP `unsafe-eval`, but `wasm-unsafe-eval` IS required: Ruffle's
-  //   emulation core is a WASM binary and browsers gate WASM compilation
-  //   behind script-src. Inline scripts stay allowed ('unsafe-inline') —
-  //   the archive markup is inline-script by design, so XSS stays handled
-  //   at the render layer (see server/utils/page.ts), while CSP still
-  //   bans foreign script hosts, plugins, <base> hijacks and exfil forms.
+  // - Script eval is allowed ('unsafe-eval') ONLY because Ruffle's core
+  //   needs it — there is no eval-free build. Blast radius stays small:
+  //   external scripts are still host-allowlisted, and XSS stays handled
+  //   at the render layer (see server/utils/page.ts).
   // - Permissions-Policy disables every sensor/identity/capture API except
   //   fullscreen + autoplay on self (touch-fullscreen.js + game audio).
   // - No COEP (would risk Ruffle chunk loading) and no in-app HSTS (would
@@ -42,7 +40,7 @@ export default defineConfig({
       headers: {
         "content-security-policy": [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://challenges.cloudflare.com",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://challenges.cloudflare.com",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
           "font-src 'self'",
@@ -51,6 +49,11 @@ export default defineConfig({
           // plugin data (Ruffle boots them) — remote plugin content stays
           // banned. In modern browsers nothing but Ruffle consumes this.
           "object-src 'self'",
+          // Blob workers only: Ruffle runs audio/decoding work off blob:
+          // workers (same-origin by construction — a blob: URL always
+          // inherits its creator's origin, so no remote worker code can
+          // sneak in through this).
+          "worker-src 'self' blob:",
           "frame-src https://challenges.cloudflare.com",
           "form-action 'self'",
           "base-uri 'self'",
