@@ -3,7 +3,9 @@
 // call (1 user insert + 1 session insert on success). Success pins a fresh
 // D1 bookmark for replica chaining (+1 primary read on the edge) and lands
 // on the validated `next` target, else My Levels. Validation failures
-// re-render with 0 writes (keeping the return target).
+// re-render with 0 writes (keeping the return target). Success also
+// queues a user.signed_up webhook as a background task (0 SQL, silent
+// no-op in dev / without WEBHOOK_URL).
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html, renderSignupPage } from "../../utils/page";
@@ -22,6 +24,7 @@ import {
 import { first } from "../../utils/session";
 import { pinFreshBookmark } from "../../utils/replica";
 import { getTurnstileSitekey, verifyTurnstile } from "../../utils/turnstile";
+import { notifyUserSignedUp } from "../../utils/webhook";
 
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
@@ -76,5 +79,7 @@ export default defineHandler(async (event) => {
   }
   forwardCookies(event, res.value.headers);
   await pinFreshBookmark(event);
+  // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
+  notifyUserSignedUp(event, username);
   return sendRedirect(event, resolveNext(event, body));
 });

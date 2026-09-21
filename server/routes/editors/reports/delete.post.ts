@@ -12,6 +12,7 @@ import { cleanId, getRequestDb, levelWhereForUser } from "../../../utils/levels"
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
+import { notifyLevelDeleted } from "../../../utils/webhook";
 
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
@@ -23,11 +24,22 @@ export default defineHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, unknown>;
   const id = cleanId(body?.id);
   if (id) {
-    await getRequestDb(event)
+    const deleted = await getRequestDb(event)
       .delete(level)
       .where(levelWhereForUser(id, session))
-      .returning({ id: level.id });
+      .returning({ id: level.id, name: level.name, published: level.published });
     await pinFreshBookmark(event);
+    // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
+    // Fires only when the deleted row was published.
+    const row = deleted[0];
+    if (row) {
+      notifyLevelDeleted(event, {
+        id: row.id,
+        name: row.name,
+        published: row.published,
+        actor: session.username,
+      });
+    }
   }
   return sendRedirect(event, "/editors/reports");
 });
