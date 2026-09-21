@@ -6,17 +6,21 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins";
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { drizzle as drizzleNode } from "drizzle-orm/better-sqlite3";
+import type { D1Database, D1DatabaseSession } from "@cloudflare/workers-types";
 import * as schema from "../db/schema";
 import { hashPassword, verifyPassword } from "./argon2";
 import { ensureNodeMigrated, getAuthEnv, getNodeClient } from "./env";
 import { isAsciiUsername } from "../utils/session";
 import type { H3Event } from "nitro";
 
-export function createAuth(event: H3Event) {
+export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
   const env = getAuthEnv(event);
   let db;
   if (env.kind === "d1") {
-    db = drizzleD1(env.d1!, { schema });
+    // A replica session serves auth reads from a caught-up replica; writes
+    // through it still go to the primary. Only the session lookup passes
+    // one (getSessionUser) — every write path stays on the primary.
+    db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, { schema });
   } else {
     ensureNodeMigrated();
     db = drizzleNode(getNodeClient(), { schema });

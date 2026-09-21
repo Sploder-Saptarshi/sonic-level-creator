@@ -1,9 +1,13 @@
 // server/utils/session.ts — server-side session lookup for SSR pages.
 // Query budget: getSessionUser costs 0 SQL when no session cookie is
 // present (fast-path below), else exactly 1 indexed session-token lookup
-// via Better Auth. Every page route documents its total budget inline.
+// via Better Auth. On the edge the lookup runs inside a D1 read-replica
+// session (bookmark-chained per browser, refreshed below), so authed page
+// hits usually avoid the primary; every page route documents its total
+// budget inline.
 import { createAuth } from "../auth/config";
 import type { H3Event } from "nitro";
+import { getReplicaSession, readBookmark, writeBookmark } from "./replica";
 
 export interface SessionUser {
   id: string;
@@ -32,11 +36,16 @@ export async function getSessionUser(
   event: H3Event,
 ): Promise<SessionUser | null> {
   // Guests (no cookie) skip Better Auth entirely: 0 SQL. Authenticated
-  // hits pay exactly 1 indexed lookup on session.token.
+  // hits pay exactly 1 indexed lookup on session.token, served from a
+  // read replica when available (the chained bookmark keeps it at least
+  // as fresh as this browser's last write — e.g. its login — and is
+  // refreshed below so the floor advances monotonically).
   if (!hasSessionCookie(event)) return null;
   try {
-    const auth = createAuth(event);
+    const replica = getReplicaSession(event, readBookmark(event));
+    const auth = createAuth(event, replica);
     const data = await auth.api.getSession({ headers: event.req.headers });
+    if (replica) writeBookmark(event, replica.getBookmark());
     if (!data?.user) return null;
     const u = data.user as {
       id: string;

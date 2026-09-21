@@ -1,8 +1,9 @@
 // POST /member/signin — username + password form.
 // SQL: 0 pre-check for guests (no cookie fast-path), then exactly 1 auth
-// call (1 indexed user lookup + 1 session insert on success). Validation
-// failures re-render with 0 writes (keeping the return target). Success
-// lands on the validated `next` target, else My Levels.
+// call (1 indexed user lookup + 1 session insert on success). Success pins
+// a fresh D1 bookmark for replica chaining (+1 primary read on the edge)
+// and lands on the validated `next` target, else My Levels. Validation
+// failures re-render with 0 writes (keeping the return target).
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html, renderSigninPage } from "../../utils/page";
@@ -17,6 +18,7 @@ import {
   resolveNext,
 } from "../../utils/authFlow";
 import { first } from "../../utils/session";
+import { pinFreshBookmark } from "../../utils/replica";
 import { getTurnstileSitekey, verifyTurnstile } from "../../utils/turnstile";
 
 export default defineHandler(async (event) => {
@@ -63,5 +65,6 @@ export default defineHandler(async (event) => {
     return fail(res.error);
   }
   forwardCookies(event, res.value.headers);
+  await pinFreshBookmark(event);
   return sendRedirect(event, resolveNext(event, body));
 });

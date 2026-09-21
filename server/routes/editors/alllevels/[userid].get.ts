@@ -6,7 +6,8 @@
 // the userId index, stock excluded in SQL, `data` never read). The joined
 // user columns supply the heading — no extra lookup while pages have
 // rows; empty results add 1 user PK lookup (unknown ids 404, creators with
-// no published levels render empty). Signed-in adds 1 session lookup.
+// no published levels render empty). Listing queries run on read replicas
+// when available (seconds-stale at worst). Signed-in adds 1 session lookup.
 // No login required.
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery, getRouterParam } from "nitro/h3";
@@ -20,7 +21,7 @@ import {
   cleanPageParam,
   countPublicLevelsByUserId,
   findUserById,
-  getRequestDb,
+  getReplicaDb,
   LEVELS_PER_PAGE,
   listPublicLevelsByUserId,
 } from "../../../utils/levels";
@@ -32,7 +33,7 @@ export default defineHandler(async (event) => {
     throw new HTTPError({ status: 404, message: "Unknown creator" });
   }
   const session = await getSessionUser(event);
-  const db = getRequestDb(event);
+  const db = getReplicaDb(event);
   const total = await countPublicLevelsByUserId(db, userId);
   // Unknown ids 404 even with zero rows; known creators render empty.
   if (total === 0) {

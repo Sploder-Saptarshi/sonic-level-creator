@@ -1,15 +1,17 @@
 // GET /editors/reports — moderator-only queue of reported levels.
 // SQL: 1 session lookup + 1 aggregate count (0 rows read); the listing
 // query runs only when the queue is non-empty (one index-walked page,
-// `data` never read). Guests bounce to sign-in; signed-in non-moderators
-// get a 404 (the page must not reveal its existence).
+// `data` never read). Listing queries run on read replicas when available
+// (a just-filed report appears seconds later at worst). Guests bounce to
+// sign-in; signed-in non-moderators get a 404 (the page must not reveal
+// its existence).
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, paginationBar, renderReportsPage, toPageView } from "../../utils/page";
 import {
   cleanPageParam,
   countOpenReports,
-  getRequestDb,
+  getReplicaDb,
   LEVELS_PER_PAGE,
   listOpenReports,
 } from "../../utils/levels";
@@ -22,7 +24,7 @@ export default defineHandler(async (event) => {
   if (!session.isModerator) {
     throw new HTTPError({ status: 404, message: "Not found" });
   }
-  const db = getRequestDb(event);
+  const db = getReplicaDb(event);
   const total = await countOpenReports(db);
   if (total === 0) {
     return html(event, renderReportsPage({ ...toPageView(session, event), reports: [] }));

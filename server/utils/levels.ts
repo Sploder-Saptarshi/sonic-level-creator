@@ -29,9 +29,11 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { and, count, desc, eq, ne, or } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
+import type { D1Database } from "@cloudflare/workers-types";
 import { getAuthEnv, getNodeDb } from "../auth/env";
 import { account, level, report, user } from "../db/schema";
 import { first, getSessionUser, type SessionUser } from "./session";
+import { getReplicaSession, readBookmark } from "./replica";
 
 export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
   const env = getAuthEnv(event);
@@ -49,6 +51,20 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   const user = await getSessionUser(event);
   if (!user) throw new HTTPError({ status: 401, message: "Sign in required" });
   return user;
+}
+
+// Replica handle for read-only listings/player lookups on the edge:
+// drizzle over a per-request D1 session (bookmark-chained when the
+// browser carries one, else unconstrained), falling back to the primary
+// handle off the edge. Writes and freshness-sensitive reads (own data,
+// moderator review fallbacks) stay on getRequestDb — see
+// server/utils/replica.ts for the contract.
+export function getReplicaDb(event: H3Event): RequestDb {
+  const session = getReplicaSession(event, readBookmark(event));
+  if (!session) return getRequestDb(event);
+  return drizzleD1(session as unknown as D1Database, {
+    schema: { account, level, report, user },
+  }) as unknown as RequestDb;
 }
 
 export function cleanLevelName(v: unknown): string | null {
@@ -357,7 +373,8 @@ export function findVisibleLevelName(
 // PK lookup on the level plus a probe into the open-report index that stops
 // at the first match (LIMIT 1, `data` never read). Call only after
 // findVisibleLevelName misses with a moderator session, so guests, members,
-// and owners never pay for it.
+// and owners never pay for it. Callers run it on the primary (a just-filed
+// report must be visible to the reviewing moderator).
 export function findReportedLevelName(db: RequestDb, id: string) {
   return db
     .select({ name: level.name, published: level.published })
@@ -372,8 +389,8 @@ export function findReportedLevelName(db: RequestDb, id: string) {
 
 // Open-report probe for the gateway: exactly 1 query reading <= 1 report
 // row (id only) via the levelId + open-status indexes. Call only for an
-// unpublished row a moderator doesn't own, so published/owned hits never
-// pay for it.
+// unpublished row a moderator doesn't own (on the primary, so a just-filed
+// report is visible), so published/owned hits never pay for it.
 export function hasOpenReport(db: RequestDb, levelId: string) {
   return db
     .select({ id: report.id })
