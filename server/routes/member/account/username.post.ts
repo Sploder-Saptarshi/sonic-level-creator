@@ -1,8 +1,10 @@
 // POST /member/account/username — change username (requires password).
 // SQL: 1 session lookup; guests bounce with 0 writes. Validation failures
 // re-render with 0 writes. Authed renames cost 1 account read (password
-// check) + 1 availability read (Better Auth) + 1 user-row write;
-// case-only renames (own name, different casing) skip the availability
+// check) + 1 availability read (Better Auth) + 1 user-row write; the write
+// pins a fresh D1 bookmark for replica chaining (+1 primary read on the
+// edge) before the session re-read below, so the new name shows at once.
+// Case-only renames (own name, different casing) skip the availability
 // read. The freak synthetic-email collision surfaces as a write-time UNIQUE
 // failure, mapped back to "taken".
 import { defineHandler } from "nitro";
@@ -22,6 +24,7 @@ import {
   syntheticEmail,
 } from "../../../utils/authFlow";
 import { getRequestDb } from "../../../utils/levels";
+import { pinFreshBookmark } from "../../../utils/replica";
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
@@ -95,7 +98,9 @@ export default defineHandler(async (event) => {
     return fail("Something went wrong. Please try again.");
   }
 
-  // Re-read the session so the page (and header) show the new name at once.
+  // Re-read the session so the page (and header) show the new name at once
+  // (the pinned bookmark keeps the replica re-read fresh).
+  await pinFreshBookmark(event);
   const fresh = await getSessionUser(event);
   return html(
     event,

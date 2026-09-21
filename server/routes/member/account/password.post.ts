@@ -2,7 +2,8 @@
 // SQL: 1 session lookup; guests bounce with 0 writes. Validation failures
 // re-render with 0 writes. The change itself is one Better Auth call: it
 // verifies the current password and hashes the new one with our Argon2id
-// hasher (nothing hand-rolled).
+// hasher (nothing hand-rolled). Success pins a fresh D1 bookmark for
+// replica chaining (+1 primary read on the edge).
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { html, renderAccountPage, toPageView } from "../../../utils/page";
@@ -15,6 +16,7 @@ import {
   formString,
   redirectToSignin,
 } from "../../../utils/authFlow";
+import { pinFreshBookmark } from "../../../utils/replica";
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
@@ -48,6 +50,7 @@ export default defineHandler(async (event) => {
     return fail(res.error);
   }
   forwardCookies(event, res.value.headers);
+  await pinFreshBookmark(event);
   return html(
     event,
     renderAccountPage(toPageView(session, event), accountOkBox("Password changed.")),

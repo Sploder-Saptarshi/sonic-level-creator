@@ -1,13 +1,15 @@
 // POST /api/levels — save a new level for the signed-in user.
 // SQL: 1 session lookup + 1 aggregate read (MAX id, 1 row) + 1 row insert
 // per attempt (succeeds first try absent a PK race; <= 3 attempts).
-// Validation is pure (0 SQL) and runs before any write.
+// Success pins a fresh D1 bookmark for replica chaining (+1 primary read
+// on the edge). Validation is pure (0 SQL) and runs before any write.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { HTTPError } from "nitro";
 import { sql } from "drizzle-orm";
 import { level } from "../../db/schema";
 import { getRequestDb, readLevelBody, requireUser } from "../../utils/levels";
+import { pinFreshBookmark } from "../../utils/replica";
 import { enforceSameOrigin } from "../../utils/authFlow";
 
 function isConflict(e: unknown): boolean {
@@ -35,6 +37,7 @@ export default defineHandler(async (event) => {
       await db
         .insert(level)
         .values({ id, userId: user.id, name, cols, rows, data, createdAt: now, updatedAt: now });
+      await pinFreshBookmark(event);
       return { id };
     } catch (e) {
       if (!isConflict(e) || attempt === 2) throw e;

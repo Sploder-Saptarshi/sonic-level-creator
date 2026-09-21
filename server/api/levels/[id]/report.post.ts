@@ -5,7 +5,8 @@
 // known-good — 0 SQL, no auth needed). One open report per user per
 // level — re-posts are idempotent (200, duplicate: true).
 // SQL: 1 session lookup + 1 level existence read + 1 report read (+1 row
-// insert on first report).
+// insert on first report). A new report pins a fresh D1 bookmark for
+// replica chaining (+1 primary read on the edge; duplicates skip it).
 import { defineHandler } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { HTTPError } from "nitro";
@@ -18,6 +19,7 @@ import {
   requireUser,
   STOCK_LEVEL_ID,
 } from "../../../utils/levels";
+import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin } from "../../../utils/authFlow";
 import { eq } from "drizzle-orm";
 
@@ -45,5 +47,6 @@ export default defineHandler(async (event) => {
     .limit(1);
   requireRow(found);
   const { duplicate } = await createReport(db, id, user.id, reason);
+  if (!duplicate) await pinFreshBookmark(event);
   return { ok: true, duplicate };
 });

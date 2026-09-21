@@ -1,7 +1,9 @@
 // PUT /api/levels/:id — overwrite one of the signed-in user's levels.
 // SQL: 1 session lookup + exactly 1 indexed write (PK + owner check;
 // RETURNING folds the existence check in — no select round-trip).
-// Rows written: <= 1. Validation is pure (0 SQL) and runs first.
+// Rows written: <= 1. Success pins a fresh D1 bookmark for replica
+// chaining (+1 primary read on the edge). Validation is pure (0 SQL) and
+// runs first.
 import { defineHandler, HTTPError } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { level } from "../../db/schema";
@@ -13,6 +15,7 @@ import {
   requireRow,
   requireUser,
 } from "../../utils/levels";
+import { pinFreshBookmark } from "../../utils/replica";
 import { enforceSameOrigin } from "../../utils/authFlow";
 
 export default defineHandler(async (event) => {
@@ -31,5 +34,6 @@ export default defineHandler(async (event) => {
     .where(levelWhere(id, user.id))
     .returning({ id: level.id });
   requireRow(updated);
+  await pinFreshBookmark(event);
   return { id };
 });

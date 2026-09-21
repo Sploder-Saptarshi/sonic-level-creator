@@ -1,8 +1,9 @@
 // GET /editors/mylevels — the signed-in user's saved levels.
 // SQL: 0 for guests (fast-path redirect), else 1 session lookup + exactly
-// 2 app queries (aggregate count + one metadata-only page over the userId
-// index; `data` never read). Guests resume here after sign-in via the
-// attached ?next= target.
+// 2 replica queries (aggregate count + one metadata-only page over the
+// userId index; `data` never read). Mutations pin bookmarks, so the
+// redirect back here after create/rename/delete/publish observes the
+// write. Guests resume here after sign-in via the attached ?next= target.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import {
@@ -14,7 +15,7 @@ import {
 import {
   cleanPageParam,
   countMyLevels,
-  getRequestDb,
+  getReplicaDb,
   LEVELS_PER_PAGE,
   listMyLevelsPage,
 } from "../../utils/levels";
@@ -24,7 +25,7 @@ import { getSessionUser } from "../../utils/session";
 export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   if (!session) return redirectToSignin(event);
-  const db = getRequestDb(event);
+  const db = getReplicaDb(event);
   const total = await countMyLevels(db, session.id);
   const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
   const page = Math.min(cleanPageParam(getQuery(event).page), totalPages);

@@ -1,7 +1,9 @@
 // POST /editors/mylevels/rename — ownership-checked rename (moderators may
 // rename any level). SQL: 0 for guests (fast-path redirect), else 1 session
 // lookup + exactly 1 indexed write (RETURNING folds the existence check in,
-// no select round-trip). Rows written: <= 1. Blank/oversize names fail
+// no select round-trip). Rows written: <= 1. The write pins a fresh D1
+// bookmark for replica chaining (+1 primary read on the edge), so the
+// redirect back to My Levels observes it. Blank/oversize names fail
 // validation (no write); guests land on My Levels after sign-in (the POST
 // endpoint itself isn't landable, so no ?next= to it).
 import { defineHandler } from "nitro";
@@ -13,6 +15,7 @@ import {
   getRequestDb,
   levelWhereForUser,
 } from "../../../utils/levels";
+import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
 
@@ -29,6 +32,7 @@ export default defineHandler(async (event) => {
       .set({ name, updatedAt: new Date() })
       .where(levelWhereForUser(id, session))
       .returning({ id: level.id });
+    await pinFreshBookmark(event);
   }
   return sendRedirect(event, "/editors/mylevels");
 });

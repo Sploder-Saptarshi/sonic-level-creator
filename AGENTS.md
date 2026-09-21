@@ -58,6 +58,15 @@ Read replication is enabled per-database (dashboard: D1 > db > Settings) at
 no extra cost; replicas only serve reads via the Sessions API
 (`env.DB.withSession(...)`) in deployed Workers — plain queries always hit
 the primary. No replicas exist locally; dev against remote or miniflare.
+`server/utils/replica.ts` owns the plumbing: `getReplicaDb(event)` for
+read-only routes (public listings + counts, reports queue, My Levels,
+editor loads, `/play/:id` + gateway published reads, session lookups),
+with single-row lookups retrying on the primary after a replica miss
+(guests never retry — junk probes stop at the replica). Freshness-sensitive
+paths stay primary (all writes, write-flow pre-selects, mod-review
+fallbacks). Every mutating handler pins a fresh bookmark
+(`pinFreshBookmark`, +1 `SELECT 1` on the edge, no-op locally) chained via
+the `d1-bookmark` cookie, so the redirect/fetch after a write observes it.
 
 ## Auth (Better Auth + Drizzle + Argon2id)
 

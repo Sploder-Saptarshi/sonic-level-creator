@@ -1,7 +1,8 @@
 // POST /api/levels/:id/publish — permanently publish one of the
 // signed-in user's levels. SQL: 1 session lookup + exactly 1 indexed
 // write (RETURNING folds the existence check in); already-published stays
-// published. Rows written: <= 1.
+// published. Rows written: <= 1. Success pins a fresh D1 bookmark for
+// replica chaining (+1 primary read on the edge).
 import { defineHandler, HTTPError } from "nitro";
 import { getRouterParam } from "nitro/h3";
 import { level } from "../../../db/schema";
@@ -12,6 +13,7 @@ import {
   requireRow,
   requireUser,
 } from "../../../utils/levels";
+import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin } from "../../../utils/authFlow";
 
 export default defineHandler(async (event) => {
@@ -26,5 +28,6 @@ export default defineHandler(async (event) => {
     .where(levelWhere(id, user.id))
     .returning({ id: level.id });
   requireRow(published);
+  await pinFreshBookmark(event);
   return { id };
 });
