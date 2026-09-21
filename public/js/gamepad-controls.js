@@ -17,10 +17,11 @@
  *   game; keyboard alone cannot). The click only fires while tcMode() != 2
  *   (MainCanvas.MODE_FIELD), so gameplay clicks can never stick.
  *
- * Ruffle-only: the player lookup targets <ruffle-player> and nothing
- * else. On browsers running the real Flash plugin there is no
- * ruffle-player, so every sendKey/click is a no-op and the plugin object
- * (<object>/<embed>) is never touched.
+ * Ruffle-only: the player lookup accepts Ruffle's element
+ * (<ruffle-object> on current builds, <ruffle-player> on older ones,
+ * either as #gameswf itself or nested inside it) and nothing else. On
+ * browsers running the real Flash plugin #gameswf is an <object>, so
+ * every sendKey/click is a no-op and the plugin object is never touched.
  *
  * Polling runs on requestAnimationFrame but only while a gamepad is
  * connected (starts on gamepadconnected, parks itself when the last pad
@@ -51,11 +52,22 @@
 
   // Ruffle-only lookup with deliberately NO <object>/<embed> fallback:
   // on legacy browsers those elements are the real Flash plugin object,
-  // which this script must never call into. Returns null there, making
-  // every sendKey/click below a harmless no-op.
+  // which this script must never call into. Ruffle's polyfill swaps the
+  // swfobject <object> for a <ruffle-object> (current builds;
+  // <ruffle-player> on older ones) keeping id="gameswf" — or nests it
+  // inside #gameswf. Both shapes are accepted; a real Flash
+  // <object>/<embed> never matches, making every sendKey/click below a
+  // harmless no-op there.
   function getPlayer() {
     try {
-      return document.querySelector("#gameswf ruffle-player");
+      var root = document.getElementById("gameswf");
+      if (!root) return null;
+      var tag = (root.tagName || "").toLowerCase();
+      if (tag === "ruffle-player" || tag === "ruffle-object") return root;
+      if (root.querySelector) {
+        return root.querySelector("ruffle-player, ruffle-object");
+      }
+      return null;
     } catch (e) {
       return null;
     }
