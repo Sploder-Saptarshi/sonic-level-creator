@@ -36,7 +36,8 @@
                     var flashvars = {
                     id: "<%= it.sessionId %>",territory: "<%= it.territory %>",enableSkip: 1,levelid: <%~ it.levelIdJs %><%~ it.zoneOneFrag %>,contentSWF: "<%= it.contentSwf %>"                    };
                     var params = {
-                        menu: "false"
+                        menu: "false",
+                        bgcolor: "#ffffff"
                     };
                     swfobject.embedSWF("<%~ it.playerSwf %>",
                                        "gameswf",
