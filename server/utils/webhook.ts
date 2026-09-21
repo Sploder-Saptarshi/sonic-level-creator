@@ -42,6 +42,10 @@ export interface WebhookBody {
   event: WebhookEventName;
   site: string;
   at: string;
+  // Top-level text (outside the embed): used only for the upload role
+  // ping — mentions inside embeds don't trigger notifications.
+  content?: string;
+  allowed_mentions?: { parse: string[] };
   // Discord embed (description carries the exact message text below).
   embeds: Array<{ description: string; color: number; timestamp: string }>;
   level?: WebhookLevel;
@@ -49,6 +53,9 @@ export interface WebhookBody {
   // Signed-in actor that triggered the event, when known.
   actor?: string;
 }
+
+// Role pinged on every level upload (Discord role mention syntax).
+const UPLOAD_PING_ROLE_ID = "1551503269443145768";
 
 // Discord embed colors — site "puck" palette (hex RGB as decimals).
 const COLOR_PLAYED = 0x222222; // black puck
@@ -170,6 +177,9 @@ export function notifyLevelPublished(
     url: playUrl(event, level.id),
   };
   body.actor = level.author;
+  // Role ping lives in top-level content (embed mentions don't notify).
+  body.content = `<@&${UPLOAD_PING_ROLE_ID}>`;
+  body.allowed_mentions = { parse: ["roles"] };
   send(event, body);
 }
 
