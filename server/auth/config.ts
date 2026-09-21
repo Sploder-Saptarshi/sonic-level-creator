@@ -14,6 +14,12 @@ import { isAsciiUsername } from "../utils/session";
 import { dbLogger } from "../utils/timing";
 import type { H3Event } from "nitro";
 
+// Server-side session lifetimes, in ms. Single source of truth: the
+// better-auth config below consumes seconds, and the hand-rolled hot-path
+// lookup (getSessionUser) consumes ms for its refresh arithmetic.
+export const SESSION_EXPIRES_IN_MS = 60 * 60 * 24 * 7 * 1000;
+export const SESSION_UPDATE_AGE_MS = 60 * 60 * 24 * 1000;
+
 export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
   const env = getAuthEnv(event);
   let db;
@@ -69,8 +75,8 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
       password: { hash: hashPassword, verify: verifyPassword },
     },
     session: {
-      expiresIn: 60 * 60 * 24 * 7,
-      updateAge: 60 * 60 * 24,
+      expiresIn: SESSION_EXPIRES_IN_MS / 1000,
+      updateAge: SESSION_UPDATE_AGE_MS / 1000,
     },
     // Printable-ASCII usernames (spaces, punctuation, capitals allowed).
     // Replaces the plugin default (/^[a-zA-Z0-9_.]+$/), which would reject

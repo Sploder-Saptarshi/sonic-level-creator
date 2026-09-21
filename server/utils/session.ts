@@ -1,13 +1,97 @@
 // server/utils/session.ts — server-side session lookup for SSR pages.
 // Query budget: getSessionUser costs 0 SQL when no session cookie is
 // present (fast-path below), else exactly 1 indexed session-token lookup
-// via Better Auth. On the edge the lookup runs inside a D1 read-replica
-// session (bookmark-chained per browser, refreshed below), so authed page
-// hits usually avoid the primary; every page route documents its total
-// budget inline.
-import { createAuth } from "../auth/config";
+// with the user row joined in. Better Auth's own getSession costs 2
+// (session row, then user row) and now serves only the auth flows
+// (sign-in/up/out, account) — the per-request hot path below replicates
+// its semantics by hand: cookie precedence, expiry (+ dropping the dead
+// row, as its GET path does), and the updateAge sliding window. On the
+// edge the lookup runs inside a D1 read-replica session (bookmark-chained
+// per browser, refreshed below), so authed page hits usually avoid the
+// primary; every page route documents its total budget inline.
+import { drizzle as drizzleD1 } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
 import type { H3Event } from "nitro";
+import { getCookie } from "nitro/h3";
+import type { D1Database } from "@cloudflare/workers-types";
+import { SESSION_EXPIRES_IN_MS, SESSION_UPDATE_AGE_MS } from "../auth/config";
+import { getAuthEnv, getNodeDb } from "../auth/env";
+import { session as sessionTable, user as userTable } from "../db/schema";
 import { getReplicaSession, readBookmark, writeBookmark } from "./replica";
+import { dbLogger } from "./timing";
+
+const subtle = (): SubtleCrypto | null => {
+  try {
+    const c: unknown = (globalThis as Record<string, unknown>).crypto;
+    if (c && typeof (c as Crypto).subtle === "object") return (c as Crypto).subtle;
+    const w: unknown = (globalThis as Record<string, unknown>).WebCrypto;
+    if (w && typeof w === "object") return w as unknown as SubtleCrypto;
+  } catch {}
+  return null;
+};
+
+let cachedKey: CryptoKey | null = null;
+let cachedSecret: string | null = null;
+
+async function getCryptoKey(secret: string): Promise<CryptoKey | null> {
+  const s = subtle();
+  if (!s) return null;
+  if (cachedKey && cachedSecret === secret) return cachedKey;
+  try {
+    const k = await s.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign", "verify"],
+    );
+    cachedKey = k;
+    cachedSecret = secret;
+    return k;
+  } catch {
+    return null;
+  }
+}
+
+async function verifyCookieSignature(
+  signedValue: string,
+  secret: string,
+): Promise<string | null> {
+  // Better Call's signed cookies are `value.signature` (HMAC-SHA256,
+  // base64, 44 chars, ends with `=`), URL-encoded on the wire. Direct
+  // decode before splitting — getCookie already does one decode, the
+  // extra is harmless (idempotent on unencoded input).
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(signedValue);
+  } catch {
+    decoded = signedValue;
+  }
+  // Some paths double-encode — peel once more if a `%` survived.
+  if (decoded.includes("%")) {
+    try {
+      const again = decodeURIComponent(decoded);
+      if (again !== decoded) decoded = again;
+    } catch {}
+  }
+  const dot = decoded.lastIndexOf(".");
+  if (dot < 1) return null;
+  const raw = decoded.slice(0, dot);
+  const sigB64 = decoded.slice(dot + 1);
+  if (sigB64.length !== 44 || !sigB64.endsWith("=")) return null;
+  const k = await getCryptoKey(secret);
+  const s = subtle();
+  if (!k || !s) return null;
+  try {
+    const bin = atob(sigB64);
+    const sig = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) sig[i] = bin.charCodeAt(i);
+    const ok = await s.verify("HMAC", k, sig, new TextEncoder().encode(raw));
+    return ok ? raw : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface SessionUser {
   id: string;
@@ -23,43 +107,81 @@ export function first(v: unknown): unknown {
   return Array.isArray(v) ? v[0] : v;
 }
 
-// True when the request carries a Better Auth session cookie
-// (`better-auth.session_token`, optionally `__Secure-`-prefixed).
-// Pure header check — 0 SQL — so guest page hits never touch the DB.
-export function hasSessionCookie(event: H3Event): boolean {
-  const cookie = event.req.headers.get("cookie");
-  if (!cookie) return false;
-  return /(?:^|;\s*)(?:__Secure-)?better-auth\.session_token=/.test(cookie);
-}
-
 export async function getSessionUser(
   event: H3Event,
 ): Promise<SessionUser | null> {
-  // Guests (no cookie) skip Better Auth entirely: 0 SQL. Authenticated
-  // hits pay exactly 1 indexed lookup on session.token, served from a
-  // read replica when available (the chained bookmark keeps it at least
-  // as fresh as this browser's last write — e.g. its login — and is
-  // refreshed below so the floor advances monotonically).
-  if (!hasSessionCookie(event)) return null;
+  // Raw signed cookies (better-call HMAC-SHA256, `token.signature`). Try
+  // the secure variant first, as the framework does. Unknown cookies
+  // (no dot, bad signature length, bad HMAC) miss without any SQL.
+  const raw =
+    getCookie(event, "__Secure-better-auth.session_token") ??
+    getCookie(event, "better-auth.session_token");
+  if (!raw) return null;
+  let token: string | null = null;
   try {
-    const replica = getReplicaSession(event, readBookmark(event));
-    const auth = createAuth(event, replica);
-    const data = await auth.api.getSession({ headers: event.req.headers });
+    const env0 = getAuthEnv(event);
+    token = await verifyCookieSignature(raw, env0.secret);
+  } catch {
+    return null;
+  }
+  if (!token) return null;
+  try {
+    const env = getAuthEnv(event);
+    const replica =
+      env.kind === "d1" ? getReplicaSession(event, readBookmark(event)) : null;
+    const db =
+      env.kind === "d1"
+        ? (drizzleD1((replica ?? env.d1!) as unknown as D1Database, {
+            schema: { session: sessionTable, user: userTable },
+            logger: dbLogger(event),
+          }) as unknown as ReturnType<typeof getNodeDb>)
+        : getNodeDb(event);
+    // Token is unique; the user rides the PK join. Minimal columns — the
+    // hot path never needed the full session/user rows.
+    const rows = await db
+      .select({
+        expiresAt: sessionTable.expiresAt,
+        userId: userTable.id,
+        name: userTable.name,
+        username: userTable.username,
+        displayUsername: userTable.displayUsername,
+        role: userTable.role,
+      })
+      .from(sessionTable)
+      .innerJoin(userTable, eq(sessionTable.userId, userTable.id))
+      .where(eq(sessionTable.token, token))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    const now = Date.now();
+    if (row.expiresAt.getTime() < now) {
+      // Expired: drop the dead row, then miss. The stale browser cookie
+      // dies on its own max-age; the next hit misses on the lookup above.
+      await db.delete(sessionTable).where(eq(sessionTable.token, token));
+      return null;
+    }
+    if (
+      row.expiresAt.getTime() - SESSION_EXPIRES_IN_MS + SESSION_UPDATE_AGE_MS <=
+      now
+    ) {
+      // Sliding window (session.updateAge): push expiry a full lifetime
+      // out. Through a replica session the write lands on the primary;
+      // the bookmark below chains the freshness for what follows.
+      await db
+        .update(sessionTable)
+        .set({
+          expiresAt: new Date(now + SESSION_EXPIRES_IN_MS),
+          updatedAt: new Date(now),
+        })
+        .where(eq(sessionTable.token, token));
+    }
     if (replica) writeBookmark(event, replica.getBookmark());
-    if (!data?.user) return null;
-    const u = data.user as {
-      id: string;
-      username?: string;
-      displayUsername?: string;
-      name?: string;
-      role?: string;
-    };
-    // Pretty-case display name first (`username` is the lowercased lookup
-    // key, so it must never reach the UI).
-    const role = u.role ?? "user";
+    const role = row.role ?? "user";
     return {
-      id: u.id,
-      username: u.displayUsername ?? u.username ?? u.name ?? "Player",
+      id: row.userId,
+      // Pretty-case display name first (`username` is the lowercased lookup
+      // key, so it must never reach the UI).
+      username: row.displayUsername ?? row.username ?? row.name ?? "Player",
       role,
       isModerator: role === "moderator",
     };
