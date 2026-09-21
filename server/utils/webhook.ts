@@ -10,10 +10,10 @@
 //
 // Message texts (exact) + Discord embed colors (site "puck" palette):
 //   played     BLACK #222222      "%player% is currently playing %lvlname%!"
-//   published  YELLOW #FFCD1A     "%lvlname% has just been uploaded by %player%, Try it out!"
+//   published  YELLOW #FFCD1A     "%lvlname% has just been uploaded by %player%, try it out!"
 //   deleted    RED #D42300        "%lvlname% was bulldozed by Dr. Eggman, better luck next time!"
-//   signed in  LIGHT BLUE #36D0F6 "%player% just logged in, Welcome back!"
-//   signed up  BLUE #1A79CD      "%player% just signed up, Welcome to Sonic ReLvl!"
+//   signed in  LIGHT BLUE #36D0F6 "%player% just logged in, welcome back!"
+//   signed up  BLUE #1A79CD      "%player% just signed up, welcome to Sonic ReLvl!"
 //
 // Config: WEBHOOK_URL secret (prod only — set via `wrangler pages secret
 // put WEBHOOK_URL`; never in wrangler.toml). Disabled in dev: without the
@@ -175,7 +175,7 @@ export function notifyLevelPublished(
   const body = base(
     event,
     "level.published",
-    `${level.name} has just been uploaded by ${level.author}, Try it out!`,
+    `${level.name} has just been uploaded by ${level.author}, try it out!`,
     COLOR_PUBLISHED,
     { title: level.name, ...(url ? { url } : {}) },
   );
@@ -246,26 +246,24 @@ export function notifyLevelPlayed(
 }
 
 export function notifyUserSignedIn(event: H3Event, username: string): void {
-  const origin = requestOrigin(event);
   const body = base(
     event,
     "user.signed_in",
-    `${username} just logged in, Welcome back!`,
+    `${username} just logged in, welcome back!`,
     COLOR_SIGNED_IN,
-    { title: "Guess who's back?", ...(origin ? { url: origin } : {}) },
+    { title: "Guess who's back?" },
   );
   body.user = { username };
   send(event, body);
 }
 
 export function notifyUserSignedUp(event: H3Event, username: string): void {
-  const origin = requestOrigin(event);
   const body = base(
     event,
     "user.signed_up",
-    `${username} just signed up, Welcome to Sonic ReLvl!`,
+    `${username} just signed up, welcome to Sonic ReLvl!`,
     COLOR_SIGNED_UP,
-    { title: "A new hero joins the adventure!", ...(origin ? { url: origin } : {}) },
+    { title: "A new hero joins the adventure!" },
   );
   body.user = { username };
   send(event, body);
