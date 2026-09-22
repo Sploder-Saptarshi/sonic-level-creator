@@ -30,13 +30,13 @@ const subtle = (): SubtleCrypto | null => {
   return null;
 };
 
-let cachedKey: CryptoKey | null = null;
-let cachedSecret: string | null = null;
+const keyCache = new Map<string, CryptoKey>();
 
 async function getCryptoKey(secret: string): Promise<CryptoKey | null> {
+  const hit = keyCache.get(secret);
+  if (hit) return hit;
   const s = subtle();
   if (!s) return null;
-  if (cachedKey && cachedSecret === secret) return cachedKey;
   try {
     const k = await s.importKey(
       "raw",
@@ -45,8 +45,12 @@ async function getCryptoKey(secret: string): Promise<CryptoKey | null> {
       false,
       ["sign", "verify"],
     );
-    cachedKey = k;
-    cachedSecret = secret;
+    // Cache per-secret (rotation-safe): Pages may run 2 Workers with old+new
+    // BETTER_AUTH_SECRET during rolling deploys; singleton would stick to old.
+    // Import is ~µs, so Map is optional but avoids re-import on hot path.
+    // Bound the map to avoid unbounded growth on junk secrets (only real
+    // secrets hit the verify path; attacker-controlled values miss before here).
+    if (keyCache.size < 16) keyCache.set(secret, k);
     return k;
   } catch {
     return null;
@@ -77,8 +81,14 @@ async function verifyCookieSignature(
   const dot = decoded.lastIndexOf(".");
   if (dot < 1) return null;
   const raw = decoded.slice(0, dot);
-  const sigB64 = decoded.slice(dot + 1);
-  if (sigB64.length !== 44 || !sigB64.endsWith("=")) return null;
+  let sigB64 = decoded.slice(dot + 1);
+  // HMAC-SHA256 is 32B → 44 chars base64 (padded) or 43 base64urlnopad.
+  // Accept both so a future better-call switch (base64urlnopad) doesn't
+  // silently turn every session into guest. Mirrors upstream but permissive.
+  if (sigB64.length < 43 || sigB64.length > 44) return null;
+  // Normalize base64url → base64 and pad for atob
+  sigB64 = sigB64.replace(/-/g, "+").replace(/_/g, "/");
+  while (sigB64.length % 4 !== 0) sigB64 += "=";
   const k = await getCryptoKey(secret);
   const s = subtle();
   if (!k || !s) return null;
