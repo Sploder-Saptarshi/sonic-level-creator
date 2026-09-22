@@ -277,20 +277,58 @@ canvas.display { display: block; cursor: crosshair; border: none;
    .active shows it. No synthetic clicks — the user clicks the title. */
 .editor.hidden { display: none; }
 .testmode { display: none; width: 100%; height: 100%; margin: 0; padding: 0;
-  position: absolute; inset: 0; z-index: 5; background: #000; overflow: hidden;
+  position: absolute; inset: 0; z-index: 5; background: #fff; overflow: hidden;
   border-radius: 0 0 10px 10px; }
 .testmode.active { display: flex; align-items: center; justify-content: center;
   visibility: visible; opacity: 1; pointer-events: auto; }
-/* .warm must stay truly invisible even if Ruffle forces visibility:visible
-   inside its own shadow DOM — opacity:0 on the parent cannot be overridden
-   by children, unlike visibility. Pointer events fully off so the overlay
-   never intercepts editor clicks while warming. */
 .testmode.warm { display: flex; align-items: center; justify-content: center;
   visibility: hidden; opacity: 0 !important; pointer-events: none !important; }
 .testmode.warm * { pointer-events: none !important; }
-.ruffle-holder { position: absolute; inset: 0; display: flex; align-items: center;
-  justify-content: center; background: #000; }
-.ruffle-holder ruffle-player { display: block; width: 100%; height: 100%; background: #000; }
+.ruffle-holder { position: absolute; inset: 0; display: flex; align-items: flex-start;
+  justify-content: center; background: #fff; }
+.ruffle-holder ruffle-player { display: block; width: 640px; height: 448px; flex: 0 0 auto; background: #000; transform-origin: top center; }
+/* Fullscreen + test mode: black letterbox bars around the 640×448 SWF.
+   Ruffle's letterbox:on + showAll already centers inside the player
+   (player 100% of holder, holder absolute inset:0 of testmode, testmode
+   flex centered). Host needs viewport size override (inline 700px from
+   server/templates/editor.html) and black backdrop; test runner stays #000,
+   editor stays #fff. */
+:host(:fullscreen) {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw;
+  max-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000;
+}
+:host(:fullscreen) .testmode.active,
+:host(:fullscreen) .testmode.warm {
+  background: #000;
+  border-radius: 0;
+}
+:host(:fullscreen) .ruffle-holder { background: #000; align-items: center; }
+:host(:fullscreen) .testmode.active .ruffle-holder ruffle-player,
+:host(:fullscreen) .testmode.active .ruffle-holder ruffle-object {
+  width: 640px !important;
+  height: 448px !important;
+  flex: 0 0 auto;
+  transform-origin: center center;
+}
+:host(:fullscreen)::backdrop { background: #000; }
+:host:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #000;
+}
+:host:-webkit-full-screen .testmode.active ruffle-player,
+:host:-webkit-full-screen .testmode.active ruffle-object {
+  width: 640px !important;
+  height: 448px !important;
+  flex: 0 0 auto;
+  transform-origin: center center;
+}
+::backdrop { background: #000; }
 /* Exact replica of a.lozenge1 (css/playsega.css) — the orange "Sign up!"
    sliding doors with the real GIFs. Root-absolute paths since shadow
    <style> URLs resolve against the document base. Only addition vs site:

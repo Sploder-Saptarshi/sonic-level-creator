@@ -299,14 +299,14 @@ const TEST_LEVEL_ID = '2914';
 const TEST_LOAD_OPTS = {
   url: '/games/swf/52/52.swf',
   parameters: { id: TEST_API_ID, levelid: TEST_LEVEL_ID, editortest: '1' },
-  // Aspect-preserving fill of the whole editor space, centered:
-  // showAll scales the stage with aspect intact, letterbox "on" draws
-  // the bars even when not fullscreen (page global is "off"), and
-  // forceScale stops the game from switching its own Stage.scaleMode
-  // (e.g. exactFit/noScale) and stretching. Per-movie options only —
-  // the page global config is untouched.
-  scale: 'showAll',
-  letterbox: 'on',
+  // Render only the 640×448 SWF (no Ruffle letterbox) — CSS scales the
+  // fixed 640×448 ruffle-player to fill the holder (windowed 977×700) or
+  // viewport (fullscreen) via fitTestRuffle(). Holder is white in windowed
+  // (no black bottom bar), black in fullscreen (letterbox). Per-movie black
+  // stage for editor test runner only (game pages stay #ffffff).
+  backgroundColor: "#000000",
+  scale: 'noscale',
+  letterbox: 'off',
   forceScale: true,
 };
 
@@ -506,6 +506,14 @@ export async function doTest() {
   els.mode.classList.add('active');
   setTestVolume(1);
   callEditorStartAudio();
+  // cached scale avoids first-frame 640×448 flash before holder layout
+  if (cachedTestScale) {
+    const pre = S.shadow?.querySelector(
+      ".ruffle-holder ruffle-player, .ruffle-holder ruffle-object",
+    ) as HTMLElement | null;
+    if (pre) pre.style.transform = `scale(${cachedTestScale})`;
+  }
+  scheduleFit();
   // If the background boot hasn't finished (or a Stop reload is in flight),
   // the title simply appears when ready — no second load is started.
   // If nothing was ever booted (Ruffle arrived after editor boot), boot now.
@@ -527,6 +535,7 @@ export function stopTest() {
   // Clear the staged level so a stray getLevel falls back to the gateway
   // (saved default level) instead of a stale custom level.
   publishStagedCSV(null);
+  fitTestRuffle();
   if (testPlayer) {
     // Back muted and reboot to the title screen so the next Test opens
     // warm with held audio from the top. The player element itself is
@@ -547,6 +556,7 @@ export function doFullscreen() {
   const el = S.shadow!.host as HTMLElement;
   if (document.fullscreenElement) {
     document.exitFullscreen();
+    scheduleFit();
     return;
   }
   // A denial (stale gesture, policy, headless) is not actionable from a
@@ -556,10 +566,80 @@ export function doFullscreen() {
   try {
     const r = el.requestFullscreen();
     if (r && typeof r.catch === "function") r.catch(() => {});
+    scheduleFit();
   } catch {
     /* fullscreen unsupported: ignore */
   }
 }
+
+// ── Test mode letterbox: CSS scales fixed 640×448 ruffle-player to fill
+// holder (windowed 977×700 white) or viewport (fullscreen black). Ruffle
+// renders only SWF (noscale/letterbox off), holder provides outer bars.
+// First-frame flash (player 640×448 centered small before holder layout)
+// is avoided by caching the last scale and re-applying via rAF + ResizeObserver.
+let cachedTestScale: number | null = null;
+
+function fitTestRuffle() {
+  const holder = S.shadow?.querySelector(".ruffle-holder") as HTMLElement | null;
+  const player = S.shadow?.querySelector(
+    ".ruffle-holder ruffle-player, .ruffle-holder ruffle-object",
+  ) as HTMLElement | null;
+  const mode = S.shadow?.querySelector(".testmode") as HTMLElement | null;
+  if (!player || !holder || !mode?.classList.contains("active")) {
+    if (player) player.style.transform = "";
+    return;
+  }
+  const host = S.shadow?.host as HTMLElement | null;
+  const isFull =
+    !!host &&
+    (document.fullscreenElement === host ||
+      (document as any).webkitFullscreenElement === host);
+  const containerW = isFull ? window.innerWidth : holder.clientWidth;
+  const containerH = isFull ? window.innerHeight : holder.clientHeight;
+  if (!containerW || !containerH) {
+    // holder not laid out yet (first frame) — use cached scale if any
+    if (cachedTestScale) player.style.transform = `scale(${cachedTestScale})`;
+    return;
+  }
+  const scale = Math.min(containerW / 640, containerH / 448);
+  const s = isFinite(scale) && scale > 0 ? scale : 1;
+  cachedTestScale = s;
+  player.style.transform = `scale(${s})`;
+}
+
+function scheduleFit() {
+  // rAF x2 covers first layout + next paint; also handles holder 0 → N
+  requestAnimationFrame(() => {
+    fitTestRuffle();
+    requestAnimationFrame(fitTestRuffle);
+  });
+  setTimeout(fitTestRuffle, 30);
+}
+
+(function initTestFullscreen() {
+  const evts = ["fullscreenchange", "webkitfullscreenchange", "resize", "orientationchange"];
+  for (const e of evts) {
+    document.addEventListener(e, fitTestRuffle as any);
+    window.addEventListener(e, fitTestRuffle as any);
+  }
+  try {
+    window.visualViewport?.addEventListener("resize", fitTestRuffle as any);
+  } catch {}
+  // holder resize (editor wrap flex) — fires on first layout without polling
+  try {
+    const obs = new ResizeObserver(() => fitTestRuffle());
+    const startObs = () => {
+      const holder = S.shadow?.querySelector(".ruffle-holder") as HTMLElement | null;
+      if (holder) obs.observe(holder);
+      else setTimeout(startObs, 200);
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", startObs);
+    } else {
+      setTimeout(startObs, 200);
+    }
+  } catch {}
+})();
 
 export function doClearAll() {
   if (!confirm('Clear entire level? This cannot be undone.')) return;
