@@ -1,11 +1,13 @@
 // POST /editors/mylevels/delete — ownership-checked delete (moderators may
 // delete any level). SQL: 0 for guests (fast-path redirect), else 1 session
-// lookup + 1 report cleanup write + exactly 1 indexed level write
-// (RETURNING folds the existence check in, no select round-trip). Rows
-// written: <= 2. The write pins a fresh D1 bookmark for replica chaining
-// (+1 primary read on the edge), so the redirect back to My Levels
-// observes it. Guests land on My Levels after sign-in (the POST endpoint
-// itself isn't landable, so no ?next= to it).
+// lookup + exactly 1 indexed level write (RETURNING folds the existence
+// check in, no select round-trip) + 1 report cleanup write only when the
+// level was actually deleted. Rows written: <= 2 on success, 0 rows
+// otherwise (a forged id can't wipe another level's reports). The write
+// pins a fresh D1 bookmark for replica chaining (+1 primary read on the
+// edge, success only), so the redirect back to My Levels observes it.
+// Guests land on My Levels after sign-in (the POST endpoint itself isn't
+// landable, so no ?next= to it).
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import { eq } from "drizzle-orm";
@@ -24,18 +26,20 @@ export default defineHandler(async (event) => {
   const id = cleanId(body?.id);
   if (id) {
     const db = getRequestDb(event);
-    // Explicit report cleanup first (see api/levels/[id].delete.ts):
-    // D1 cannot rely on PRAGMA foreign_keys, so the cascade may not fire.
-    await db.delete(report).where(eq(report.levelId, id));
     const deleted = await db
       .delete(level)
       .where(levelWhereForUser(id, session))
       .returning({ id: level.id, name: level.name, published: level.published });
-    await pinFreshBookmark(event);
-    // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
-    // Fires only when the deleted row was published.
+    // Report cleanup AFTER the ownership-checked delete, scoped to the
+    // just-deleted row (see api/levels/[id].delete.ts): D1 cannot rely on
+    // PRAGMA foreign_keys, so the cascade may not fire — and running it
+    // before would let a forged id wipe another level's reports.
     const row = deleted[0];
     if (row) {
+      await db.delete(report).where(eq(report.levelId, row.id));
+      await pinFreshBookmark(event);
+      // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
+      // Fires only when the deleted row was published.
       notifyLevelDeleted(event, {
         id: row.id,
         name: row.name,
