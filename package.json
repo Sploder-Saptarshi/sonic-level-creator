@@ -14,7 +14,7 @@
     "preview": "nitro preview",
     "serve": "node .output/server/index.mjs",
     "deploy:pages": "npm run build:editor:prod && NITRO_PRESET=cloudflare_pages nitro build --preset cloudflare_pages && wrangler pages deploy dist --project-name sonicrelvl --branch main",
-    "lint": "node --check public/editors/assets/editor.js"
+    "lint": "tsc --noEmit"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260917.1",

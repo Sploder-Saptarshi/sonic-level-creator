@@ -273,6 +273,46 @@ export function cursorFor(tsValue: unknown, id: string): string {
   return encodePageCursor(storedTs(tsValue), id);
 }
 
+// Generic keyset pagination helper: single place for the asc/desc +
+// limit+1 + hasMore/hasPrev dance. `query(where, orderBy)` builds the
+// drizzle select for the caller’s table/join shape; the helper supplies
+// the cursor predicate and the order direction.
+async function fetchKeysetPage<T>(opts: {
+  limit: number;
+  page: KeysetPage;
+  tsCol: any;
+  idCol: any;
+  whereBase: any;
+  query: (where: any, orderBy: [any, any]) => Promise<T[]>;
+}): Promise<PageResult<T>> {
+  if (opts.page.before) {
+    const c = opts.page.before;
+    const rows = await opts.query(
+      and(
+        opts.whereBase,
+        sql`(${opts.tsCol} > ${c.ts} OR (${opts.tsCol} = ${c.ts} AND ${opts.idCol} > ${c.id}))`,
+      ),
+      [asc(opts.tsCol), asc(opts.idCol)],
+    );
+    const hasPrev = rows.length > opts.limit;
+    const kept = (hasPrev ? rows.slice(0, opts.limit) : rows).reverse();
+    return { rows: kept, hasMore: true, hasPrev };
+  }
+  const c = opts.page.after;
+  const rows = await opts.query(
+    c
+      ? and(
+          opts.whereBase,
+          sql`(${opts.tsCol} < ${c.ts} OR (${opts.tsCol} = ${c.ts} AND ${opts.idCol} < ${c.id}))`,
+        )
+      : opts.whereBase,
+    [desc(opts.tsCol), desc(opts.idCol)],
+  );
+  const hasMore = rows.length > opts.limit;
+  if (hasMore) rows.pop();
+  return { rows, hasMore, hasPrev: !!c };
+}
+
 // One page of the signed-in user's levels (the withPublished column set,
 // metadata only): exactly 1 query over the (userId, updatedAt) index.
 // Fetches limit+1 rows; the extra row is the next/prev existence probe
@@ -292,41 +332,15 @@ export async function listMyLevelsPage(
     updatedAt: level.updatedAt,
   };
   const base = eq(level.userId, userId);
-  if (page.before) {
-    const c = page.before;
-    const rows = await db
-      .select(cols)
-      .from(level)
-      .where(
-        and(
-          base,
-          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
-        ),
-      )
-      .orderBy(asc(level.updatedAt), asc(level.id))
-      .limit(limit + 1);
-    // The +1 row is the farthest one; drop it, then restore DESC order.
-    const hasPrev = rows.length > limit;
-    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
-    return { rows: kept, hasMore: true, hasPrev };
-  }
-  const c = page.after;
-  const rows = await db
-    .select(cols)
-    .from(level)
-    .where(
-      c
-        ? and(
-            base,
-            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
-          )
-        : base,
-    )
-    .orderBy(desc(level.updatedAt), desc(level.id))
-    .limit(limit + 1);
-  const hasMore = rows.length > limit;
-  if (hasMore) rows.pop();
-  return { rows, hasMore, hasPrev: !!c };
+  return fetchKeysetPage({
+    limit,
+    page,
+    tsCol: level.updatedAt,
+    idCol: level.id,
+    whereBase: base,
+    query: (where, orderBy) =>
+      db.select(cols).from(level).where(where).orderBy(...orderBy).limit(limit + 1),
+  });
 }
 
 // Total owned rows for the My Levels page count: 1 query reading exactly
@@ -376,42 +390,15 @@ export async function listPublicLevels(
     updatedAt: level.updatedAt,
   };
   const base = and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID));
-  if (page.before) {
-    const c = page.before;
-    const rows = await db
-      .select(cols)
-      .from(level)
-      .innerJoin(user, eq(level.userId, user.id))
-      .where(
-        and(
-          base,
-          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
-        ),
-      )
-      .orderBy(asc(level.updatedAt), asc(level.id))
-      .limit(limit + 1);
-    const hasPrev = rows.length > limit;
-    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
-    return { rows: kept, hasMore: true, hasPrev };
-  }
-  const c = page.after;
-  const rows = await db
-    .select(cols)
-    .from(level)
-    .innerJoin(user, eq(level.userId, user.id))
-    .where(
-      c
-        ? and(
-            base,
-            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
-          )
-        : base,
-    )
-    .orderBy(desc(level.updatedAt), desc(level.id))
-    .limit(limit + 1);
-  const hasMore = rows.length > limit;
-  if (hasMore) rows.pop();
-  return { rows, hasMore, hasPrev: !!c };
+  return fetchKeysetPage({
+    limit,
+    page,
+    tsCol: level.updatedAt,
+    idCol: level.id,
+    whereBase: base,
+    query: (where, orderBy) =>
+      db.select(cols).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
+  });
 }
 
 // Total published rows (stock excluded) for the All Levels page count:
@@ -450,42 +437,15 @@ export async function listPublicLevelsByUserId(
     eq(level.published, true),
     ne(level.id, STOCK_LEVEL_ID),
   );
-  if (page.before) {
-    const c = page.before;
-    const rows = await db
-      .select(cols)
-      .from(level)
-      .innerJoin(user, eq(level.userId, user.id))
-      .where(
-        and(
-          base,
-          sql`(${level.updatedAt} > ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} > ${c.id}))`,
-        ),
-      )
-      .orderBy(asc(level.updatedAt), asc(level.id))
-      .limit(limit + 1);
-    const hasPrev = rows.length > limit;
-    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
-    return { rows: kept, hasMore: true, hasPrev };
-  }
-  const c = page.after;
-  const rows = await db
-    .select(cols)
-    .from(level)
-    .innerJoin(user, eq(level.userId, user.id))
-    .where(
-      c
-        ? and(
-            base,
-            sql`(${level.updatedAt} < ${c.ts} OR (${level.updatedAt} = ${c.ts} AND ${level.id} < ${c.id}))`,
-          )
-        : base,
-    )
-    .orderBy(desc(level.updatedAt), desc(level.id))
-    .limit(limit + 1);
-  const hasMore = rows.length > limit;
-  if (hasMore) rows.pop();
-  return { rows, hasMore, hasPrev: !!c };
+  return fetchKeysetPage({
+    limit,
+    page,
+    tsCol: level.updatedAt,
+    idCol: level.id,
+    whereBase: base,
+    query: (where, orderBy) =>
+      db.select(cols).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
+  });
 }
 
 export interface PublicUser {
@@ -677,44 +637,15 @@ export async function listOpenReports(
       .innerJoin(level, eq(report.levelId, level.id))
       .innerJoin(reporter, eq(report.reporterId, reporter.id))
       .innerJoin(author, eq(level.userId, author.id));
-  if (page.before) {
-    const c = page.before;
-    const rows = await join(
-      db
-        .select(cols)
-        .from(report)
-        .where(
-          and(
-            base,
-            sql`(${report.createdAt} > ${c.ts} OR (${report.createdAt} = ${c.ts} AND ${report.id} > ${c.id}))`,
-          ),
-        )
-        .orderBy(asc(report.createdAt), asc(report.id))
-        .limit(limit + 1),
-    );
-    const hasPrev = rows.length > limit;
-    const kept = (hasPrev ? rows.slice(0, limit) : rows).reverse();
-    return { rows: kept, hasMore: true, hasPrev };
-  }
-  const c = page.after;
-  const rows = await join(
-    db
-      .select(cols)
-      .from(report)
-      .where(
-        c
-          ? and(
-              base,
-              sql`(${report.createdAt} < ${c.ts} OR (${report.createdAt} = ${c.ts} AND ${report.id} < ${c.id}))`,
-            )
-          : base,
-      )
-      .orderBy(desc(report.createdAt), desc(report.id))
-      .limit(limit + 1),
-  );
-  const hasMore = rows.length > limit;
-  if (hasMore) rows.pop();
-  return { rows, hasMore, hasPrev: !!c };
+  return fetchKeysetPage({
+    limit,
+    page,
+    tsCol: report.createdAt,
+    idCol: report.id,
+    whereBase: base,
+    query: (where, orderBy) =>
+      join(db.select(cols).from(report).where(where).orderBy(...orderBy).limit(limit + 1)),
+  });
 }
 
 // Dismiss every open report on one level: exactly 1 indexed write.
