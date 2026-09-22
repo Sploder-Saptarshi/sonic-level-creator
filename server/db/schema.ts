@@ -136,6 +136,15 @@ export const stats = sqliteTable("stats", {
   openReports: integer("open_reports").notNull().default(0),
 });
 
+// Atomic level id sequencer (migration 0010): single row, id = 1,
+// next_id holds MAX(CAST(level.id AS INT)) so POST /api/levels can
+// allocate via one atomic UPDATE ... RETURNING instead of the racy
+// MAX+1 SELECT/INSERT loop. Never written outside that handler.
+export const levelSeq = sqliteTable("level_seq", {
+  id: integer("id").primaryKey(),
+  nextId: integer("next_id").notNull(),
+});
+
 // Level reports: one row per (reporter, level) complaint. `status` is
 // 'open' until a moderator dismisses it; deleting the level cascades its
 // reports away. The partial unique index (open rows only) lets a user
