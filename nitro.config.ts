@@ -62,10 +62,7 @@ export default defineConfig({
           "base-uri 'self'",
           "frame-ancestors 'none'",
         ].join("; "),
-        // NOTE: no `x-content-type-options: nosniff` — it was breaking
-        // content (some served asset carries a MIME the browser won't
-        // execute/apply under nosniff). Keep it off until the offending
-        // asset is identified and served with its correct type.
+        "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
         // Deliberately 0, not "1; mode=block": the legacy XSS auditor is
         // deprecated and enabling it can CREATE vulnerabilities in old
