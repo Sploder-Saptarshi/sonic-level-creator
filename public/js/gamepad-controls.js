@@ -246,6 +246,12 @@
       return false;
     }
 
+    function updateControllerIndicator() {
+      var el = document.getElementById("controller-indicator");
+      if (!el) return;
+      el.style.display = anyPadConnected() ? "block" : "none";
+    }
+
     function schedule() {
       if (useRaf) {
         timerId = window.requestAnimationFrame(poll);
@@ -271,6 +277,7 @@
     }
 
     function maybeStart() {
+      updateControllerIndicator();
       if (looping) return;
       if (!anyPadConnected()) return;
       looping = true;
@@ -320,6 +327,7 @@
         if (!seen) {
           releaseAll();
           stopLoop();
+          updateControllerIndicator();
           return;
         }
 
@@ -367,6 +375,7 @@
         releaseAll();
         stopLoop();
       }
+      updateControllerIndicator();
     });
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) releaseAll();
