@@ -15,6 +15,7 @@ import {
   cleanReportReason,
   createReport,
   getRequestDb,
+  isSafeId,
   requireRow,
   requireUser,
   STOCK_LEVEL_ID,
@@ -26,7 +27,7 @@ import { eq } from "drizzle-orm";
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
   const id = getRouterParam(event, "id") ?? "";
-  if (!/^[\w-]{1,128}$/.test(id)) {
+  if (!isSafeId(id)) {
     throw new HTTPError({ status: 404, message: "Level not found" });
   }
   if (id === STOCK_LEVEL_ID) return { ok: true, duplicate: false };

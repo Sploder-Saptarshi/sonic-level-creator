@@ -13,14 +13,13 @@ import { defineHandler, HTTPError } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, paginationBar, renderReportsPage, toPageView } from "../../utils/page";
 import {
-  cleanCursorParam,
-  cleanPageParam,
-  cursorFor,
-  encodePageCursor,
+  clampListingPage,
   getOpenReportTotal,
   getReplicaDb,
+  keysetCursors,
   LEVELS_PER_PAGE,
   listOpenReports,
+  parseKeysetQuery,
 } from "../../utils/levels";
 import { redirectToSignin } from "../../utils/authFlow";
 import { getSessionUser } from "../../utils/session";
@@ -36,31 +35,25 @@ export default defineHandler(async (event) => {
   if (total === 0) {
     return html(event, renderReportsPage({ ...toPageView(session, event), reports: [] }));
   }
-  const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
   // Display-only page number: rows are fetched purely from the cursor.
   // Note the cursor pins (createdAt, reportId) — grouping by level happens
   // after the fetch, so page edges may split a level's reports across
   // pages (same as the old OFFSET edges did).
   const q = getQuery(event);
-  const page = Math.min(Math.max(cleanPageParam(q.page), 1), totalPages);
-  const after = cleanCursorParam(q.after);
-  const incoming = after ?? cleanCursorParam(q.before);
+  const { page, totalPages } = clampListingPage(q.page, total);
+  const { incoming, keyset } = parseKeysetQuery(q);
   const { rows: reports, hasMore, hasPrev } = await listOpenReports(
     db,
     LEVELS_PER_PAGE,
-    after ? { after } : incoming ? { before: incoming } : {},
+    keyset,
   );
-  const prevCursor =
-    reports.length > 0
-      ? hasPrev
-        ? cursorFor(reports[0]!.createdAt, reports[0]!.reportId)
-        : null
-      : incoming
-        ? encodePageCursor(incoming.ts, incoming.id)
-        : null;
-  const last = reports[reports.length - 1];
-  const nextCursor =
-    last && hasMore ? cursorFor(last.createdAt, last.reportId) : null;
+  const { prevCursor, nextCursor } = keysetCursors(reports, {
+    hasMore,
+    hasPrev,
+    incoming,
+    tsOf: (r) => r.createdAt,
+    idOf: (r) => r.reportId,
+  });
   return html(
     event,
     renderReportsPage(

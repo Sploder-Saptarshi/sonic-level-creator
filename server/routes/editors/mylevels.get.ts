@@ -16,14 +16,13 @@ import {
   toPageView,
 } from "../../utils/page";
 import {
-  cleanCursorParam,
-  cleanPageParam,
-  cursorFor,
-  encodePageCursor,
+  clampListingPage,
   getMyLevelTotal,
   getReplicaDb,
+  keysetCursors,
   LEVELS_PER_PAGE,
   listMyLevelsPage,
+  parseKeysetQuery,
 } from "../../utils/levels";
 import { redirectToSignin } from "../../utils/authFlow";
 import { getSessionUser } from "../../utils/session";
@@ -33,31 +32,20 @@ export default defineHandler(async (event) => {
   if (!session) return redirectToSignin(event);
   const db = getReplicaDb(event);
   const q = getQuery(event);
-  const after = cleanCursorParam(q.after);
-  const incoming = after ?? cleanCursorParam(q.before);
+  const { incoming, keyset } = parseKeysetQuery(q);
   const [total, { rows: levels, hasMore, hasPrev }] = await Promise.all([
     getMyLevelTotal(db, session.id),
-    listMyLevelsPage(
-      db,
-      session.id,
-      LEVELS_PER_PAGE,
-      after ? { after } : incoming ? { before: incoming } : {},
-    ),
+    listMyLevelsPage(db, session.id, LEVELS_PER_PAGE, keyset),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
+  const { page, totalPages } = clampListingPage(q.page, total);
   // Display-only page number: rows are fetched purely from the cursor.
-  const page = Math.min(Math.max(cleanPageParam(q.page), 1), totalPages);
-  const prevCursor =
-    levels.length > 0
-      ? hasPrev
-        ? cursorFor(levels[0]!.updatedAt, levels[0]!.id)
-        : null
-      : incoming
-        ? encodePageCursor(incoming.ts, incoming.id)
-        : null;
-  const last = levels[levels.length - 1];
-  const nextCursor =
-    last && hasMore ? cursorFor(last.updatedAt, last.id) : null;
+  const { prevCursor, nextCursor } = keysetCursors(levels, {
+    hasMore,
+    hasPrev,
+    incoming,
+    tsOf: (l) => l.updatedAt,
+    idOf: (l) => l.id,
+  });
   return html(
     event,
     renderMyLevelsPage(

@@ -5,25 +5,19 @@
 // replica chaining (+1 primary read on the edge), then queues a
 // level.published webhook as a background task (0 SQL, silent no-op in
 // dev / without WEBHOOK_URL).
-import { defineHandler, HTTPError } from "nitro";
-import { getRouterParam } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { level } from "../../../db/schema";
 import {
-  cleanId,
   getRequestDb,
   levelWhere,
   requireRow,
-  requireUser,
+  requireUserAndLevelId,
 } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
-import { enforceSameOrigin } from "../../../utils/authFlow";
 import { notifyLevelPublished } from "../../../utils/webhook";
 
 export default defineHandler(async (event) => {
-  enforceSameOrigin(event);
-  const user = await requireUser(event);
-  const id = cleanId(getRouterParam(event, "id"));
-  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
+  const { user, id } = await requireUserAndLevelId(event);
   const db = getRequestDb(event);
   const published = await db
     .update(level)

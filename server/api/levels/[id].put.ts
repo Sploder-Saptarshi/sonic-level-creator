@@ -4,25 +4,20 @@
 // Rows written: <= 1. Success pins a fresh D1 bookmark for replica
 // chaining (+1 primary read on the edge). Validation is pure (0 SQL) and
 // runs first.
-import { defineHandler, HTTPError } from "nitro";
-import { getRouterParam, readBody } from "nitro/h3";
+import { defineHandler } from "nitro";
+import { readBody } from "nitro/h3";
 import { level } from "../../db/schema";
 import {
-  cleanId,
   getRequestDb,
   levelWhere,
   readLevelBody,
   requireRow,
-  requireUser,
+  requireUserAndLevelId,
 } from "../../utils/levels";
 import { pinFreshBookmark } from "../../utils/replica";
-import { enforceSameOrigin } from "../../utils/authFlow";
 
 export default defineHandler(async (event) => {
-  enforceSameOrigin(event);
-  const user = await requireUser(event);
-  const id = cleanId(getRouterParam(event, "id"));
-  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
+  const { user, id } = await requireUserAndLevelId(event);
   const body = (await readBody(event)) as Record<string, unknown>;
   const { name, cols, rows, data } = readLevelBody(body);
   // Single indexed write (PK lookup on id + owner check): RETURNING tells

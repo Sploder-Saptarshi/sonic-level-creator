@@ -16,50 +16,39 @@ import {
   toPageView,
 } from "../../utils/page";
 import {
-  cleanCursorParam,
-  cleanPageParam,
-  cursorFor,
-  encodePageCursor,
+  clampListingPage,
   getPublishedLevelTotal,
   getReplicaDb,
+  keysetCursors,
   LEVELS_PER_PAGE,
   listPublicLevels,
+  parseKeysetQuery,
 } from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
   const db = getReplicaDb(event);
   const q = getQuery(event);
-  const after = cleanCursorParam(q.after);
   // Malformed cursors fall back to the first page (never an error).
-  const incoming = after ?? cleanCursorParam(q.before);
+  const { incoming, keyset } = parseKeysetQuery(q);
   const [session, total, { rows: levels, hasMore, hasPrev }] = await Promise.all([
     getSessionUser(event),
     getPublishedLevelTotal(db),
-    listPublicLevels(
-      db,
-      LEVELS_PER_PAGE,
-      after ? { after } : incoming ? { before: incoming } : {},
-    ),
+    listPublicLevels(db, LEVELS_PER_PAGE, keyset),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
   // Display-only page number: rows are fetched purely from the cursor, so
   // a stale/tampered `page` can only mislabel the indicator, never skip
   // or repeat rows. Clamped so it never exceeds the counter total.
-  const page = Math.min(Math.max(cleanPageParam(q.page), 1), totalPages);
+  const { page, totalPages } = clampListingPage(q.page, total);
   // Empty after-page (rows deleted since): offer the way back using the
   // incoming cursor itself as the `before` token.
-  const prevCursor =
-    levels.length > 0
-      ? hasPrev
-        ? cursorFor(levels[0]!.updatedAt, levels[0]!.id)
-        : null
-      : incoming
-        ? encodePageCursor(incoming.ts, incoming.id)
-        : null;
-  const last = levels[levels.length - 1];
-  const nextCursor =
-    last && hasMore ? cursorFor(last.updatedAt, last.id) : null;
+  const { prevCursor, nextCursor } = keysetCursors(levels, {
+    hasMore,
+    hasPrev,
+    incoming,
+    tsOf: (l) => l.updatedAt,
+    idOf: (l) => l.id,
+  });
   return html(
     event,
     renderAllLevelsPage(

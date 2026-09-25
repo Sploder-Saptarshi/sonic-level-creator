@@ -34,9 +34,11 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
 import { HTTPError } from "nitro";
 import type { H3Event } from "nitro";
+import { getRouterParam } from "nitro/h3";
 import type { D1Database } from "@cloudflare/workers-types";
 import { getAuthEnv, getNodeDb } from "../auth/env";
 import { account, level, report, stats, user } from "../db/schema";
+import { enforceSameOrigin } from "./authFlow";
 import { dbLogger } from "./timing";
 import { first, getSessionUser, type SessionUser } from "./session";
 import { getReplicaSession, readBookmark } from "./replica";
@@ -130,6 +132,59 @@ export function requireRow<T>(rows: T[]): T {
 export function cleanId(v: unknown): string | null {
   const s = first(v);
   return typeof s === "string" && s.length > 0 && s.length <= 128 ? s : null;
+}
+
+// Router/cookie id charset gate: ids are numeric strings or UUIDs, so
+// anything outside `[\w-]` is junk/a probe — reject before any SQL.
+// Shared by the play page, the gateway, the report endpoint, and the
+// per-user directory (was an inline regex clone in each).
+export function isSafeId(v: unknown): v is string {
+  return typeof v === "string" && /^[\w-]{1,128}$/.test(v);
+}
+
+// Authenticated router-id preamble: CSRF guard + session + validated
+// `:id`. Shared by the [id] GET/PUT/DELETE/publish handlers (was a
+// 4-line clone in each). GET reads pass `{ sameOrigin: false }`.
+export async function requireUserAndLevelId(
+  event: H3Event,
+  opts: { sameOrigin?: boolean } = {},
+): Promise<{ user: SessionUser; id: string }> {
+  if (opts.sameOrigin !== false) enforceSameOrigin(event);
+  const user = await requireUser(event);
+  const id = cleanId(getRouterParam(event, "id"));
+  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
+  return { user, id };
+}
+
+// Ownership-checked rename write (RETURNING folds the existence check
+// in, no select round-trip). Shared by the mylevels + reports rename
+// forms (was a verbatim update clone in both).
+export function renameLevelWhere(db: RequestDb, where: any, name: string) {
+  return db
+    .update(level)
+    .set({ name, updatedAt: new Date() })
+    .where(where)
+    .returning({ id: level.id });
+}
+
+// Ownership-checked delete + report cleanup, scoped to the just-deleted
+// row: D1 cannot rely on per-connection PRAGMA foreign_keys state, so
+// ON DELETE CASCADE may not fire there — and running the cleanup before
+// (or outside) the predicate-checked delete would let a forged id wipe
+// another level's reports. Returns the deleted rows (empty on miss) so
+// API callers can fold requireRow over the result. Shared by the API
+// DELETE handler and both form delete handlers (was a verbatim clone
+// in all three).
+export function deleteLevelWithReports(db: RequestDb, where: any) {
+  return (async () => {
+    const deleted = await db
+      .delete(level)
+      .where(where)
+      .returning({ id: level.id, name: level.name, published: level.published });
+    const row = deleted[0];
+    if (row) await db.delete(report).where(eq(report.levelId, row.id));
+    return deleted;
+  })();
 }
 
 export function levelWhere(id: string, userId: string) {
@@ -273,6 +328,66 @@ export function cursorFor(tsValue: unknown, id: string): string {
   return encodePageCursor(storedTs(tsValue), id);
 }
 
+// Parsed keyset query: `after` wins when both cursors are sent; `keyset`
+// is the KeysetPage the list*Page helpers take. Malformed cursors fall
+// back to the first page (never an error). Shared by all four listing
+// routes (was a 3-line clone in each).
+export function parseKeysetQuery(q: Record<string, unknown>): {
+  after: PageCursor | null;
+  incoming: PageCursor | null;
+  keyset: KeysetPage;
+} {
+  const after = cleanCursorParam(q.after);
+  const incoming = after ?? cleanCursorParam(q.before);
+  return {
+    after,
+    incoming,
+    keyset: after ? { after } : incoming ? { before: incoming } : {},
+  };
+}
+
+// Display-only page number + page count for the listing chrome. Rows are
+// fetched purely from the cursor, so a stale/tampered `page` can only
+// mislabel the indicator, never skip or repeat rows. Shared by all four
+// listing routes (was a 2-line clone in each).
+export function clampListingPage(
+  pageParam: unknown,
+  total: number,
+): { page: number; totalPages: number } {
+  const totalPages = Math.max(1, Math.ceil(total / LEVELS_PER_PAGE));
+  const page = Math.min(Math.max(cleanPageParam(pageParam), 1), totalPages);
+  return { page, totalPages };
+}
+
+// Prev/next cursor tokens for a fetched keyset page. Empty after-pages
+// (rows deleted since) offer the way back using the incoming cursor
+// itself as the `before` token. Shared by all four listing routes
+// (was a ~7-line clone in each).
+export function keysetCursors<T>(
+  rows: T[],
+  opts: {
+    hasMore: boolean;
+    hasPrev: boolean;
+    incoming: PageCursor | null;
+    tsOf: (row: T) => unknown;
+    idOf: (row: T) => string;
+  },
+): { prevCursor: string | null; nextCursor: string | null } {
+  const { hasMore, hasPrev, incoming, tsOf, idOf } = opts;
+  const prevCursor =
+    rows.length > 0
+      ? hasPrev
+        ? cursorFor(tsOf(rows[0]!), idOf(rows[0]!))
+        : null
+      : incoming
+        ? encodePageCursor(incoming.ts, incoming.id)
+        : null;
+  const last = rows[rows.length - 1];
+  const nextCursor =
+    last && hasMore ? cursorFor(tsOf(last), idOf(last)) : null;
+  return { prevCursor, nextCursor };
+}
+
 // Generic keyset pagination helper: single place for the asc/desc +
 // limit+1 + hasMore/hasPrev dance. `query(where, orderBy)` builds the
 // drizzle select for the caller’s table/join shape; the helper supplies
@@ -374,21 +489,24 @@ export interface PublicLevelRow {
   updatedAt: unknown;
 }
 
+// Shared select shape for the two published directory listings
+// (was a verbatim 9-line clone in each).
+const PUBLIC_LEVEL_COLS = {
+  id: level.id,
+  authorId: level.userId,
+  name: level.name,
+  author: user.username,
+  authorDisplay: user.displayUsername,
+  cols: level.cols,
+  rows: level.rows,
+  updatedAt: level.updatedAt,
+};
+
 export async function listPublicLevels(
   db: RequestDb,
   limit: number,
   page: KeysetPage,
 ): Promise<PageResult<PublicLevelRow>> {
-  const cols = {
-    id: level.id,
-    authorId: level.userId,
-    name: level.name,
-    author: user.username,
-    authorDisplay: user.displayUsername,
-    cols: level.cols,
-    rows: level.rows,
-    updatedAt: level.updatedAt,
-  };
   const base = and(eq(level.published, true), ne(level.id, STOCK_LEVEL_ID));
   return fetchKeysetPage({
     limit,
@@ -397,7 +515,7 @@ export async function listPublicLevels(
     idCol: level.id,
     whereBase: base,
     query: (where, orderBy) =>
-      db.select(cols).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
+      db.select(PUBLIC_LEVEL_COLS).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
   });
 }
 
@@ -422,16 +540,6 @@ export async function listPublicLevelsByUserId(
   limit: number,
   page: KeysetPage,
 ): Promise<PageResult<PublicLevelRow>> {
-  const cols = {
-    id: level.id,
-    authorId: level.userId,
-    name: level.name,
-    author: user.username,
-    authorDisplay: user.displayUsername,
-    cols: level.cols,
-    rows: level.rows,
-    updatedAt: level.updatedAt,
-  };
   const base = and(
     eq(level.userId, userId),
     eq(level.published, true),
@@ -444,7 +552,7 @@ export async function listPublicLevelsByUserId(
     idCol: level.id,
     whereBase: base,
     query: (where, orderBy) =>
-      db.select(cols).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
+      db.select(PUBLIC_LEVEL_COLS).from(level).innerJoin(user, eq(level.userId, user.id)).where(where).orderBy(...orderBy).limit(limit + 1),
   });
 }
 

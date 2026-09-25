@@ -20,12 +20,13 @@ import {
   findVisibleLevelName,
   getReplicaDb,
   getRequestDb,
+  isSafeId,
 } from "../../utils/levels";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
   const id = getRouterParam(event, "id") ?? "";
-  if (!/^[\w-]{1,128}$/.test(id)) {
+  if (!isSafeId(id)) {
     throw new HTTPError({ status: 404, message: "Level not found" });
   }
   // Stock lives on the index page, not /play.
