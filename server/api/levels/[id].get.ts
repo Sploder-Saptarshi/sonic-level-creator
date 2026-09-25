@@ -3,22 +3,18 @@
 // full row needed: the editor loads `data`). A replica miss gets one
 // primary retry (levels saved seconds ago); mutations pin bookmarks so
 // the retry is rarely needed.
-import { defineHandler, HTTPError } from "nitro";
-import { getRouterParam } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { level } from "../../db/schema";
 import {
-  cleanId,
   getReplicaDb,
   getRequestDb,
   levelWhere,
   requireRow,
-  requireUser,
+  requireUserAndLevelId,
 } from "../../utils/levels";
 
 export default defineHandler(async (event) => {
-  const user = await requireUser(event);
-  const id = cleanId(getRouterParam(event, "id"));
-  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
+  const { user, id } = await requireUserAndLevelId(event, { sameOrigin: false });
   let rows = await getReplicaDb(event).select().from(level).where(levelWhere(id, user.id));
   if (!rows[0]) {
     rows = await getRequestDb(event).select().from(level).where(levelWhere(id, user.id));

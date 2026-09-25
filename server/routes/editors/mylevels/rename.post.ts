@@ -8,12 +8,12 @@
 // endpoint itself isn't landable, so no ?next= to it).
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import { level } from "../../../db/schema";
 import {
   cleanId,
   cleanLevelName,
   getRequestDb,
   levelWhereForUser,
+  renameLevelWhere,
 } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
@@ -27,11 +27,7 @@ export default defineHandler(async (event) => {
   const id = cleanId(body?.id);
   const name = cleanLevelName(body?.name);
   if (id && name) {
-    await getRequestDb(event)
-      .update(level)
-      .set({ name, updatedAt: new Date() })
-      .where(levelWhereForUser(id, session))
-      .returning({ id: level.id });
+    await renameLevelWhere(getRequestDb(event), levelWhereForUser(id, session), name);
     await pinFreshBookmark(event);
   }
   return sendRedirect(event, "/editors/mylevels");

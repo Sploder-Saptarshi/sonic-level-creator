@@ -7,39 +7,27 @@
 // for replica chaining (+1 primary read on the edge), then queues a
 // level.deleted webhook as a background task (0 SQL, silent no-op in dev /
 // without WEBHOOK_URL; fires only when the deleted row was published).
-import { defineHandler, HTTPError } from "nitro";
-import { getRouterParam } from "nitro/h3";
-import { eq } from "drizzle-orm";
-import { level, report } from "../../db/schema";
+import { defineHandler } from "nitro";
 import {
-  cleanId,
+  deleteLevelWithReports,
   getRequestDb,
   levelWhere,
   requireRow,
-  requireUser,
+  requireUserAndLevelId,
 } from "../../utils/levels";
 import { pinFreshBookmark } from "../../utils/replica";
-import { enforceSameOrigin } from "../../utils/authFlow";
 import { notifyLevelDeleted } from "../../utils/webhook";
 
 export default defineHandler(async (event) => {
-  enforceSameOrigin(event);
-  const user = await requireUser(event);
-  const id = cleanId(getRouterParam(event, "id"));
-  if (!id) throw new HTTPError({ status: 404, message: "Level not found" });
-  // Single indexed write — no separate select round-trip.
-  const db = getRequestDb(event);
-  const deleted = await db
-    .delete(level)
-    .where(levelWhere(id, user.id))
-    .returning({ id: level.id, name: level.name, published: level.published });
+  const { user, id } = await requireUserAndLevelId(event);
+  // Single indexed write — no separate select round-trip. Report cleanup
+  // runs inside the helper, scoped to the just-deleted row (see
+  // deleteLevelWithReports).
+  const deleted = await deleteLevelWithReports(
+    getRequestDb(event),
+    levelWhere(id, user.id),
+  );
   const row = requireRow(deleted);
-  // Explicit report cleanup AFTER the ownership-checked delete: D1 cannot
-  // rely on per-connection PRAGMA foreign_keys state, so ON DELETE CASCADE
-  // may not fire there. Scoped to the just-deleted row id, so it only runs
-  // on success — harmless where cascades do fire (zero rows left to
-  // delete), and the counter triggers observe the deletes on every path.
-  await db.delete(report).where(eq(report.levelId, row.id));
   await pinFreshBookmark(event);
   // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
   // Fires only when the deleted row was published.

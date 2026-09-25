@@ -18,7 +18,7 @@ import { defineHandler, HTTPError } from "nitro";
 import { getCookie, readRawBody, setCookie, setResponseHeader } from "nitro/h3";
 import { handleAmf, MAX_AMF_BYTES } from "../../utils/amf";
 import { levelToCsv } from "../../utils/levelBytes";
-import { findGatewayRow, getReplicaDb, getRequestDb, hasOpenReport, STOCK_LEVEL_ID } from "../../utils/levels";
+import { findGatewayRow, getReplicaDb, getRequestDb, hasOpenReport, isSafeId, STOCK_LEVEL_ID } from "../../utils/levels";
 import { getSessionUser, type SessionUser } from "../../utils/session";
 import { notifyLevelPlayed } from "../../utils/webhook";
 
@@ -65,7 +65,7 @@ export default defineHandler(async (event) => {
       // Level ids are numeric-string (or legacy UUID) keys, same charset
       // the pages enforce. Unbounded strings would each cost a DB lookup
       // on attacker-chosen bytes — reject before any SQL.
-      if (!levelId || !/^[\w-]{1,128}$/.test(levelId)) return "";
+      if (!isSafeId(levelId)) return "";
       let row = (await findGatewayRow(db, levelId))[0];
       let onPrimary = false;
       if (!row) {
@@ -119,8 +119,7 @@ export default defineHandler(async (event) => {
     let lastPlayed: string | null = null;
     try {
       const raw = getCookie(event, PLAYED_COOKIE);
-      lastPlayed =
-        typeof raw === "string" && /^[\w-]{1,128}$/.test(raw) ? raw : null;
+      lastPlayed = isSafeId(raw) ? raw : null;
     } catch {
       lastPlayed = null;
     }

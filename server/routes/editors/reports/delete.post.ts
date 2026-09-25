@@ -9,9 +9,7 @@
 // queue observes it. Always lands back on the queue.
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import { eq } from "drizzle-orm";
-import { level, report } from "../../../db/schema";
-import { cleanId, getRequestDb, levelWhereForUser } from "../../../utils/levels";
+import { cleanId, deleteLevelWithReports, getRequestDb, levelWhereForUser } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
@@ -27,17 +25,15 @@ export default defineHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, unknown>;
   const id = cleanId(body?.id);
   if (id) {
-    const db = getRequestDb(event);
-    const deleted = await db
-      .delete(level)
-      .where(levelWhereForUser(id, session))
-      .returning({ id: level.id, name: level.name, published: level.published });
-    // Report cleanup AFTER the predicate-checked delete, scoped to the
-    // just-deleted row (see api/levels/[id].delete.ts) — a stock/excluded
-    // id that deletes 0 level rows must not touch its reports either.
+    const deleted = await deleteLevelWithReports(
+      getRequestDb(event),
+      levelWhereForUser(id, session),
+    );
+    // The cleanup runs inside the helper, scoped to the just-deleted row
+    // (see deleteLevelWithReports) — a stock/excluded id that deletes 0
+    // level rows touches no reports either.
     const row = deleted[0];
     if (row) {
-      await db.delete(report).where(eq(report.levelId, row.id));
       await pinFreshBookmark(event);
       // Background webhook (no-op in dev / when WEBHOOK_URL is unset).
       // Fires only when the deleted row was published.

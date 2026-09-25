@@ -19,20 +19,20 @@ import {
   toPageView,
 } from "../../../utils/page";
 import {
-  cleanCursorParam,
-  cleanPageParam,
-  cursorFor,
-  encodePageCursor,
+  clampListingPage,
   findUserById,
   getReplicaDb,
+  isSafeId,
+  keysetCursors,
   LEVELS_PER_PAGE,
   listPublicLevelsByUserId,
+  parseKeysetQuery,
 } from "../../../utils/levels";
 import { getSessionUser } from "../../../utils/session";
 
 export default defineHandler(async (event) => {
   const userId = getRouterParam(event, "userid") ?? "";
-  if (!/^[\w-]{1,128}$/.test(userId)) {
+  if (!isSafeId(userId)) {
     throw new HTTPError({ status: 404, message: "Unknown creator" });
   }
   const db = getReplicaDb(event);
@@ -52,29 +52,23 @@ export default defineHandler(async (event) => {
       renderUserLevelsPage({ ...toPageView(session, event), levels: [] }, display),
     );
   }
-  const totalPages = Math.ceil(total / LEVELS_PER_PAGE);
   // Display-only page number: rows are fetched purely from the cursor.
   const q = getQuery(event);
-  const page = Math.min(Math.max(cleanPageParam(q.page), 1), totalPages);
-  const after = cleanCursorParam(q.after);
-  const incoming = after ?? cleanCursorParam(q.before);
+  const { page, totalPages } = clampListingPage(q.page, total);
+  const { incoming, keyset } = parseKeysetQuery(q);
   const { rows: levels, hasMore, hasPrev } = await listPublicLevelsByUserId(
     db,
     userId,
     LEVELS_PER_PAGE,
-    after ? { after } : incoming ? { before: incoming } : {},
+    keyset,
   );
-  const prevCursor =
-    levels.length > 0
-      ? hasPrev
-        ? cursorFor(levels[0]!.updatedAt, levels[0]!.id)
-        : null
-      : incoming
-        ? encodePageCursor(incoming.ts, incoming.id)
-        : null;
-  const last = levels[levels.length - 1];
-  const nextCursor =
-    last && hasMore ? cursorFor(last.updatedAt, last.id) : null;
+  const { prevCursor, nextCursor } = keysetCursors(levels, {
+    hasMore,
+    hasPrev,
+    incoming,
+    tsOf: (l) => l.updatedAt,
+    idOf: (l) => l.id,
+  });
   // Heading from the page rows when present (same as before), else the
   // already-fetched user row: still 0 extra SQL either way.
   const heading = levels.length > 0

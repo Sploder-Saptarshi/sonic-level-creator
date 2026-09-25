@@ -18,6 +18,14 @@ export interface LevelRow {
   updatedAt: unknown;
 }
 
+function renameForm(action: string, id: string, nameJs: string): string {
+  return `<form action="${action}" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>`;
+}
+
+function deleteForm(action: string, id: string, nameJs: string): string {
+  return `<form action="${action}" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form>`;
+}
+
 function renderLevelRows(levels: LevelRow[]): string {
   if (!levels.length) {
     return `<p style="padding: 12px 0">You have not created any levels yet. <a href="/editors/">Create your first level</a>.</p>`;
@@ -32,8 +40,8 @@ function renderLevelRows(levels: LevelRow[]): string {
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span>${l.published ? ` &middot; <span style="color: #1767c9; font-weight: bold">Published</span>` : ""}</div>
       <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/${id}" rel="nofollow"><span>Play</span></a>
       <a class="lozenge2" href="/editors/?load=${id}" rel="nofollow"><span>Open</span></a>
-      <form action="/editors/mylevels/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>
-      <form action="/editors/mylevels/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form></div>
+      ${renameForm("/editors/mylevels/rename", id, nameJs)}
+      ${deleteForm("/editors/mylevels/delete", id, nameJs)}</div>
     </div>`;
   });
   return items.join("\n");
@@ -69,7 +77,7 @@ function renderPublicLevelRows(
     const d = formatDate(l.updatedAt);
     const border = i === levels.length - 1 ? "none" : "1px solid #e0e0e0";
     const modButtons = isModerator
-      ? `\n      <form action="/editors/mylevels/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>\n      <form action="/editors/mylevels/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form>`
+      ? `\n      ${renameForm("/editors/mylevels/rename", id, nameJs)}\n      ${deleteForm("/editors/mylevels/delete", id, nameJs)}`
       : "";
     return `<div style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}${l.cols} x ${l.rows} tiles${d ? ` &middot; ${d}` : ""}</span></div>
@@ -146,7 +154,7 @@ function renderReportRows(groups: ReportGroup[]): string {
         .join("\n");
       const modForms = g.levelId === STOCK_LEVEL_ID
         ? ""
-        : `\n      <form action="/editors/reports/rename" method="post" style="display: inline" onsubmit="return promptRename('${nameJs}', this)"><input type="hidden" name="id" value="${id}" /><input type="hidden" name="name" value="" /><span class="button"><button type="submit" name="submit" value="rename">Rename</button></span></form>\n      <form action="/editors/reports/delete" method="post" style="display: inline" onsubmit="return confirmDelete('${nameJs}')"><input type="hidden" name="id" value="${id}" /><span class="button"><button type="submit" name="submit" value="delete">Delete</button></span></form>`;
+        : `\n      ${renameForm("/editors/reports/rename", id, nameJs)}\n      ${deleteForm("/editors/reports/delete", id, nameJs)}`;
       return `<div class="report-row" style="padding: 6px 0; border-bottom: ${border}; overflow: hidden">
       <div style="float: left"><b><a href="/play/${id}" rel="nofollow">${name}</a></b> <span style="color: #666">${byline}</span>
 ${reasons}</div>
