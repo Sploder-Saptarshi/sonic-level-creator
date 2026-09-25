@@ -128,7 +128,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .share-btn:hover img { filter: brightness(1.05); }
 .share-btn:active { transform: translateY(-4px); }
 /* Native art is 76x15: render at 1.25x wide with the height squashed a bit. */
-.share-btn img { display: block; border: none; width: 95px; height: 16px; }
+.share-btn img { display: block; border: none; width: 95px; }
 
 /* ── floating ghost ── */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
