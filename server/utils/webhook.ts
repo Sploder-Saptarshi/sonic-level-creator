@@ -12,7 +12,7 @@
 // one boot's repeated getLevel calls notify once but 1 -> 2 -> 1 notifies
 // twice.
 //
-// Message texts (exact) + Discord embed colors (site "puck" palette):
+// Message texts (exact, modulo invisible link-defusing below) + Discord embed colors (site "puck" palette):
 //   played     BLACK #222222      "%player% is currently playing %lvlname%!"
 //   published  YELLOW #FFCD1A     "%lvlname% has just been uploaded by %player%, try it out!"
 //   deleted    RED #D42300        "%lvlname% was bulldozed by Dr. Eggman, better luck next time!"
@@ -24,6 +24,12 @@
 // edge D1 binding this module is a silent no-op, so `npm run dev` and local
 // node builds never send anything. 0 SQL on every path (one background
 // HTTPS POST per event when configured).
+//
+// Anti-spam: level names / usernames are user-controlled, so they pass
+// through `defuse()` before interpolation — URLs in them render as
+// identical-looking plain text (zero-width spaces break Discord's
+// autolink + preview detection). Only our own embed-title play URLs stay
+// clickable.
 import type { H3Event } from "nitro";
 import { getRequestURL } from "nitro/h3";
 
@@ -96,6 +102,27 @@ export function getWebhookUrl(event: H3Event): string | undefined {
   }
   if (!/^https?:\/\//i.test(url)) return undefined;
   return url;
+}
+
+// Zero-width space (U+200B): invisible, but breaks Discord's autolink
+// detection so user-controlled text (level names, usernames) can never
+// render as a clickable link or generate a link-preview embed. E.g. a
+// level named "https://evil/sonic.png" would otherwise arrive with a
+// clickable preview image; after defusing it renders as identical-looking
+// plain text that goes nowhere.
+const ZWSP = "\u200b";
+
+// Defuse links + mention/markdown-link injection in user-controlled text.
+// Only applied to user content - our own play URLs (embed title `url`)
+// stay real clickable headings. Visually identical.
+function defuse(text: string): string {
+  return text
+    .replace(/(https?):\/\//gi, `$1:${ZWSP}//`)
+    .replace(/www\./gi, `www${ZWSP}.`)
+    .replace(/([A-Za-z0-9])\.([A-Za-z]{2,})/g, `$1${ZWSP}.$2`)
+    .replace(/\]\s*\(/g, `]${ZWSP}(`)
+    .replace(/<([@#])/g, `<${ZWSP}$1`)
+    .replace(/@(everyone|here)/gi, `@${ZWSP}$1`);
 }
 
 function requestOrigin(event: H3Event): string {
@@ -176,12 +203,14 @@ export function notifyLevelPublished(
   level: { id: string; name: string; author: string },
 ): void {
   const url = playUrl(event, level.id);
+  const name = defuse(level.name);
+  const author = defuse(level.author);
   const body = base(
     event,
     "level.published",
-    `${level.name} has just been uploaded by ${level.author}, try it out!`,
+    `${name} has just been uploaded by ${author}, try it out!`,
     COLOR_PUBLISHED,
-    { title: level.name, ...(url ? { url } : {}) },
+    { title: name, ...(url ? { url } : {}) },
   );
   body.level = {
     id: level.id,
@@ -209,13 +238,14 @@ export function notifyLevelDeleted(
   },
 ): void {
   if (level.published !== true || !level.name) return;
+  const name = defuse(level.name);
   const body = base(
     event,
     "level.deleted",
-    `${level.name} was bulldozed by Dr. Eggman, better luck next time!`,
+    `${name} was bulldozed by Dr. Eggman, better luck next time!`,
     COLOR_DELETED,
     // Title only, no link — the level is gone, so a play URL would 404.
-    { title: level.name },
+    { title: name },
   );
   body.level = {
     id: level.id,
@@ -235,14 +265,15 @@ export function notifyLevelPlayed(
   level: { id: string; name: string },
   actor?: string | null,
 ): void {
-  const player = actor || "A guest";
+  const player = defuse(actor || "A guest");
+  const name = defuse(level.name);
   const url = playUrl(event, level.id);
   const body = base(
     event,
     "level.played",
-    `${player} is currently playing ${level.name}!`,
+    `${player} is currently playing ${name}!`,
     COLOR_PLAYED,
-    { title: level.name, ...(url ? { url } : {}) },
+    { title: name, ...(url ? { url } : {}) },
   );
   body.level = { id: level.id, name: level.name, url: playUrl(event, level.id) };
   if (actor) body.actor = actor;
@@ -250,10 +281,11 @@ export function notifyLevelPlayed(
 }
 
 export function notifyUserSignedIn(event: H3Event, username: string): void {
+  const safe = defuse(username);
   const body = base(
     event,
     "user.signed_in",
-    `${username} just logged in, welcome back!`,
+    `${safe} just logged in, welcome back!`,
     COLOR_SIGNED_IN,
     { title: "Guess who's back?" },
   );
@@ -262,10 +294,11 @@ export function notifyUserSignedIn(event: H3Event, username: string): void {
 }
 
 export function notifyUserSignedUp(event: H3Event, username: string): void {
+  const safe = defuse(username);
   const body = base(
     event,
     "user.signed_up",
-    `${username} just signed up, welcome to Sonic ReLvl!`,
+    `${safe} just signed up, welcome to Sonic ReLvl!`,
     COLOR_SIGNED_UP,
     { title: "A new hero joins the adventure!" },
   );
