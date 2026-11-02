@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html } from "../../utils/page/chrome";

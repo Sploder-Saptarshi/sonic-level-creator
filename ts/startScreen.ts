@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { S, initGrid } from './state';
 import { updateCounter } from './thumbnails';
 import { query, queryAll } from './dom';

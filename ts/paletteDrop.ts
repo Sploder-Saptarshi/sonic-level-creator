@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Dragging tiles and objects from the tray onto the grid.
 
 import { snap8, type ObjectDef } from './format';

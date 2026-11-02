@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import EDITOR_CSS from './ui/editor.css' with { type: 'text' };
 import EDITOR_HTML from './ui/editor.html' with { type: 'text' };
 import { S, initGrid } from './state';

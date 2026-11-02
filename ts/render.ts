@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { BLOCK_PX, TOTAL_BLOCKS, snap8, blockSheetXY, type ObjectDef } from './format';
 import { S, cellSize, findDef, inGrid, canvasToWorld } from './state';
 import { partsFor, spriteBBox, isMirrored, moveExtremes, type SpritePart } from './spriteData';

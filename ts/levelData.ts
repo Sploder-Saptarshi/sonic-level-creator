@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { encodeBin, encodeAct, toCSV, SONIC_TYPE, GOAL_TYPE } from './format';
 import { S, updateDesc } from './state';
 

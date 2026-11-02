@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import type { H3Event } from "nitro";
 import { HTTPError } from "nitro";
 import type { D1Database } from "@cloudflare/workers-types";

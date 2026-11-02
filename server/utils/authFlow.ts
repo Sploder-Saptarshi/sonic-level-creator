@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { createAuth } from "../auth/config";
 import { escapeHtml, first, getSessionUser, isAsciiUsername } from "./session";
 import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";

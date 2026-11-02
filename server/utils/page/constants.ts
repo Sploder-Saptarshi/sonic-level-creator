@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import NAV_LANGUAGEBAR from "../../templates/partials/languagebar-guest.html" with { type: "text" };
 import TOUCH_CONTROLS_HTML from "../../templates/partials/touch-controls.html" with { type: "text" };
 import UPSELL_HTML from "../../templates/partials/upsell.html" with { type: "text" };

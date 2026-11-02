@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Workers can only load WASM through `?module` imports.
 import { argon2id, argon2Verify, setWASMModules } from "argon2-wasm-edge";
 import argon2WASM from "argon2-wasm-edge/wasm/argon2.wasm?module";

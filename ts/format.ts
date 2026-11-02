@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 export const BLOCK_PX = 256;
 export const DEFAULT_COLS = 64;
 export const DEFAULT_ROWS = 12;

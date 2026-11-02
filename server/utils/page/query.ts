@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { first, isAsciiUsername } from "../session";
 import {
   API_CONNECTOR_ID,

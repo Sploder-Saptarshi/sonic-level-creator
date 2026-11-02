@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // On-screen d-pad and jump button for the level player. Keys go straight
 // into the game through the SWF's tcKeyDown/tcKeyUp hooks.
 (function () {

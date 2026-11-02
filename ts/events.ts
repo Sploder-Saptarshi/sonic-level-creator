@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { S, type TabType } from './state';
 import { switchTab, wireTrayScroll } from './thumbnails';
 import { query, queryAll } from './dom';

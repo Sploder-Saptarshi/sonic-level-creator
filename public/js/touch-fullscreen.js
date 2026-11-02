@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 /* Fullscreen game stage for touch devices (Sonic player + Ice Shuffle).
  *
  * On touch-capable devices only, a touch inside #gameswf requests native

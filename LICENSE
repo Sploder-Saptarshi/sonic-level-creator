@@ -1,0 +1,27 @@
+Sonic Level Creator is dual-licensed. The license depends on where a file lives.
+
+  Code (server/, ts/, build/, drizzle/, config, docs)
+    AGPL-3.0-or-later
+    Copyright (C) 2026 Sploder-Saptarshi
+    Full text: LICENSE-AGPL
+
+  Game assets and content (public/)
+    Proprietary: PlaySEGA and Mediatonic Limited. All rights reserved.
+    Terms: LICENSE-Proprietary
+
+Exceptions inside public/ that are AGPL-3.0-or-later, because we wrote them:
+  public/js/gamepad-controls.js, swf-hooks.js, touch-controls.js,
+  touch-fullscreen.js, public/css/touch-controls.css, touch-fullscreen.css,
+  and the built public/editors/assets/editor.js.
+
+Third-party libraries in public/js/ (swfobject.js, shadedborder.js, events.js)
+keep the licenses stated in their own file headers.
+
+Files declare their license with an SPDX-License-Identifier header. A file's
+own header always wins. SPDX id for LICENSE-Proprietary:
+LicenseRef-Proprietary.
+
+This notice is not legal advice, and it does not grant any rights to the
+proprietary materials.
+
+SPDX-License-Identifier: AGPL-3.0-or-later AND LicenseRef-Proprietary

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Keyset pagination: rows sort by (timestamp DESC, id DESC) and links carry
 // a cursor for the edge row, so deep pages cost the same as the first.
 

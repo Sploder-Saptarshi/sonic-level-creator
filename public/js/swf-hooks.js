@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Calls into the game SWF's ExternalInterface hooks (tcKeyDown, tcMode, ...).
 // Shared by touch-controls.js and gamepad-controls.js.
 window.SwfHooks = (function () {

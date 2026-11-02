@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // D1 replicas are only reachable through the Sessions API. After a write,
 // pinFreshBookmark() stores a bookmark cookie so the next request sees it.
 import { getCookie, setCookie } from "nitro/h3";

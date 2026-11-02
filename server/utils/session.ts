@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Hand-rolled version of Better Auth's getSession: one query instead of
 // two, none without a cookie, and it reads from a replica on the edge.
 import { eq } from "drizzle-orm";

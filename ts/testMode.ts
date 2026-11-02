@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // The test player is booted once in the background and kept muted so Test
 // opens instantly. With editortest=1 the SWF holds its title music until
 // editorStartAudio() is called.

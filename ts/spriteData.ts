@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Source rects and anchors copied from the game's draw code (MainCanvas.as).
 // Types the game never draws are left out and get a placeholder.
 

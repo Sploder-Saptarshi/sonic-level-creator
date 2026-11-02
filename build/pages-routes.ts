@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 // Builds the Cloudflare Pages _routes.json include list from server/ (Nitro
 // has no public API for its route scan).
 import { readdirSync, statSync } from "node:fs";

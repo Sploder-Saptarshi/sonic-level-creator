@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import type { H3Event } from "nitro";
 import type { D1Database, D1DatabaseSession } from "@cloudflare/workers-types";

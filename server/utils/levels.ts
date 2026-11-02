@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { and, desc, eq, ne, or, type SQL } from "drizzle-orm";
 import type { H3Event } from "nitro";
 import { level, report, stats, user } from "../db/schema";

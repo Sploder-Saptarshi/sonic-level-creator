@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import alllevelsBodyTemplate from "../../templates/alllevels.html" with { type: "text" };
 import mylevelsBodyTemplate from "../../templates/mylevels.html" with { type: "text" };
 import userlevelsBodyTemplate from "../../templates/userlevels.html" with { type: "text" };

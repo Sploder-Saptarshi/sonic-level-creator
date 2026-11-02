@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import sidenavTemplate from "../../templates/sidenav.html" with { type: "text" };
 import reportBodyTemplate from "../../templates/report.html" with { type: "text" };

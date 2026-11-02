@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 const SCRIPT_T0 = performance.now();
 console.log(`[editor:timing] bundle executed readyState=${document.readyState}`);
 

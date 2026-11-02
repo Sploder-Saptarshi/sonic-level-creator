@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 interface TooltipEntry {
   id: number;        // object type ID from MainCanvas.as (e.g. 151 = Sonic Placer)
   variant?: number;  // ACT byte 4 (mirroring/facing), default 0

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
+
 import { defineHandler } from "nitro";
 import { level } from "../../db/schema";
 import { getReplicaDb, getRequestDb } from "../../utils/db";
