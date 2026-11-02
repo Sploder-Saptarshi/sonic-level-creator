@@ -1,5 +1,3 @@
-// Shared constants and HTML snippets (archive markup kept verbatim).
-// Larger markup lives in server/templates/partials/.
 import NAV_LANGUAGEBAR from "../../templates/partials/languagebar-guest.html" with { type: "text" };
 import TOUCH_CONTROLS_HTML from "../../templates/partials/touch-controls.html" with { type: "text" };
 import UPSELL_HTML from "../../templates/partials/upsell.html" with { type: "text" };

@@ -1,7 +1,5 @@
-// Hot-path session lookup for SSR pages: 0 SQL without a cookie, else one
-// indexed token lookup joined to the user (Better Auth's getSession costs
-// two). Mirrors Better Auth's semantics: cookie precedence, expiry cleanup
-// and the updateAge sliding window. On the edge it reads from a replica.
+// Hand-rolled version of Better Auth's getSession: one query instead of
+// two, none without a cookie, and it reads from a replica on the edge.
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import type { H3Event } from "nitro";
@@ -22,7 +20,6 @@ export interface SessionUser {
   isModerator: boolean;
 }
 
-// Keyed per secret: rolling deploys can briefly serve old and new secrets.
 const keyCache = new Map<string, CryptoKey>();
 
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
@@ -52,8 +49,8 @@ function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
-// Better Call signs cookies as `value.signature` (HMAC-SHA256), sometimes
-// URL-encoded twice. Accepts padded base64 and unpadded base64url.
+// Better Auth signs cookies as `value.signature` (HMAC-SHA256); some paths
+// URL-encode them twice.
 async function verifyCookieSignature(signedValue: string, secret: string): Promise<string | null> {
   let decoded = safeDecode(signedValue);
   if (decoded.includes("%")) decoded = safeDecode(decoded);
@@ -71,7 +68,6 @@ async function verifyCookieSignature(signedValue: string, secret: string): Promi
   }
 }
 
-// Unsigned or forged cookies miss here without any SQL.
 async function readSessionToken(event: H3Event): Promise<string | null> {
   const raw =
     getCookie(event, "__Secure-better-auth.session_token") ??
@@ -107,8 +103,6 @@ function findSessionRow(db: SessionDb, token: string) {
     .limit(1);
 }
 
-// Deletes expired rows; extends the expiry once updateAge has elapsed.
-// Returns false when the session is expired.
 async function refreshSession(db: SessionDb, token: string, expiresAt: Date): Promise<boolean> {
   const now = Date.now();
   const where = eq(sessionTable.token, token);
@@ -136,7 +130,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
     const role = row.role ?? "user";
     return {
       id: row.userId,
-      // `username` is the lowercased lookup key; never show it.
+      // `username` is the lowercased lookup key
       username: row.displayUsername ?? row.username ?? row.name ?? "Player",
       role,
       isModerator: role === "moderator",
@@ -146,12 +140,10 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   }
 }
 
-// Nitro parses repeated params (?a=1&a=2) as arrays.
 export function first(v: unknown): unknown {
   return Array.isArray(v) ? v[0] : v;
 }
 
-// Printable ASCII (0x20–0x7E). Length is checked separately (3–30).
 export function isAsciiUsername(s: string): boolean {
   return /^[\x20-\x7E]+$/.test(s);
 }

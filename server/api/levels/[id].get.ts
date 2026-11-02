@@ -1,6 +1,3 @@
-// GET /api/levels/:id
-// Fetch one of the signed-in user's levels. A replica
-// miss retries on the primary (levels saved seconds ago).
 import { defineHandler } from "nitro";
 import { level } from "../../db/schema";
 import {

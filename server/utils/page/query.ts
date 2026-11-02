@@ -1,4 +1,3 @@
-// Sanitizers for the legacy query stubs (?user ?session ?levelid ?territory ?title ?zoneone).
 import { first, isAsciiUsername } from "../session";
 import {
   API_CONNECTOR_ID,

@@ -1,6 +1,3 @@
-// POST /member/account/username
-// Change username (requires the current
-// password). Sessions and levels key off the user id, so both survive.
 import { defineHandler } from "nitro";
 import type { H3Event } from "nitro";
 import { eq } from "drizzle-orm";
@@ -42,7 +39,6 @@ async function passwordMatches(db: Db, userId: string, password: string): Promis
   return !!row?.password && (await verifyPassword({ password, hash: row.password }));
 }
 
-// Case-only renames keep the same lookup key, so they can't collide.
 async function availabilityError(event: H3Event, session: SessionUser, username: string): Promise<string | null> {
   if (username.toLowerCase() === session.username.toLowerCase()) return null;
   const avail = await callAuth(event, (auth) =>
@@ -90,7 +86,6 @@ export default defineHandler(async (event) => {
     (await writeUsername(db, session.id, input.username));
   if (error) return fail(error);
 
-  // Re-read so the header shows the new name; the bookmark keeps it fresh.
   await pinFreshBookmark(event);
   const fresh = await getSessionUser(event);
   return html(

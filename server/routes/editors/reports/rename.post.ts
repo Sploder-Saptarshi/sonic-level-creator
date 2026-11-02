@@ -1,5 +1,3 @@
-// POST /editors/reports/rename
-// Moderator level rename from the queue.
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import { cleanId, cleanLevelName, renameLevelAs } from "../../../utils/levels";

@@ -1,21 +1,19 @@
-// Palette tray, tabs, tooltips and the object counter.
-
 import { BLOCK_PX, USED_BLOCKS, blockSheetXY, type ObjectDef } from './format';
 import {
   S, defsForTab, totalObjects, countPlacedTiles,
-  updateDesc, type TabType,
+  updateDesc, clearSelection, type TabType,
 } from './state';
 import { draw } from './render';
-import { partsFor, paintThumb, isMirrored } from './sprites';
+import { partsFor, isMirrored } from './spriteData';
+import { paintThumb } from './sprites';
 import { TOOLTIPS } from './tooltipTexts';
-import { timingLog } from './main';
+import { timingLog } from './timing';
+import { queryAll } from './dom';
 
 const NO_ART_NOTE = ' (invisible in-game: no art in this zone)';
 
-// Logged only on change: sprite arrivals rebuild the tray often.
 let lastThumbLog = '';
 
-// ── Tooltip ──
 let tipEl: HTMLElement | null = null;
 let tipTimer: ReturnType<typeof setTimeout> | null = null;
 let tipAnchor: HTMLElement | null = null;
@@ -31,7 +29,7 @@ function ensureTip(): HTMLElement {
   bottom.className = 'tip-bottom';
   tipEl.appendChild(text);
   tipEl.appendChild(bottom);
-  // Fixed positioning in the shadow root escapes the tray's overflow clip.
+  // outside the tray so it isn't clipped
   (S.shadow ?? document.body).appendChild(tipEl);
   return tipEl;
 }
@@ -50,7 +48,6 @@ function hideTip() {
 function positionTip(anchor: HTMLElement) {
   const el = ensureTip();
   const r = anchor.getBoundingClientRect();
-  // Measure offscreen before showing.
   el.style.left = '0';
   el.style.top = '-9999px';
   el.classList.add('visible');
@@ -59,15 +56,12 @@ function positionTip(anchor: HTMLElement) {
   el.style.visibility = '';
   el.classList.remove('visible');
   const gap = 2;
-  // The arrow points at 30% across the thumb, even when the bubble is
-  // clamped to the viewport.
   const ARROW_GAP = 30;
   const thumbArrowX = r.left + r.width * 0.30;
   let left = thumbArrowX - ARROW_GAP;
   let top = r.top - tr.height - gap;
   const pad = 4;
   left = Math.max(pad, Math.min(left, window.innerWidth - tr.width - pad));
-  // Flip below when there is no room above.
   if (top < pad) top = r.bottom + gap;
   el.style.left = Math.round(left) + 'px';
   el.style.top = Math.round(top) + 'px';
@@ -109,10 +103,8 @@ export function updateCounter() {
   S.counterEl.textContent = `${totalObjects()}/${countPlacedTiles()}`;
 }
 
-function clearSelectionForDrag() {
-  S.selectedObjIdx = -1;
-  S.selectedTileBx = -1;
-  S.selectedTileBy = -1;
+function startPaletteDrag() {
+  clearSelection();
   S.paletteDrag = true;
 }
 
@@ -131,9 +123,7 @@ function tileThumb(blockId: number): { el: HTMLElement; painted: boolean } {
   el.appendChild(cvs);
   el.addEventListener('mousedown', (ev) => {
     ev.preventDefault();
-    S.selectedTile = blockId;
-    S.selectedObj = null;
-    clearSelectionForDrag();
+    startPaletteDrag();
     S.paletteDragTile = blockId;
     updateDesc(`Block ${blockId} — drag onto grid to place`);
     draw();
@@ -141,7 +131,6 @@ function tileThumb(blockId: number): { el: HTMLElement; painted: boolean } {
   return { el, painted };
 }
 
-// Types the game never draws get a labelled box instead of art.
 function objectThumb(def: ObjectDef): { el: HTMLElement; cvs: HTMLCanvasElement | null } {
   const el = document.createElement('div');
   const sub = def.sub ?? 0, variant = def.variant ?? 0;
@@ -160,8 +149,7 @@ function objectThumb(def: ObjectDef): { el: HTMLElement; cvs: HTMLCanvasElement 
   }
   el.addEventListener('mousedown', (ev) => {
     ev.preventDefault();
-    S.selectedObj = def;
-    clearSelectionForDrag();
+    startPaletteDrag();
     S.paletteDragDef = def;
     updateDesc(`${def.name}: ${def.desc}` + note);
     draw();
@@ -169,8 +157,6 @@ function objectThumb(def: ObjectDef): { el: HTMLElement; cvs: HTMLCanvasElement 
   return { el, cvs };
 }
 
-// Shrinks art (never enlarges it) to fit 80% of the thumb, measured from the
-// live box after it's in the tray, so it's never squeezed on one axis.
 function fitThumbCanvas(el: HTMLElement, cvs: HTMLCanvasElement) {
   const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
   if (boxH <= 0 || boxW <= 0 || cvs.width <= 0 || cvs.height <= 0) return;
@@ -179,7 +165,6 @@ function fitThumbCanvas(el: HTMLElement, cvs: HTMLCanvasElement) {
   cvs.style.height = Math.max(1, Math.floor(cvs.height * s)) + 'px';
 }
 
-// Blocks 1-107, minus the unused 7, 35 and 71.
 function paletteBlockIds(): number[] {
   const ids: number[] = [];
   for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
@@ -219,13 +204,10 @@ export function buildThumbnails() {
 
 export function switchTab(tab: TabType) {
   S.activeTab = tab;
-  S.selectedObj = null;
-  S.selectedObjIdx = -1;
-  S.selectedTileBx = -1;
-  S.selectedTileBy = -1;
-  S.shadow!.querySelectorAll('.tab').forEach(b => {
+  clearSelection();
+  for (const b of queryAll('.tab')) {
     b.classList.toggle('tab-active', b.getAttribute('data-tab') === tab);
-  });
+  }
   buildThumbnails();
   updateDesc(`${tab.charAt(0).toUpperCase() + tab.slice(1)} tab — select an item below`);
   draw();

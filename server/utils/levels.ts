@@ -1,6 +1,3 @@
-// Level storage helpers shared by the API and page routes. D1 bills
-// rows_read: helpers select only the columns they need, never `data` in
-// listings, and every query walks an index.
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
 import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
@@ -35,8 +32,6 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   return user;
 }
 
-// Read-only handle for replica-safe reads; primary off the edge. Writes and
-// freshness-sensitive reads use getRequestDb (see server/utils/replica.ts).
 export function getReplicaDb(event: H3Event): RequestDb {
   const session = getReplicaSession(event, readBookmark(event));
   if (!session) return getRequestDb(event);
@@ -60,7 +55,6 @@ export function cleanDims(v: unknown): number | null {
 
 export function cleanLevelData(v: unknown): string | null {
   const s = first(v);
-  // 1MB cap keeps a level well under D1 row limits.
   return typeof s === "string" && s.length <= 1_000_000 ? s : null;
 }
 
@@ -96,13 +90,10 @@ export function cleanId(v: unknown): string | null {
   return typeof s === "string" && s.length > 0 && s.length <= 128 ? s : null;
 }
 
-// Ids are numeric strings or UUIDs; anything else is a probe. Rejects
-// before any SQL.
 export function isSafeId(v: unknown): v is string {
   return typeof v === "string" && /^[\w-]{1,128}$/.test(v);
 }
 
-// CSRF guard + session + validated `:id`. GET passes `{ sameOrigin: false }`.
 export async function requireUserAndLevelId(
   event: H3Event,
   opts: { sameOrigin?: boolean } = {},
@@ -114,7 +105,6 @@ export async function requireUserAndLevelId(
   return { user, id };
 }
 
-// RETURNING doubles as the existence check.
 export function renameLevelWhere(db: RequestDb, where: any, name: string) {
   return db
     .update(level)
@@ -123,9 +113,8 @@ export function renameLevelWhere(db: RequestDb, where: any, name: string) {
     .returning({ id: level.id });
 }
 
-// D1 can't rely on PRAGMA foreign_keys, so reports are removed explicitly,
-// and only after the predicate-checked delete succeeds (a forged id can't
-// wipe another level's reports). Returns the deleted rows (empty on miss).
+// D1 doesn't enforce foreign keys, so reports are deleted by hand, and only
+// once the level delete actually matched.
 export async function deleteLevelWithReports(db: RequestDb, where: any) {
   const deleted = await db
     .delete(level)
@@ -136,8 +125,6 @@ export async function deleteLevelWithReports(db: RequestDb, where: any) {
   return deleted;
 }
 
-// Form handlers: owner-or-moderator writes, then pin a bookmark so the
-// redirect observes them.
 export async function renameLevelAs(event: H3Event, session: SessionUser, id: string, name: string) {
   await renameLevelWhere(getRequestDb(event), levelWhereForUser(id, session), name);
   await pinFreshBookmark(event);
@@ -155,15 +142,12 @@ export function levelWhere(id: string, userId: string) {
 }
 
 export function levelWhereForUser(id: string, session: SessionUser) {
-  // Moderators may touch any level except the stock row.
   if (session.isModerator) {
     return and(eq(level.id, id), ne(level.id, STOCK_LEVEL_ID));
   }
   return and(eq(level.id, id), eq(level.userId, session.id));
 }
 
-// Seeded Green Hill level (DEFAULT_LEVEL_ID). Playable via / and the
-// gateway; never listed, and /play/2914 redirects home.
 export const STOCK_LEVEL_ID = "2914";
 
 export const LEVELS_PER_PAGE = 15;
@@ -187,11 +171,8 @@ export function listMyLevels(db: RequestDb, userId: string) {
     .orderBy(desc(level.updatedAt));
 }
 
-// Keyset pagination: listings sort by (ts DESC, id DESC) and a cursor pins
-// the edge row of the current page, so every page costs O(page size). The
-// displayed page number rides along in links but never drives fetching.
 export interface PageCursor {
-  // Stored unit: unix seconds.
+  // unix seconds
   ts: number;
   id: string;
 }
@@ -207,7 +188,6 @@ export interface PageResult<T> {
   hasPrev: boolean;
 }
 
-// base64url of [ts, id], UTF-8 safe.
 export function encodePageCursor(ts: number, id: string): string {
   const bytes = new TextEncoder().encode(JSON.stringify([ts, id]));
   let bin = "";
@@ -215,7 +195,6 @@ export function encodePageCursor(ts: number, id: string): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Malformed cursors return null, which degrades to the first page.
 export function cleanCursorParam(v: unknown): PageCursor | null {
   const s = first(v);
   if (typeof s !== "string" || s.length < 1 || s.length > 512) return null;
@@ -232,20 +211,14 @@ export function cleanCursorParam(v: unknown): PageCursor | null {
   }
 }
 
-// Folds Dates (and raw ms) to the stored unix-seconds integer so the cursor
-// binds exactly what the index holds.
 function storedTs(v: unknown): number {
-  const ms = v instanceof Date ? v.getTime() : Number(v);
-  if (!Number.isFinite(ms)) return 0;
-  const t = Math.trunc(ms);
-  return t > 1e12 ? Math.floor(t / 1000) : t;
+  return v instanceof Date ? Math.floor(v.getTime() / 1000) : 0;
 }
 
 export function cursorFor(tsValue: unknown, id: string): string {
   return encodePageCursor(storedTs(tsValue), id);
 }
 
-// `after` wins when both cursors are sent.
 export function parseKeysetQuery(q: Record<string, unknown>): {
   after: PageCursor | null;
   incoming: PageCursor | null;
@@ -260,8 +233,6 @@ export function parseKeysetQuery(q: Record<string, unknown>): {
   };
 }
 
-// Display-only: a tampered `page` can mislabel the indicator but never
-// changes which rows are fetched.
 export function clampListingPage(
   pageParam: unknown,
   total: number,
@@ -271,7 +242,6 @@ export function clampListingPage(
   return { page, totalPages };
 }
 
-// An empty page (rows deleted since) links back via the incoming cursor.
 export function keysetCursors<T>(
   rows: T[],
   opts: {
@@ -292,8 +262,6 @@ export function keysetCursors<T>(
   return { prevCursor, nextCursor };
 }
 
-// Fetches limit+1 rows; the extra row signals another page without a COUNT.
-// `query` builds the caller's select; this supplies the seek and order.
 async function fetchKeysetPage<T>(opts: {
   limit: number;
   page: KeysetPage;
@@ -367,8 +335,6 @@ export async function getMyLevelTotal(
   return rows[0]?.n ?? 0;
 }
 
-// Per-user URLs are keyed by `authorId` (usernames may contain spaces and
-// punctuation); bylines show `authorDisplay`.
 export interface PublicLevelRow {
   id: string;
   authorId: string;
@@ -444,7 +410,6 @@ export interface PublicUser {
   displayUsername: string | null;
 }
 
-// One PK read covers existence, heading name and the page total.
 export function findUserById(db: RequestDb, id: string) {
   return db
     .select({
@@ -458,8 +423,6 @@ export function findUserById(db: RequestDb, id: string) {
     .where(eq(user.id, id));
 }
 
-// Published levels are visible to everyone, unpublished ones to their owner.
-// Moderators fall back to findReportedLevelName on a miss.
 export function findVisibleLevelName(
   db: RequestDb,
   id: string,
@@ -474,8 +437,7 @@ export function findVisibleLevelName(
     .where(and(eq(level.id, id), visible));
 }
 
-// Moderator fallback: an unpublished level with an open report. Run on the
-// primary so a just-filed report is visible.
+// run on the primary so a just-filed report is visible
 export function findReportedLevelName(db: RequestDb, id: string) {
   return db
     .select({ name: level.name, published: level.published })
@@ -488,8 +450,7 @@ export function findReportedLevelName(db: RequestDb, id: string) {
     .limit(1);
 }
 
-// Gateway moderator fallback. Run on the primary so a just-filed report is
-// visible.
+// run on the primary so a just-filed report is visible
 export function hasOpenReport(db: RequestDb, levelId: string) {
   return db
     .select({ id: report.id })
@@ -519,7 +480,6 @@ export function cleanReportReason(v: unknown): string | null {
   return reason.length >= 1 && reason.length <= 500 ? reason : null;
 }
 
-// Idempotent per open report; the unique index is the race-safe backstop.
 export async function createReport(
   db: RequestDb,
   levelId: string,
@@ -575,7 +535,6 @@ export async function getOpenReportTotal(db: RequestDb): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
-// Newest first; callers group rows by level for the moderator queue.
 export async function listOpenReports(
   db: RequestDb,
   limit: number,
@@ -612,7 +571,6 @@ export async function listOpenReports(
   });
 }
 
-// Returns the number of dismissed reports.
 export async function dismissReportsForLevel(
   db: RequestDb,
   levelId: string,

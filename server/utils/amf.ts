@@ -1,7 +1,3 @@
-// Minimal AMF0 codec + dispatcher for the legacy gateway (Workers-safe, no
-// deps). Serves PlaySEGAAPI.* stubs and LevelEditorAPI.getLevel, which
-// returns a level's comma-decimal BIN+ACT string ('' when unknown).
-
 export type AmfValue =
   | null
   | boolean
@@ -13,8 +9,7 @@ export type AmfValue =
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// The gateway accepts unauthenticated binary POSTs; real SWF traffic is a
-// few tiny calls, so anything past these caps is hostile.
+// limits for unauthenticated input; real SWF requests are tiny
 export const MAX_AMF_BYTES = 256 * 1024;
 const MAX_MSGS = 64;
 const MAX_ARR = 4096;

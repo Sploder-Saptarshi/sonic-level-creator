@@ -1,5 +1,3 @@
-// Local SQLite for the node preset (never runs on Workers). drizzle/
-// migrations auto-apply on first use.
 import Database from "better-sqlite3";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -20,17 +18,13 @@ export function getNodeClient(): Database.Database {
     mkdirSync(dirname(DB_PATH), { recursive: true });
     client = new Database(DB_PATH);
     client.pragma("journal_mode = WAL");
-    // Cascades (user -> level -> report) and the counter triggers depend
-    // on it. D1 can't rely on PRAGMA state, so level deletes also remove
-    // reports explicitly.
+    // cascades and the counter triggers depend on it
     client.pragma("foreign_keys = ON");
   }
   return client;
 }
 
 export function ensureNodeMigrated(): void {
-  if (migrated) return;
-  migrated = true;
   getNodeDb();
 }
 
@@ -40,8 +34,7 @@ export function getNodeDb(event?: H3Event): BetterSQLite3Database<typeof schema>
     if (!db) db = drizzle(getNodeClient(), { schema });
     migrate(db, { migrationsFolder: "./drizzle" });
   }
-  // Per-request wrapper so the timing badge counts only this request's
-  // queries; the client underneath stays shared.
+  // per-request wrapper so the timing badge counts this request's queries
   if (event) return drizzle(getNodeClient(), { schema, logger: dbLogger(event) });
   if (!db) db = drizzle(getNodeClient(), { schema });
   return db;

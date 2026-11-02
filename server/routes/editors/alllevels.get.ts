@@ -1,7 +1,3 @@
-// GET /editors/alllevels
-// Public directory of published levels. The
-// session, counter and page queries are independent, so they run in
-// parallel on one replica session.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import {

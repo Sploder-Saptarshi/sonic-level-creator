@@ -1,11 +1,3 @@
-// POST /amfphp/gateway.php
-// AMF0 game gateway (same contract as the legacy
-// PHP endpoint). getLevel serves stored level bytes; other methods return
-// the legacy stub replies.
-//
-// Published rows are served straight from the replica with no session
-// lookup. Replica misses and unpublished rows need a session and are
-// re-read on the primary (fresh owner previews and moderator reviews).
 import { defineHandler, HTTPError } from "nitro";
 import type { H3Event } from "nitro";
 import { getCookie, readRawBody, setCookie, setResponseHeader } from "nitro/h3";
@@ -23,15 +15,14 @@ import {
 import { getSessionUser, type SessionUser } from "../../utils/session";
 import { notifyLevelPlayed } from "../../utils/webhook";
 
-// Holds the last played level id: one game boot's repeated getLevel calls
-// notify once, while 1 -> 2 -> 1 notifies twice.
+// The game calls getLevel several times per boot; this keeps it to one
+// "played" webhook per visit.
 const PLAYED_COOKIE = "slc_played";
 const PLAYED_COOKIE_TTL = 600;
 
 type Db = ReturnType<typeof getRequestDb>;
 
 class LevelResolver {
-  // Published levels served with real bytes (id -> name), for the webhook.
   readonly served = new Map<string, string>();
   private readonly replica: Db;
   private primaryDb: Db | null = null;
@@ -64,7 +55,6 @@ class LevelResolver {
     return (this.primaryDb ??= getRequestDb(this.event));
   }
 
-  // Owners preview their own levels; moderators review reported ones.
   private async canPreview(levelId: string, row: GatewayRow, user: SessionUser): Promise<boolean> {
     if (row.userId === user.id) return true;
     if (!user.isModerator) return false;
@@ -95,25 +85,17 @@ async function encodeReply(body: Uint8Array, resolver: LevelResolver): Promise<U
 }
 
 function readLastPlayed(event: H3Event): string | null {
-  try {
-    const raw = getCookie(event, PLAYED_COOKIE);
-    return isSafeId(raw) ? raw : null;
-  } catch {
-    return null;
-  }
+  const raw = getCookie(event, PLAYED_COOKIE);
+  return isSafeId(raw) ? raw : null;
 }
 
 function writeLastPlayed(event: H3Event, levelId: string): void {
-  try {
-    setCookie(event, PLAYED_COOKIE, levelId, {
-      path: "/",
-      sameSite: "lax",
-      maxAge: PLAYED_COOKIE_TTL,
-      httpOnly: true,
-    });
-  } catch {
-    // Headers already sent; the level bytes were still served.
-  }
+  setCookie(event, PLAYED_COOKIE, levelId, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: PLAYED_COOKIE_TTL,
+    httpOnly: true,
+  });
 }
 
 async function notifyPlays(event: H3Event, resolver: LevelResolver): Promise<void> {

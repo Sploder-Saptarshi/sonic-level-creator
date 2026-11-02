@@ -1,7 +1,3 @@
-// POST /api/levels/:id/report
-// Report a level (signed-in users only).
-// One open report per user per level; re-posts return duplicate: true.
-// The stock level fakes success without writing.
 import { defineHandler } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { HTTPError } from "nitro";

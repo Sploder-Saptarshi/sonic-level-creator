@@ -1,4 +1,3 @@
-// Sign-in, sign-up, account and quickstart pages.
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import signinBodyTemplate from "../../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../../templates/signup.html" with { type: "text" };

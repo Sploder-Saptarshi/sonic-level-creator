@@ -1,14 +1,11 @@
-// Canvas drawing, object picking and the palette-drag ghost.
-
 import { BLOCK_PX, TOTAL_BLOCKS, snap8, blockSheetXY, type ObjectDef } from './format';
 import { S, cellSize, findDef, inGrid, canvasToWorld } from './state';
-import { partsFor, spriteBBox, drawParts, spriteScale, spriteThumbURL, isMirrored, paintThumb, moveExtremes, type SpritePart } from './sprites';
+import { partsFor, spriteBBox, isMirrored, moveExtremes, type SpritePart } from './spriteData';
+import { drawParts, spriteScale, spriteThumbURL, paintThumb } from './sprites';
 
 const GHOST_PX = 256;
 let ghostCanvas: HTMLCanvasElement;
 let ghostCtx: CanvasRenderingContext2D;
-// Identity of the carried art; the ghost bitmap is rebuilt only when it
-// changes, while its position updates on every mousemove.
 let ghostKey = '';
 
 interface Viewport {
@@ -22,7 +19,6 @@ function offscreen(v: Viewport, x: number, y: number, w: number, h: number): boo
   return x + w < v.scrollX || x > v.scrollX + v.viewW || y + h < v.scrollY || y > v.scrollY + v.viewH;
 }
 
-// Side of the square marker drawn for types the game never draws.
 function placeholderSize(cs: number): number {
   return Math.max(14, Math.min(48, cs * 0.35));
 }
@@ -31,8 +27,6 @@ function defMirrored(def: ObjectDef): boolean {
   return !!def.mirror || isMirrored(def.id, def.variant ?? 0, def.sub ?? 0);
 }
 
-// The canvas blits the same 1x paintThumb output the tray shows, so the two
-// can never diverge.
 const thumbCache = new Map<string, HTMLCanvasElement>();
 
 function thumbFor(type: number, sub: number, variant: number, mirror: boolean): HTMLCanvasElement | null {
@@ -47,8 +41,6 @@ function thumbFor(type: number, sub: number, variant: number, mirror: boolean): 
   return cvs;
 }
 
-// White silhouette of a moving platform (without badges), drawn at both
-// ends of its travel.
 const whiteThumbCache = new Map<string, { cvs: HTMLCanvasElement; bb: { x: number; y: number; w: number; h: number } }>();
 
 function whiteThumbFor(type: number, sub: number, variant: number, mirror: boolean) {
@@ -81,10 +73,6 @@ export function initGhostCanvas() {
   ghostCtx = ghostCanvas.getContext('2d')!;
 }
 
-// ── Main draw ──
-
-// Mousemove storms are coalesced into one paint per frame; clicks and drops
-// call draw() directly for instant feedback.
 let drawQueued = false;
 export function requestDraw() {
   if (drawQueued) return;
@@ -108,8 +96,6 @@ function strokeGridLines(ctx: CanvasRenderingContext2D, v: Viewport, tileCs: num
   ctx.stroke();
 }
 
-// One line per 16px tile, under the blocks: 35% at block edges, 18% every
-// 8 tiles, 8% otherwise. Batched by style and clipped to the viewport.
 function drawGridlines(ctx: CanvasRenderingContext2D, v: Viewport, cs: number) {
   const { grid } = S;
   const tileCs = cs / 16;
@@ -152,8 +138,6 @@ function drawBlocks(ctx: CanvasRenderingContext2D, v: Viewport, cs: number) {
   }
 }
 
-// Draws the sprite through its cached thumb (or directly while images are
-// loading). Returns its on-canvas box, or null when it is offscreen.
 function drawSprite(ctx: CanvasRenderingContext2D, v: Viewport, k: number, parts: SpritePart[],
   type: number, sub: number, variant: number, mirror: boolean, x: number, y: number) {
   const bb = spriteBBox(parts);
@@ -166,7 +150,6 @@ function drawSprite(ctx: CanvasRenderingContext2D, v: Viewport, k: number, parts
   return box;
 }
 
-// Moving platforms: 50% white silhouettes at both ends of their travel.
 function drawMoveExtremes(ctx: CanvasRenderingContext2D, v: Viewport, k: number,
   type: number, sub: number, variant: number, mirror: boolean, x: number, y: number) {
   const extremes = moveExtremes(type, sub);
@@ -186,7 +169,6 @@ function drawMoveExtremes(ctx: CanvasRenderingContext2D, v: Viewport, k: number,
   ctx.globalAlpha = prevAlpha;
 }
 
-// Labelled marker for types the game itself never draws.
 function drawPlaceholder(ctx: CanvasRenderingContext2D, v: Viewport, cs: number, type: number, x: number, y: number, selected: boolean) {
   const dx = (x / BLOCK_PX) * cs;
   const dy = (y / BLOCK_PX) * cs;
@@ -230,20 +212,16 @@ function drawObjects(ctx: CanvasRenderingContext2D, v: Viewport, cs: number) {
   });
 }
 
-// glowey.png pulsing over the hovered cell when it holds a tile.
 function drawHoverGlow(ctx: CanvasRenderingContext2D, cs: number) {
   const img = S.gloweyImg;
   if (!hoverGlowActive() || !img?.complete || img.naturalWidth <= 0) return;
   ctx.imageSmoothingEnabled = true;
   const prevAlpha = ctx.globalAlpha;
   ctx.globalAlpha = glowAlpha();
-  try { ctx.drawImage(img, S.hoverBx * cs, S.hoverBy * cs, cs, cs); }
-  catch (_) { /* image not ready yet */ }
+  ctx.drawImage(img, S.hoverBx * cs, S.hoverBy * cs, cs, cs);
   ctx.globalAlpha = prevAlpha;
 }
 
-// Snapped drop preview for objects while a palette drag is over the grid
-// (tiles only use the HTML ghost).
 function drawDropPreview(ctx: CanvasRenderingContext2D, v: Viewport, cs: number) {
   const def = S.paletteDragDef;
   if (!S.paletteDrag || !S.previewOnCanvas || S.activeTab === 'tiles' || !def) return;
@@ -264,9 +242,6 @@ function drawDropPreview(ctx: CanvasRenderingContext2D, v: Viewport, cs: number)
   ctx.fillRect(dx - m / 2, dy - m / 2, m, m);
 }
 
-// The canvas is viewport-sized and sticky inside the grid-sized
-// .canvas-inner, so drawing uses grid coordinates under a scroll transform
-// and every pass culls to the viewport.
 export function draw() {
   const { ctx, canvas: cvs, canvasWrap } = S;
   if (!ctx || !cvs || !canvasWrap) return;
@@ -288,11 +263,6 @@ export function draw() {
   drawTileSelection(v, cs);
 }
 
-// ── Object picking ──
-
-/** Topmost object whose drawn box contains the canvas-px point, or -1.
- *  Uses draw()'s geometry, so clicks on bare tile art fall through to the
- *  tile. Transparent padding inside the box still counts as a hit. */
 export function objectHitIndex(mx: number, my: number): number {
   const { objects, grid } = S;
   if (!grid.length || !grid[0].length) return -1;
@@ -314,17 +284,12 @@ export function objectHitIndex(mx: number, my: number): number {
   return -1;
 }
 
-// ── Tile selection: outline + remove badge ──
-
-/** Center and radius of a cell's remove badge (shared with the hit-test). */
 export function tileBadge(bx: number, by: number, cs: number): { cx: number; cy: number; r: number } | null {
   if (bx < 0 || by < 0 || by >= S.grid.length || bx >= S.grid[0].length) return null;
   const r = Math.max(5, Math.min(10, cs * 0.15));
-  // Top-right corner, nudged down by one tile (cs/16).
   return { cx: (bx + 1) * cs, cy: by * cs + cs / 16, r };
 }
 
-/** True when the selected tile is still filled. */
 function selectedTileLive(): boolean {
   const { selectedTileBx: bx, selectedTileBy: by, grid } = S;
   return bx >= 0 && by >= 0 && by < grid.length && bx < grid[0].length && grid[by][bx] > 0;
@@ -373,11 +338,8 @@ function drawTileSelection(v: Viewport, cs: number) {
   drawBadge(ctx, b);
 }
 
-// ── Hover-glow pulse ──
-
 const GLOW_PERIOD_MS = 1600; // one full fade in and out
 
-/** Sine pulse from 0 (invisible) to 1 (full glow) and back. */
 export function glowAlpha(now = performance.now()): number {
   const phase = (now % GLOW_PERIOD_MS) / GLOW_PERIOD_MS;
   return 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
@@ -392,8 +354,6 @@ function hoverGlowActive(): boolean {
 
 let glowRaf = 0;
 
-/** Redraws every frame while the glow is visible. Safe to call on every
- *  mousemove: only one loop ever runs, and it stops by itself. */
 export function ensureGlowLoop() {
   if (glowRaf || !hoverGlowActive()) return;
   const tick = () => {
@@ -404,20 +364,13 @@ export function ensureGlowLoop() {
   glowRaf = requestAnimationFrame(tick);
 }
 
-// ── Palette-drag ghost ──
-// The HTML ghost follows the cursor everywhere. Over the grid, draw() also
-// paints the snapped drop preview (and travel extremes) underneath it.
-
-// canvasToWorld also works for events outside the canvas.
 function syncDropPreview(e: MouseEvent) {
   S.previewOnCanvas = false;
   if (!S.canvas) return;
-  try {
-    const { bx, by, px, py } = canvasToWorld(e);
-    S.previewOnCanvas = inGrid(bx, by);
-    S.previewPX = snap8(px);
-    S.previewPY = snap8(py);
-  } catch (_) { S.previewOnCanvas = false; }
+  const { bx, by, px, py } = canvasToWorld(e);
+  S.previewOnCanvas = inGrid(bx, by);
+  S.previewPX = snap8(px);
+  S.previewPY = snap8(py);
 }
 
 function ghostIdentity(cs: number): string {
@@ -439,7 +392,6 @@ function showTileGhost(ghostEl: HTMLElement, img: HTMLImageElement, rebuild: boo
   ghostEl.style.display = '';
 }
 
-// True-scale, bbox-sized sprite preview.
 function showSpriteGhost(ghostEl: HTMLElement, e: MouseEvent, def: ObjectDef, url: string, cs: number, rebuild: boolean) {
   const k = spriteScale(cs);
   const bb = spriteBBox(partsFor(def.id, def.sub ?? 0, def.variant ?? 0)!);

@@ -1,5 +1,3 @@
-// POST /editors/mylevels/rename
-// Owner-or-moderator level rename.
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import { cleanId, cleanLevelName, renameLevelAs } from "../../../utils/levels";

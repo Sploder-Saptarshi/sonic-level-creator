@@ -6,7 +6,7 @@
   background: #fff; overflow: hidden; user-select: none;
   border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
 
-/* Top bar: full-bleed header band of the canvas panel. */
+/* top bar */
 .topbar { display: flex; align-items: center; justify-content: space-between;
   margin: 0; padding: 4px 10px;
   background: linear-gradient(#f4f4f4, #d9d9d9);
@@ -27,7 +27,6 @@
   padding: 0 8px; font-weight: bold; color: #6b4a00; }
 .topbar-r > span:first-child { color: #777; }
 
-/* Main split: canvas on top, palette and options below. */
 .main { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }
 
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
@@ -35,8 +34,7 @@
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
   border-radius: 0 0 7px 7px;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
-/* Grid-sized scroll space; the canvas stays viewport-sized and sticky
-   (see resizeCanvas). */
+
 .canvas-inner { position: relative; }
 canvas.display { display: block; cursor: crosshair; border: none;
   position: sticky; top: 0; left: 0; }
@@ -45,7 +43,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
   border: 2px solid #f0f0f0; }
 
-/* Bottom: palette panel and options box. */
+/* palette + options */
 .bottom { display: flex; height: 25%; min-height: 170px; max-height: 750px; gap: 8px; flex-shrink: 0; }
 .panel-left { flex: 3; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; }
@@ -61,7 +59,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .thumb { height: 100%; aspect-ratio: 1; border: none; border-radius: 10px; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
-/* Tray art keeps its natural size, shrinking only to fit 80% of the box. */
+
 .thumb canvas { display: block; width: auto; height: auto; max-width: 80%; max-height: 80%;
   image-rendering: pixelated; image-rendering: crisp-edges; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
@@ -74,8 +72,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .panel-right h4 { margin: 0; padding: 8px 14px 6px; font-size: 14px; color: #333;
   text-align: left; background: linear-gradient(#f4f4f4, #d9d9d9);
   border-radius: 9px 9px 0 0; border-bottom: 1px solid #c4c4c4; }
-/* Options buttons: the site's glossy lozenge in pure CSS. Side margins live
-   on the buttons so the header divider runs edge to edge. */
+
 .act-btn { display: block; height: 28px; margin: 0 14px;
   background: linear-gradient(to bottom, #ffedbe 0%, #ffc46a 45%, #ffa028 100%);
   border: 1px solid #e8932b; border-radius: 8px;
@@ -84,18 +81,17 @@ canvas.display { display: block; cursor: crosshair; border: none;
   text-decoration: none; cursor: pointer; }
 .act-btn span { display: flex; align-items: center; justify-content: center;
   height: 100%; text-align: center;
-  /* The centered label renders ~0.5px low. */
+  /* label renders ~0.5px low */
   transform: translateY(-0.5px); }
 .act-btn:link, .act-btn:active, .act-btn:visited { color: #333; text-decoration: none; font-weight: bold; }
 .act-btn:hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%);
   color: #333; outline: none; }
 
-/* Bottom bar. */
+/* bottom bar */
 .bottombar { display: flex; align-items: center; justify-content: space-between;
   padding: 4px 2px; background: transparent; color: #555; flex-shrink: 0; }
 .bottombar-l { display: flex; gap: 0; }
-/* Replica of the site's a.lozenge2 grey sliding-door button. URLs are
-   root-absolute because shadow <style> URLs resolve against the document. */
+/* same as the site's a.lozenge2 */
 .btm-btn { background: transparent url('/images/bg_button_grey_end.gif') no-repeat scroll top right;
   color: #fff; display: inline-block; font-weight: bold; height: 22px;
   margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
@@ -105,21 +101,19 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .btm-btn:link, .btm-btn:active, .btm-btn:visited { color: #fff; text-decoration: none; font-weight: bold; }
 .btm-btn:hover { background-position: bottom right; color: #fff; outline: none; }
 .btm-btn:hover span { background-position: bottom left; }
-/* Share uses the site's button image directly. */
+
 .share-btn { background: none; border: none; padding: 0; cursor: pointer;
   transform: translateY(-5px); }
 .share-btn:hover img { filter: brightness(1.05); }
 .share-btn:active { transform: translateY(-4px); }
 .share-btn img { display: block; border: none; }
 
-/* Drag ghost. */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
   opacity: 0.7; border: 2px dashed #fff; background-color: rgba(0,0,0,0.3);
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
 
-/* Palette tooltip, shown via .visible after a hover delay. Fixed so it
-   escapes the thumbstrip's overflow clip. */
+/* tooltip */
 .obj-tooltip {
   position: fixed;
   z-index: 10000;
@@ -133,7 +127,6 @@ canvas.display { display: block; cursor: crosshair; border: none;
   opacity: 0;
   visibility: hidden;
   transition: opacity 120ms ease;
-  /* drop-shadow wraps bubble and arrow as one shape (no seam) */
   filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.16));
 }
 .obj-tooltip.visible { opacity: 1; visibility: visible; }
@@ -158,8 +151,6 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .obj-tooltip::after {
   content: "";
   position: absolute;
-  /* the offset keeps the arrow on its thumb when the bubble is clamped
-     to the viewport */
   left: calc(22px + var(--tip-arrow-offset, 0px));
   bottom: -8px;
   width: 0;
@@ -172,9 +163,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
   box-shadow: none;
 }
 
-/* Start screen: an opaque overlay hiding the editor. */
+/* start screen */
 .start-overlay { position: absolute; inset: 0; z-index: 50;
-  /* Redraws the editor's frame so the chrome stays visible. */
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(#ffffff, #e8e8e8);
   border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
@@ -182,7 +172,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-card { position: relative; background: #fff; border: 1px solid #b5b5b5;
   border-radius: 10px; padding: 12px 12px 24px; width: 420px;
   max-width: calc(100% - 32px); min-height: 330px; text-align: left; }
-/* Out of flow, so the image arriving causes no reflow. */
+
 .start-sonic { position: absolute; right: 16px; bottom: 12px; height: 224px; width: auto; }
 .start-card h2 { color: #1767c9; font-size: 26px; font-weight: bold;
   margin: 0 0 4px; }
@@ -203,7 +193,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
 .start-go:disabled { opacity: 0.45; cursor: default; }
 .start-go:disabled:hover { background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%); }
-/* Mobile blocker: heading on top, text left, Sonic right. */
+/* mobile notice */
 .start-card.mobile-block { display: flex; flex-wrap: wrap; align-items: center;
   gap: 0 14px; width: 560px; min-height: 0; padding: 6px 12px; }
 .start-card.mobile-block h2 { position: absolute; top: 6px; left: 12px;
@@ -215,7 +205,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-card.mobile-block .mobile-actions { width: 100%; display: flex;
   justify-content: flex-start; margin-top: -30px; }
 
-/* Map size picker: nested hover regions, the outermost is the largest. */
+/* map size picker */
 .size-card { background: #fff; border: 1px solid #b5b5b5; border-radius: 10px;
   padding: 16px 20px 20px; width: 460px; max-width: calc(100% - 32px);
   text-align: left; }
@@ -234,9 +224,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .map-label .map-name { font-size: 22px; }
 .map-label .map-dims { font-size: 12px; }
 
-/* Test mode: the player is created once at boot and kept muted so Test
-   opens instantly. .warm keeps real dimensions while invisible (Ruffle
-   can't boot into display:none); .active shows it. */
+/* test mode: .warm keeps the player laid out but invisible so Ruffle can boot */
 .testmode { display: none; width: 100%; height: 100%; margin: 0; padding: 0;
   position: absolute; inset: 0; z-index: 5; background: #fff; overflow: hidden;
   border-radius: 0 0 10px 10px; }
@@ -248,8 +236,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .ruffle-holder { position: absolute; inset: 0; display: flex; align-items: flex-start;
   justify-content: center; background: #fff; }
 .ruffle-holder ruffle-player { display: block; width: 640px; height: 448px; flex: 0 0 auto; background: #000; transform-origin: top center; }
-/* Fullscreen: black letterbox around the 640x448 SWF. The host overrides
-   its inline 700px height from server/templates/editor.html. */
+/* fullscreen */
 :host(:fullscreen) {
   width: 100vw !important;
   height: 100vh !important;
@@ -286,8 +273,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
   transform-origin: center center;
 }
 ::backdrop { background: #000; }
-/* Replica of the site's a.lozenge1 orange sliding-door button, pinned
-   top-left. */
+/* same as the site's a.lozenge1 */
 .stop-test { background: transparent url('/images/bg_button_a.gif') no-repeat scroll top right;
   color: #4c4c4c; display: block; float: left; font-weight: bold; height: 22px;
   margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
@@ -299,7 +285,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .stop-test:hover { background-position: bottom right; color: #4c4c4c; outline: none; }
 .stop-test:hover span { background-position: bottom left; }
 
-/* Save overlay: dims the editor behind a status card. */
+/* save overlay */
 .save-overlay { position: absolute; inset: 0; z-index: 60;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.20);

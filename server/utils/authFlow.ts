@@ -1,5 +1,3 @@
-// Form-auth plumbing. Forms POST to our routes, which call Better Auth
-// server-side so errors re-render in-page and cookies land on our responses.
 import { createAuth } from "../auth/config";
 import { escapeHtml, first, getSessionUser, isAsciiUsername } from "./session";
 import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";
@@ -15,7 +13,6 @@ export function errorBox(msg: string): string {
 </div>`;
 }
 
-// Styled by accountHeadExtra (server/utils/page/constants.ts).
 function accountBox(msg: string, cls: string): string {
   if (!msg) return "";
   return `<div class="acct-msg ${cls}">${escapeHtml(msg)}</div>`;
@@ -30,9 +27,7 @@ export function accountOkBox(msg: string): string {
 }
 
 export function forwardCookies(event: H3Event, headers: Headers): void {
-  const cookies =
-    typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
-  for (const c of cookies) appendResponseHeader(event, "set-cookie", c);
+  for (const c of headers.getSetCookie()) appendResponseHeader(event, "set-cookie", c);
 }
 
 export function apiMessage(e: unknown): string {
@@ -58,8 +53,7 @@ export function alreadySignedIn(event: H3Event): Promise<boolean> {
 
 export const DEFAULT_LANDING = "/editors/mylevels";
 
-// Relative paths only (no `//host`, backslashes or whitespace) to prevent
-// open redirects.
+// relative paths only, to prevent open redirects
 export function cleanNext(v: unknown): string | null {
   const s = first(v);
   if (typeof s !== "string") return null;
@@ -69,8 +63,6 @@ export function cleanNext(v: unknown): string | null {
   return s;
 }
 
-// Body first, then query string. Re-rendered into the form so the target
-// survives validation errors.
 export function requestNext(
   event: H3Event,
   body?: Record<string, unknown>,
@@ -85,10 +77,8 @@ export function resolveNext(
   return requestNext(event, body) || DEFAULT_LANDING;
 }
 
-// CSRF guard for every mutating route. Browsers always send Origin on
-// unsafe methods and scripts can't forge it, so a foreign Origin is a
-// forgery. A missing Origin means a non-browser client (curl, the SWF).
-// Backs up the SameSite=Lax cookie and blocks login CSRF.
+// CSRF check. Browsers always send Origin on POST; no Origin means a
+// non-browser client (curl, the SWF).
 export function enforceSameOrigin(event: H3Event): void {
   const origin = event.req.headers.get("origin");
   if (origin && !isSameHost(origin, getRequestURL(event).host)) {
@@ -104,8 +94,6 @@ function isSameHost(origin: string, host: string): boolean {
   }
 }
 
-// Returns to the current URL unless `returnTo` is given (for POST
-// endpoints that aren't landable).
 export function redirectToSignin(event: H3Event, returnTo?: string) {
   let target = returnTo;
   if (target === undefined) {
@@ -116,14 +104,12 @@ export function redirectToSignin(event: H3Event, returnTo?: string) {
   return sendRedirect(event, `/member/signin?next=${encodeURIComponent(target)}`);
 }
 
-// Input is validated printable ASCII, so btoa is safe.
 function base64Url(s: string): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Placeholder email (sign-in is by username). Email-safe names keep the
-// plain form existing accounts use, so never change it. Others are
-// base64url-encoded so they pass email validation.
+// Sign-in is by username; the email is a placeholder. Don't change the
+// plain form, existing accounts use it.
 export function syntheticEmail(username: string): string {
   const lower = username.toLowerCase();
   if (/^[a-z0-9._-]+$/.test(lower)) return `${lower}@users.sonicrelvl.local`;

@@ -1,5 +1,3 @@
-// POST /member/signup
-// Username + password + confirm form.
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html, renderSignupPage } from "../../utils/page";
@@ -31,7 +29,6 @@ function validateInput(body: Record<string, unknown>): string | { username: stri
 
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
-  // Read the body first so the redirect can honor a posted `next`.
   const body = (await readBody(event)) as Record<string, unknown>;
   if (await alreadySignedIn(event)) {
     return sendRedirect(event, resolveNext(event, body));

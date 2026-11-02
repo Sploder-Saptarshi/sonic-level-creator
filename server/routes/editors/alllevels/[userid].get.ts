@@ -1,6 +1,3 @@
-// GET /editors/alllevels/:userid
-// "Levels by X" (published only). Keyed by
-// user id because usernames may contain spaces and punctuation.
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery, getRouterParam } from "nitro/h3";
 import {

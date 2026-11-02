@@ -1,5 +1,3 @@
-// GET /quickstart
-// Quick Start Guide.
 import { defineHandler } from "nitro";
 import { html, renderQuickstartPage, toPageView } from "../../utils/page";
 import { getSessionUser } from "../../utils/session";

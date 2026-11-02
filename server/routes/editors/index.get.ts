@@ -1,5 +1,3 @@
-// GET /editors/
-// Level editor (members only).
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, renderEditorPage, toPageView } from "../../utils/page";

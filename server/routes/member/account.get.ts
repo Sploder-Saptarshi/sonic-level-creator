@@ -1,5 +1,3 @@
-// GET /member/account
-// My Account (change username / password).
 import { defineHandler } from "nitro";
 import { html, renderAccountPage, toPageView } from "../../utils/page";
 import { redirectToSignin } from "../../utils/authFlow";

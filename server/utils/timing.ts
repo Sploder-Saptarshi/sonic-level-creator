@@ -1,5 +1,3 @@
-// Per-request timing badge (wall-clock + DB query count) shown on every SSR
-// page. Queries are counted by the drizzle logger on each db handle.
 import type { H3Event } from "nitro";
 
 export interface TimingState {
@@ -14,7 +12,6 @@ function stateOf(event: H3Event): TimingState | null {
   return s && typeof s === "object" ? (s as TimingState) : null;
 }
 
-// First call wins.
 export function startTiming(event: H3Event): TimingState {
   let s = stateOf(event);
   if (!s) {
@@ -24,12 +21,10 @@ export function startTiming(event: H3Event): TimingState {
   return s;
 }
 
-// For statements that bypass drizzle (pinFreshBookmark).
 export function countQuery(event: H3Event): void {
   startTiming(event).queries += 1;
 }
 
-// Also counts Better Auth's internal queries, which share the handle.
 export function dbLogger(event: H3Event): { logQuery(): void } {
   return { logQuery: () => countQuery(event) };
 }

@@ -1,12 +1,3 @@
-// Discord webhooks for level published/deleted/played and user sign-in/up.
-// Delivery runs in the background and failures are swallowed.
-//
-// - Only published levels ever produce level events.
-// - Played events come from the AMF gateway (not page views, which crawlers
-//   would trigger).
-// - User-controlled text goes through defuse() so it can't link or mention.
-// - Enabled only on the edge with the WEBHOOK_URL secret set
-//   (`wrangler pages secret put WEBHOOK_URL`); a no-op in local dev.
 import type { H3Event } from "nitro";
 import { getRequestURL } from "nitro/h3";
 import { getCloudflareEnv } from "../auth/env";
@@ -29,7 +20,7 @@ export interface WebhookBody {
   event: WebhookEventName;
   site: string;
   at: string;
-  // Role ping on uploads; mentions inside embeds don't notify.
+  // mentions inside embeds don't notify
   content?: string;
   allowed_mentions?: { parse: string[] };
   embeds: Array<{
@@ -45,14 +36,13 @@ export interface WebhookBody {
 
 const UPLOAD_PING_ROLE_ID = "1551503269443145768";
 
-// Embed colors from the site's "puck" palette.
 const COLOR_PLAYED = 0x222222;
 const COLOR_PUBLISHED = 0xffcd1a;
 const COLOR_DELETED = 0xd42300;
 const COLOR_SIGNED_IN = 0x36d0f6;
 const COLOR_SIGNED_UP = 0x1a79cd;
 
-// Requires the edge D1 binding, so local dev never sends.
+// local dev never sends
 export function getWebhookUrl(event: H3Event): string | undefined {
   const cf = getCloudflareEnv(event);
   if (!cf?.DB) return undefined;
@@ -66,8 +56,7 @@ export function getWebhookUrl(event: H3Event): string | undefined {
 
 const ZWSP = "\u200b";
 
-// Zero-width spaces break Discord's autolink, markdown-link and mention
-// parsing while rendering identically.
+// Zero-width spaces stop Discord from turning user text into links or mentions.
 function defuse(text: string): string {
   return text
     .replace(/(https?):\/\//gi, `$1:${ZWSP}//`)
@@ -86,16 +75,8 @@ function requestOrigin(event: H3Event): string {
   }
 }
 
-// Uses the runtime's waitUntil when available, else fire-and-forget.
 function runInBackground(event: H3Event, task: Promise<unknown>): void {
-  const settled = task.catch(() => {});
-  const owners = [
-    event as any,
-    (event.context as any)?.cloudflare?.context,
-    (event.req as any)?.runtime?.cloudflare?.context,
-  ];
-  const owner = owners.find((o) => typeof o?.waitUntil === "function");
-  owner?.waitUntil(settled);
+  event.waitUntil(task.catch(() => {}));
 }
 
 function send(event: H3Event, body: WebhookBody): void {
@@ -158,7 +139,6 @@ export function notifyLevelPublished(
   send(event, body);
 }
 
-// Silent for unpublished levels.
 export function notifyLevelDeleted(
   event: H3Event,
   level: {
@@ -176,7 +156,6 @@ export function notifyLevelDeleted(
     "level.deleted",
     `${name} was bulldozed by Dr. Eggman, better luck next time!`,
     COLOR_DELETED,
-    // No link: the play URL would 404.
     { title: name },
   );
   body.level = {
@@ -189,7 +168,6 @@ export function notifyLevelDeleted(
   send(event, body);
 }
 
-// Callers pass published levels only.
 export function notifyLevelPlayed(
   event: H3Event,
   level: { id: string; name: string },

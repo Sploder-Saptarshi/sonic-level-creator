@@ -1,5 +1,3 @@
-// POST /editors/reports/delete
-// Moderator level delete from the queue.
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import { cleanId, deleteLevelAs } from "../../../utils/levels";

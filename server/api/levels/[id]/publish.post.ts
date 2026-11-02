@@ -1,5 +1,3 @@
-// POST /api/levels/:id/publish
-// Permanently publish one of the user's levels.
 import { defineHandler } from "nitro";
 import { level } from "../../../db/schema";
 import {

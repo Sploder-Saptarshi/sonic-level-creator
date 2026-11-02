@@ -1,5 +1,3 @@
-// PUT /api/levels/:id
-// Overwrite one of the signed-in user's levels.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { level } from "../../db/schema";

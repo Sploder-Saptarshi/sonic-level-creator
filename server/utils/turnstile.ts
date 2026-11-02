@@ -1,7 +1,3 @@
-// Cloudflare Turnstile verification for sign-in/up. Real keys require
-// success, the expected action and an allowlisted hostname; Workers fail
-// closed on any missing config. Local Node dev defaults to Cloudflare's
-// always-pass test keys.
 import type { H3Event } from "nitro";
 import { getRequestIP } from "nitro/h3";
 import { getCloudflareEnv } from "../auth/env";
@@ -9,9 +5,7 @@ import { getCloudflareEnv } from "../auth/env";
 const SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-// Cloudflare's public always-pass test keys (they only accept dummy tokens).
-// Other documented test sitekeys: 2x…AB always fails, 3x…FF forces an
-// interactive challenge.
+// Cloudflare's public always-pass test keys, for local dev.
 export const DEV_TURNSTILE_SITEKEY = "1x00000000000000000000AA";
 const DEV_TURNSTILE_SECRET = "1x0000000000000000000000000000000AA";
 const DEV_TURNSTILE_HOSTNAMES = ["localhost", "127.0.0.1"];
@@ -32,8 +26,7 @@ function splitHostnames(v: unknown): string[] {
 
 function getTurnstileEnv(event: H3Event): TurnstileEnv {
   const cf = getCloudflareEnv(event);
-  const onEdge = cf && (cf.DB || ["TURNSTILE_SECRET", "TURNSTILE_HOSTNAMES", "TURNSTILE_SITEKEY"].some((k) => cf[k] !== undefined));
-  if (onEdge) {
+  if (cf) {
     return {
       secret: cf.TURNSTILE_SECRET as string | undefined,
       hostnames: splitHostnames(cf.TURNSTILE_HOSTNAMES),
@@ -41,7 +34,6 @@ function getTurnstileEnv(event: H3Event): TurnstileEnv {
     };
   }
   if (typeof process === "undefined" || !process.versions?.node) return { hostnames: [] };
-  // Local dev only; Workers never reach this, so production fails closed.
   const hostnames = splitHostnames(process.env.TURNSTILE_HOSTNAMES);
   return {
     secret: process.env.TURNSTILE_SECRET || DEV_TURNSTILE_SECRET,
@@ -83,8 +75,7 @@ async function siteverify(event: H3Event, secret: string, token: string): Promis
   }
 }
 
-// Test keys answer with hostname "example.com" and no action, so only real
-// keys are held to the action/hostname checks.
+// test keys report no action and hostname example.com
 function isAccepted(result: SiteverifyResult | null, action: string, hostnames: string[]): boolean {
   if (result?.success !== true) return false;
   if (result.metadata?.result_with_testing_key === true) return true;

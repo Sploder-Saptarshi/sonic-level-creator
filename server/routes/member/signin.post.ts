@@ -1,5 +1,3 @@
-// POST /member/signin
-// Username + password form.
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
 import { html, renderSigninPage } from "../../utils/page";
@@ -20,7 +18,6 @@ import { notifyUserSignedIn } from "../../utils/webhook";
 
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
-  // Read the body first so the redirect can honor a posted `next`.
   const body = (await readBody(event)) as Record<string, unknown>;
   if (await alreadySignedIn(event)) {
     return sendRedirect(event, resolveNext(event, body));

@@ -1,6 +1,3 @@
-// GET /editors/reports
-// Moderator queue of reported levels. Non-moderators
-// get a 404 so the page's existence isn't revealed.
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, paginationBar, renderReportsPage, toPageView } from "../../utils/page";
@@ -27,7 +24,6 @@ export default defineHandler(async (event) => {
   if (total === 0) {
     return html(event, renderReportsPage({ ...toPageView(session, event), reports: [] }));
   }
-  // Pages are cut per report, so a level's reports may span two pages.
   const q = getQuery(event);
   const { page, totalPages } = clampListingPage(q.page, total);
   const { incoming, keyset } = parseKeysetQuery(q);

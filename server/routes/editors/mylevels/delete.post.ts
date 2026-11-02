@@ -1,5 +1,3 @@
-// POST /editors/mylevels/delete
-// Owner-or-moderator level delete.
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import { cleanId, deleteLevelAs } from "../../../utils/levels";

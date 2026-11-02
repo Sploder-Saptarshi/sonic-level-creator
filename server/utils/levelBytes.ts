@@ -1,5 +1,3 @@
-// Stored level -> the game's single comma-decimal string: BIN bytes followed
-// by ACT bytes. The editor bundle reuses these encoders for test play.
 import { decodeLevel, type CompactObject } from "./compact";
 
 function pushU32(out: number[], v: number): void {
@@ -21,7 +19,7 @@ export function encodeBin(grid: number[][]): number[] {
 }
 
 export function encodeAct(objects: CompactObject[]): number[] {
-  // The SWF streams objects with forward-only cursors, so sort by X.
+  // the SWF reads objects in X order
   const sorted = [...objects].sort((a, b) => a.x - b.x || a.y - b.y);
   const entries: number[] = [];
   for (const o of sorted) {
@@ -37,7 +35,6 @@ export function encodeAct(objects: CompactObject[]): number[] {
   return out;
 }
 
-// Null on corrupt data.
 export function levelToCsv(data: string): string | null {
   const parsed = decodeLevel(data);
   if (!parsed || !parsed.grid.length || !parsed.grid[0].length) return null;

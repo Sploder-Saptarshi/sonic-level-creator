@@ -1,6 +1,3 @@
-// Pass-through to Better Auth's endpoints, except sign-in/sign-up: those
-// must go through the /member/* forms (Turnstile + username policy).
-// 404 so probes learn nothing.
 import { defineHandler, HTTPError } from "nitro";
 import { createAuth } from "../../auth/config";
 

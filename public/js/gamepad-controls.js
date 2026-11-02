@@ -1,22 +1,9 @@
-/* Gamepad controls for the level player (/ and /play/:id).
- *
- * Sends key codes through the same tcKeyDown/tcKeyUp SWF hooks as
- * touch-controls.js. Standard-mapping pads; all connected pads are merged:
- *   d-pad (12-15) or either stick => arrows
- *   A/B/X/Y/LB/RB/LT/RT (0-7)     => Space (jump / select)
- *   A (0)                         => also Enter (pause-menu confirm)
- *   Start (9)                     => P (pause / resume)
- *   Select (8)                    => Escape (close pause menu)
- * Outside gameplay, A and Start also click the stage: the title screen only
- * advances on a mouse click.
- *
- * Only Ruffle's element is ever called, so under the real Flash plugin this
- * script is a no-op. Polling runs only while a pad is connected.
- */
+// Gamepad support for the level player, through the same SWF hooks as
+// touch-controls.js. D-pad/sticks = arrows, face buttons and triggers = jump,
+// A = Enter, Start = P (pause), Select = Escape.
 (function () {
   "use strict";
 
-  // The SWF's Utilities.KEY_*_INDEX values plus its menu keys.
   var KEYMAP = {
     left: 37,
     right: 39,
@@ -33,51 +20,31 @@
   var HELD_DIRECTIONS = ["left", "right", "up", "down", "jump"];
 
   var AXIS_DEADZONE = 0.35;
-  var TRIGGER_THRESHOLD = 0.25;
   var MODE_FIELD = 2; // MainCanvas.MODE_FIELD: gameplay
   var TAP_MS = 50;
-  var FALLBACK_POLL_MS = 16;
 
-  // Ruffle replaces #gameswf with <ruffle-object> (<ruffle-player> on older
-  // builds) or nests one inside it. A real Flash <object> never matches.
   function getPlayer() {
     var root = document.getElementById("gameswf");
     if (!root) return null;
-    var tag = root.tagName.toLowerCase();
-    if (tag === "ruffle-player" || tag === "ruffle-object") return root;
+    if (/^ruffle-(player|object)$/i.test(root.tagName)) return root;
     return root.querySelector("ruffle-player, ruffle-object");
   }
 
-  // The player element, then Ruffle's versioned API when it has one.
-  function swfTargets() {
+  // the hooks only exist once the movie has registered them
+  function callHook(method, arg) {
     var player = getPlayer();
-    if (!player) return [];
-    var targets = [player];
+    if (!player || typeof player[method] !== "function") return undefined;
     try {
-      var api = typeof player.ruffle === "function" && player.ruffle();
-      if (api) targets.push(api);
+      return player[method](arg);
     } catch (e) {
-      // Older Ruffle builds have no versioned API.
+      return undefined;
     }
-    return targets;
   }
 
   function sendKey(down, code) {
-    var method = down ? "tcKeyDown" : "tcKeyUp";
-    var targets = swfTargets();
-    for (var i = 0; i < targets.length; i++) {
-      try {
-        if (typeof targets[i][method] === "function") {
-          targets[i][method](code);
-          return;
-        }
-      } catch (e) {
-        // Fall through to the next target.
-      }
-    }
+    callHook(down ? "tcKeyDown" : "tcKeyUp", code);
   }
 
-  // The SWF acts on key-down; the key-up keeps its key state clean.
   function tapKey(code) {
     sendKey(true, code);
     setTimeout(function () {
@@ -86,18 +53,9 @@
   }
 
   function inGameField() {
-    var targets = swfTargets();
-    for (var i = 0; i < targets.length; i++) {
-      try {
-        if (typeof targets[i].tcMode === "function" && targets[i].tcMode() === MODE_FIELD) return true;
-      } catch (e) {
-        // Fall through to the next target.
-      }
-    }
-    return false;
+    return callHook("tcMode") === MODE_FIELD;
   }
 
-  // Ruffle forwards DOM mouse events into the SWF.
   function clickPlayer(el) {
     var r = el.getBoundingClientRect();
     var init = {
@@ -114,41 +72,25 @@
     el.click();
   }
 
-  // Gated on gameplay so a click can never interfere with play.
+  // the title screen only advances on a mouse click
   function clickOutsideGameplay() {
     var el = getPlayer();
-    if (!el || inGameField()) return;
-    try {
-      clickPlayer(el);
-    } catch (e) {
-      // Clicking is best-effort; the key taps still go through.
-    }
+    if (el && !inGameField()) clickPlayer(el);
   }
 
   function isPressed(button) {
-    if (!button) return false;
-    if (typeof button.pressed === "boolean") return button.pressed;
-    return (button.value || 0) > TRIGGER_THRESHOLD;
+    return !!button && button.pressed;
   }
 
-  function axisValue(v) {
-    return typeof v === "number" && isFinite(v) ? v : 0;
-  }
-
-  // Axes 0/1 are the left stick, 2/3 the right stick.
+  // axes 0/1: left stick, 2/3: right stick
   function stickPushed(axes, index, sign) {
-    return sign * axisValue(axes[index]) > AXIS_DEADZONE || sign * axisValue(axes[index + 2]) > AXIS_DEADZONE;
+    return sign * axes[index] > AXIS_DEADZONE || sign * axes[index + 2] > AXIS_DEADZONE;
   }
 
   function connectedPads() {
-    try {
-      var pads = navigator.getGamepads() || [];
-      return Array.prototype.filter.call(pads, function (pad) {
-        return pad && pad.connected;
-      });
-    } catch (e) {
-      return [];
-    }
+    return Array.prototype.filter.call(navigator.getGamepads(), function (pad) {
+      return pad && pad.connected;
+    });
   }
 
   function emptyInput() {
@@ -156,8 +98,8 @@
   }
 
   function mergePad(input, pad) {
-    var b = pad.buttons || [];
-    var axes = pad.axes || [];
+    var b = pad.buttons;
+    var axes = pad.axes;
     input.connected = true;
     input.left = input.left || isPressed(b[BUTTON.left]) || stickPushed(axes, 0, -1);
     input.right = input.right || isPressed(b[BUTTON.right]) || stickPushed(axes, 0, 1);
@@ -174,13 +116,11 @@
     connectedPads().forEach(function (pad) {
       mergePad(input, pad);
     });
-    // Opposite directions cancel instead of sticking.
     if (input.left && input.right) input.left = input.right = false;
     if (input.up && input.down) input.up = input.down = false;
     return input;
   }
 
-  // Tracks held keys and button edges between polls.
   function createController() {
     var held = { left: false, right: false, up: false, down: false, jump: false, enter: false };
     var previous = emptyInput();
@@ -198,7 +138,6 @@
       previous = emptyInput();
     }
 
-    // Enter rides along with A so one button covers gameplay and menus.
     function apply(input) {
       HELD_DIRECTIONS.forEach(function (name) {
         setHeld(name, input[name]);
@@ -219,44 +158,27 @@
     if (el) el.style.display = connectedPads().length > 0 ? "block" : "none";
   }
 
-  // Polls once per frame while any pad is connected, and parks (releasing
-  // every key) once the last one leaves.
   function createPollLoop(controller) {
-    var useRaf = typeof window.requestAnimationFrame === "function";
-    var timerId = 0;
-
-    function schedule() {
-      timerId = useRaf ? window.requestAnimationFrame(tick) : setTimeout(tick, FALLBACK_POLL_MS);
-    }
-
-    function cancel() {
-      if (!timerId) return;
-      if (useRaf) window.cancelAnimationFrame(timerId);
-      else clearTimeout(timerId);
-      timerId = 0;
-    }
+    var frame = 0;
 
     function park() {
       controller.releaseAll();
-      cancel();
+      cancelAnimationFrame(frame);
+      frame = 0;
       updateIndicator();
     }
 
     function tick() {
-      timerId = 0;
+      frame = 0;
       var input = readInput();
       if (!input.connected) return park();
-      try {
-        controller.apply(input);
-      } catch (e) {
-        // A bad frame must not stop polling.
-      }
-      schedule();
+      controller.apply(input);
+      frame = requestAnimationFrame(tick);
     }
 
     function start() {
       updateIndicator();
-      if (!timerId && connectedPads().length > 0) schedule();
+      if (!frame && connectedPads().length > 0) frame = requestAnimationFrame(tick);
     }
 
     function onDisconnect() {

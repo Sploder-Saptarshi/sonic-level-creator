@@ -1,20 +1,11 @@
-// Build-time only. Generates the Cloudflare Pages `_routes.json` include
-// list by mirroring Nitro's file-based route mapping (Nitro exposes no
-// public scanner API):
-//
-//   server/routes/index.get.ts          -> /
-//   server/routes/member/signin.post.ts -> /member/signin (+ trailing-slash twin)
-//   server/api/levels/[id].get.ts       -> /api/levels/*
-//   server/api/auth/[...all].ts         -> /api/auth/*
-//
-// Method suffixes are dropped; dynamic and catch-all segments become `*`.
+// Builds the Cloudflare Pages _routes.json include list from server/ (Nitro
+// has no public API for its route scan).
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const HANDLER_EXT = /\.(get|post|put|delete|patch|head|options|ts|mjs|js)$/;
 
 function toRoute(prefix: string, file: string): string {
-  // gateway.php.post.ts -> gateway.php (keeps the URL's own extension).
   const name = file
     .replace(/\.(get|post|put|delete|patch|head|options)\.([^.]+)$/, "")
     .replace(/\.(ts|js|mjs|cjs)$/, "");
@@ -52,8 +43,6 @@ export function collectFunctionRoutes(
 ): string[] {
   const out = new Set<string>();
   for (const [dir, prefix] of Object.entries(dirs)) scan(dir, prefix, out);
-  // _routes.json rejects overlapping includes (e.g. /api/levels/*/publish
-  // under /api/levels/*).
   const wilds = [...out].filter((r) => r.endsWith("/*"));
   const covered = (r: string) =>
     wilds.some((w) => w !== r && r.startsWith(w.slice(0, -1)));

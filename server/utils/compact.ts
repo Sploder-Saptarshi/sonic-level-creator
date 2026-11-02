@@ -1,6 +1,3 @@
-// Compact level storage: RLE grid + object tuples as JSON, 10–27x smaller
-// than comma-decimal CSV. Shared by the editor bundle (via ts/format.ts) and
-// the gateway.
 export interface CompactObject {
   x: number;
   y: number;
@@ -54,8 +51,7 @@ function parseDoc(data: string): CompactDoc | null {
   return validSize && Array.isArray(doc.r) && Array.isArray(doc.o) ? doc : null;
 }
 
-// Each run is bounds-checked before expanding, so a hostile row can't make
-// the server push billions of cells.
+// check runs before expanding them, so a hostile level can't blow up memory
 function expandRuns(runs: unknown[], total: number): number[] | null {
   if (runs.length > total + 1) return null;
   const flat: number[] = [];

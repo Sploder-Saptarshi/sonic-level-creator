@@ -1,5 +1,3 @@
-// POST /member/account/password
-// Change password via Better Auth.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { html, renderAccountPage, toPageView } from "../../../utils/page";

@@ -1,5 +1,3 @@
-// GET /amfphp/gateway.php
-// POST-only, like the legacy endpoint.
 import { defineHandler } from "nitro";
 import { setResponseHeader } from "nitro/h3";
 import { HTTPError } from "nitro";

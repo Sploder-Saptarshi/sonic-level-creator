@@ -1,4 +1,3 @@
-// Layout chrome: header bar, nav, sidebar, shared page shells.
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import sidenavTemplate from "../../templates/sidenav.html" with { type: "text" };
 import reportBodyTemplate from "../../templates/report.html" with { type: "text" };
@@ -14,7 +13,6 @@ import {
   UPSELL_HTML,
 } from "./constants";
 
-// Escapes the username: the layout slot is raw.
 export function userLanguageBar(username: string): string {
   const name = escapeHtml(username);
   return `<div id="languagebar" style="width:auto;min-width:200px;white-space:nowrap">  <span style="vertical-align:middle">Signed in as <b>${name}</b></span> <a class="lozenge1" style="vertical-align:middle;float:none;display:inline-block;margin-left:8px" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
@@ -34,8 +32,6 @@ export interface PageView {
   event?: H3Event;
 }
 
-// Guests get the signed-out chrome. The event supplies the request origin
-// (for absolute embed image URLs) and the timing context.
 export function toPageView(session: SessionUser | null, event?: H3Event): PageView {
   const origin = event ? getRequestURL(event).origin : undefined;
   const base: PageView = {
@@ -51,12 +47,11 @@ export function toPageView(session: SessionUser | null, event?: H3Event): PageVi
   };
 }
 
-// Resolved at layout-render time so the badge covers the whole request.
 export function timingFor(view: PageView): string {
   return view.event ? timingBadge(view.event) : "";
 }
 
-// Link unfurlers require absolute image URLs.
+// link previews need an absolute URL
 export function embedImage(view: PageView): string {
   return view.origin ? `${view.origin}/images/embed.png` : "";
 }
@@ -98,7 +93,6 @@ export function footerMidLink(signedIn: boolean): string {
     : `<a href="/quickstart">Quickstart</a>`;
 }
 
-// Guests see the sign-up upsell; signed-in users see Sonic side art.
 export function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   return render(sidenavTemplate, {
     navButton: signedIn
@@ -110,7 +104,6 @@ export function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   });
 }
 
-// Rendered first, then injected raw into the game template.
 export function reportBlockHtml(view: PageView, levelId: number | string): string {
   return render(reportBodyTemplate, {
     reportButton: REPORTER_HTML,
@@ -133,7 +126,6 @@ export function editorButtons(signedIn: boolean): string {
   return buttons.join("\n                        ");
 }
 
-// Shared shell for My Levels, All Levels, Levels by X and Reports.
 export function renderLevelListPage(
   view: PageView,
   active: string,

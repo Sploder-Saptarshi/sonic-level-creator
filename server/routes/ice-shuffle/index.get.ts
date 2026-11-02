@@ -1,5 +1,3 @@
-// GET /ice-shuffle
-// Ice Shuffle player (reuses the game page template).
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, renderGamePage, toPageView } from "../../utils/page";
@@ -13,7 +11,6 @@ export default defineHandler(async (event) => {
       contentSwf: "/games/swf/5/5.swf",
       playerName: "Ice Shuffle",
       title: "Ice Shuffle",
-      // Crops the 640px movie by 20px on each side.
       headExtra: `<style type="text/css" media="screen">
 #gamecontainer { padding-bottom: 1px; width: 605px; margin: 0 auto; overflow: hidden; }
 #gamecontainer #gameswf { width: 640px; margin: 0 -20px; }

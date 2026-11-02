@@ -1,29 +1,21 @@
-// Nitro server: SSR pages (Eta-syntax templates) + static public/ docroot.
-// Deploy: default `node_server`; Workers via NITRO_PRESET=cloudflare_module.
 import { defineConfig } from "nitro";
 import { collectFunctionRoutes } from "./build/pages-routes";
 
 export default defineConfig({
   serverDir: "server",
-  // Runtime brotli of multi-MB binaries costs seconds of CPU per request
-  // (7.6s for the spritesheet); prebuilt variants cost nothing.
+  // on-the-fly brotli of the spritesheet took ~8s
   compressPublicAssets: { gzip: true, brotli: true },
   cloudflare: {
     pages: {
-      // Explicit list instead of `/*`: scanner junk (/.env, /.git/…) falls
-      // through to free static 404s instead of invoking the worker.
+      // explicit list so scanner junk (/.env, /.git) never invokes the worker
       routes: {
         include: collectFunctionRoutes(),
         exclude: [],
       },
     },
   },
-  // Hardening headers on every response (static + SSR):
-  // - No framing; frame-src exists only for Turnstile's challenge iframe.
-  // - 'unsafe-eval' is required by Ruffle (no eval-free build). Scripts stay
-  //   host-allowlisted and output is escaped in server/utils/page/render.ts.
-  // - Permissions-Policy allows only fullscreen + autoplay on self.
-  // - No COEP (breaks Ruffle chunk loading); HSTS belongs on the edge.
+  // Ruffle needs 'unsafe-eval', data: audio and blob: workers. No COEP: it
+  // breaks Ruffle's chunk loading.
   routeRules: {
     "/**": {
       headers: {
@@ -32,13 +24,10 @@ export default defineConfig({
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://challenges.cloudflare.com",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data:",
-          // Ruffle synthesizes game audio as data: URLs at runtime.
           "media-src 'self' data:",
           "font-src 'self'",
           "connect-src 'self' https://unpkg.com",
-          // Same-origin SWFs are embedded as plugin data for Ruffle.
           "object-src 'self'",
-          // Ruffle runs audio/decoding in blob: workers (always same-origin).
           "worker-src 'self' blob:",
           "frame-src https://challenges.cloudflare.com",
           "form-action 'self'",
@@ -47,7 +36,6 @@ export default defineConfig({
         ].join("; "),
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        // 0 disables the legacy XSS auditor, which itself introduced XSS.
         "x-xss-protection": "0",
         "referrer-policy": "strict-origin-when-cross-origin",
         "cross-origin-resource-policy": "same-origin",
@@ -85,8 +73,7 @@ export default defineConfig({
       },
     },
   },
-  // nitro dev brotlis statics on the fly at max quality (~8s for the
-  // spritesheet). Serve identity over loopback instead.
+  // nitro dev would brotli statics on every request
   devHandlers: [
     {
       route: "/**",

@@ -1,7 +1,3 @@
-// GET /play/:id
-// Level player. Published levels play for everyone, owners
-// also see their unpublished ones, and moderators can review reported ones.
-// Plays are counted at the gateway, not here (crawlers would inflate them).
 import { defineHandler } from "nitro";
 import { getRouterParam, sendRedirect } from "nitro/h3";
 import { HTTPError } from "nitro";
@@ -25,8 +21,6 @@ export default defineHandler(async (event) => {
   const session = await getSessionUser(event);
   let row = (await findVisibleLevelName(getReplicaDb(event), id, session))[0];
   if (!row && session) {
-    // Signed-in misses retry on the primary (read-your-writes); guests and
-    // junk probes stop at the replica.
     const primary = getRequestDb(event);
     row = (await findVisibleLevelName(primary, id, session))[0];
     if (!row && session.isModerator) {

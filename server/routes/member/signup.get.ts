@@ -1,5 +1,3 @@
-// GET /member/signup
-// Sign-up page; signed-in users are redirected on.
 import { defineHandler } from "nitro";
 import { getQuery, getRequestURL, sendRedirect } from "nitro/h3";
 import { html, renderSignupPage } from "../../utils/page";

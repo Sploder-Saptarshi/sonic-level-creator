@@ -1,5 +1,3 @@
-// GET /
-// Level player for the stock level.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, renderGamePage, toPageView } from "../utils/page";

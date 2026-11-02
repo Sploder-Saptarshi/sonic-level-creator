@@ -1,7 +1,7 @@
 import { escapeHtml } from "../session";
 
-// Eval-free template renderer (Workers-safe): `<%= it.x %>` is
-// HTML-escaped, `<%~ it.x %>` is raw.
+// Eta's compiler uses new Function, which Workers forbid.
+// <%= it.x %> is escaped, <%~ it.x %> is raw.
 export function render(tpl: string, data: Record<string, unknown>): string {
   return tpl.replace(
     /<%([=~])\s*it\.([A-Za-z_$][\w$]*)\s*%>/g,
@@ -17,15 +17,12 @@ export function pageTitle(base: string): string {
   return `${base} | Sonic ReLvl`;
 }
 
-// JSON for an inline <script>; `<` is escaped so it can't close the tag.
 export function bootstrap(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-// For single-quoted JS strings inside double-quoted HTML attributes
-// (onsubmit="promptRename('...')"). JS-escape first, then HTML-escape with
-// `&` first: otherwise a name like `&#39;);alert(1);//` decodes to `'`
-// after escaping and breaks out of the string.
+// For JS strings inside HTML attributes (onsubmit="promptRename('...')").
+// The HTML pass must escape & too, or `&#39;` decodes back into a quote.
 export function escapeJsAttr(s: string): string {
   return s
     .replace(/\\/g, "\\\\")
@@ -40,7 +37,6 @@ export function escapeJsAttr(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// YYYY-MM-DD for valid Dates, "" otherwise.
 export function formatDate(v: unknown): string {
   return v instanceof Date && !isNaN(+v) ? v.toISOString().slice(0, 10) : "";
 }

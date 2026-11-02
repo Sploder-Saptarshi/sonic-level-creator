@@ -1,5 +1,3 @@
-// POST /editors/reports/dismiss
-// Dismiss every open report on one level.
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
 import {

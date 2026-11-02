@@ -1,5 +1,3 @@
-// DELETE /api/levels/:id
-// Delete one of the signed-in user's levels.
 import { defineHandler } from "nitro";
 import {
   deleteLevelWithReports,

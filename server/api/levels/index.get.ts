@@ -1,5 +1,3 @@
-// GET /api/levels
-// The signed-in user's levels (metadata only).
 import { defineHandler } from "nitro";
 import { getReplicaDb, listMyLevels, requireUser } from "../../utils/levels";
 

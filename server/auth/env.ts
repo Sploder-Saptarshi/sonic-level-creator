@@ -1,5 +1,3 @@
-// Auth runtime environment: D1 bindings on Workers, SQLite + process.env
-// on Node.
 import type { H3Event } from "nitro";
 import { HTTPError } from "nitro";
 import type { D1Database } from "@cloudflare/workers-types";
@@ -13,7 +11,7 @@ export interface AuthEnv {
 }
 
 export function getCloudflareEnv(event: H3Event): Record<string, any> | undefined {
-  return (event.req as any)?.runtime?.cloudflare?.env ?? (event.context as any)?.cloudflare?.env;
+  return (event.runtime as any)?.cloudflare?.env;
 }
 
 export function getAuthEnv(event: H3Event): AuthEnv {
@@ -40,7 +38,6 @@ export function getAuthEnv(event: H3Event): AuthEnv {
     kind: "node",
     secret:
       process.env.BETTER_AUTH_SECRET ?? "dev-only-insecure-secret-change-me",
-    // Optional override (e.g. https tunnels).
     baseURL: process.env.BETTER_AUTH_URL,
   };
 }

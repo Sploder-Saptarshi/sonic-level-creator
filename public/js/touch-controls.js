@@ -1,10 +1,5 @@
-/* Touch controls for the level player (/ and /play/:id).
- *
- * Active only on touch devices, and only visible during gameplay on the
- * fullscreen stage (see touch-controls.css). Input goes through the SWF's
- * tcKeyDown/tcKeyUp ExternalInterface hooks, so the game needs no keyboard
- * focus. The d-pad is 4-way: the dominant axis wins.
- */
+// On-screen d-pad and jump button for the level player. Keys go straight
+// into the game through the SWF's tcKeyDown/tcKeyUp hooks.
 (function () {
   "use strict";
 
@@ -15,7 +10,6 @@
   var MODE_FIELD = 2; // MainCanvas.MODE_FIELD: gameplay
   var PLAYING_POLL_MS = 500;
 
-  // The SWF's Utilities.KEY_*_INDEX values.
   var KEYMAP = { left: 37, right: 39, up: 38, down: 40, jump: 32 };
 
   var KNOB_DIRECTION = {
@@ -26,65 +20,34 @@
   };
 
   function isTouchDevice() {
-    return "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
   }
 
-  function findPlayer() {
-    return (
-      document.querySelector("#gameswf ruffle-player") ||
-      document.querySelector("#gameswf object") ||
-      document.querySelector("#gameswf embed") ||
-      document.getElementById("gameswf")
-    );
+  function getPlayer() {
+    var root = document.getElementById("gameswf");
+    if (!root) return null;
+    if (/^ruffle-(player|object)$/i.test(root.tagName)) return root;
+    return root.querySelector("ruffle-player, ruffle-object");
   }
 
-  // The player element, then Ruffle's versioned API when it has one.
-  function swfTargets() {
-    var player = findPlayer();
-    if (!player) return [];
-    var targets = [player];
+  // the hooks only exist once the movie has registered them
+  function callHook(method, arg) {
+    var player = getPlayer();
+    if (!player || typeof player[method] !== "function") return undefined;
     try {
-      var api = typeof player.ruffle === "function" && player.ruffle();
-      if (api) targets.push(api);
-    } catch (e) {
-      // Older Ruffle builds have no versioned API.
-    }
-    return targets;
-  }
-
-  // Returns undefined when the target lacks the hook or the call throws.
-  function callHook(target, method, arg) {
-    try {
-      return typeof target[method] === "function" ? target[method](arg) : undefined;
+      return player[method](arg);
     } catch (e) {
       return undefined;
     }
   }
 
   function sendKey(down, code) {
-    var method = down ? "tcKeyDown" : "tcKeyUp";
-    var targets = swfTargets();
-    for (var i = 0; i < targets.length; i++) {
-      try {
-        if (typeof targets[i][method] === "function") {
-          targets[i][method](code);
-          return;
-        }
-      } catch (e) {
-        // Fall through to the next target.
-      }
-    }
+    callHook(down ? "tcKeyDown" : "tcKeyUp", code);
   }
 
-  // tcInGame's Boolean doesn't marshal reliably under Ruffle, so tcMode is
-  // checked as well.
+  // tcInGame's boolean doesn't always survive Ruffle; tcMode does
   function isPlaying() {
-    var targets = swfTargets();
-    for (var i = 0; i < targets.length; i++) {
-      if (callHook(targets[i], "tcInGame") === true) return true;
-      if (callHook(targets[i], "tcMode") === MODE_FIELD) return true;
-    }
-    return false;
+    return callHook("tcInGame") === true || callHook("tcMode") === MODE_FIELD;
   }
 
   function watchPlaying(root) {
@@ -152,7 +115,6 @@
     };
   }
 
-  // Lets one pointer at a time drive the handlers.
   function createGesture(handlers) {
     var active = null;
     return {
@@ -188,7 +150,7 @@
     try {
       el.setPointerCapture(id);
     } catch (e) {
-      // Capture is optional; synthesized pointers can't be captured.
+      // synthetic pointers can't be captured
     }
   }
 
@@ -236,9 +198,8 @@
     el.addEventListener("touchcancel", end, opts);
   }
 
-  // Touch events are bound alongside pointer events: whichever fires first
-  // owns the gesture, so taps register immediately on every engine.
-  // Returns a function that releases the control.
+  // Pointer and touch events are both bound; whichever arrives first wins,
+  // so taps register immediately everywhere.
   function bindControl(el, handlers, options) {
     var gesture = createGesture(handlers);
     bindPointerEvents(el, gesture, options);
@@ -251,7 +212,6 @@
     return gesture.cancel;
   }
 
-  // Never leave a key held when the page loses focus.
   function releaseOnHide(releases) {
     function releaseAll() {
       releases.forEach(function (release) {

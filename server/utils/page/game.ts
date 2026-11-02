@@ -1,4 +1,3 @@
-// Game, editor and /play pages.
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../../templates/editor.html" with { type: "text" };

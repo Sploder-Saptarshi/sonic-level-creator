@@ -1,5 +1,3 @@
-// GET /editors/mylevels
-// The signed-in user's saved levels.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import {

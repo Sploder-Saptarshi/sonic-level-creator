@@ -1,22 +1,23 @@
-// DOM event handlers for the canvas, palette, keyboard and buttons.
-
-import { MAX_OBJECTS_PER_TILE, objectTileCostInTile, objectTiles, countObjectsInTile, snap8, pixelToTile, type ObjectDef, type PlacedObject } from './format';
+import {
+  MAX_OBJECTS_PER_TILE, SONIC_TYPE, GOAL_TYPE, objectTileCostInTile, objectTiles,
+  countObjectsInTile, snap8, pixelToTile, type ObjectDef, type PlacedObject,
+} from './format';
 import {
   S, inGrid, canvasToWorld, totalObjects, countPlacedTiles,
-  cellSize, updateDesc, type TabType,
+  cellSize, updateDesc, clearSelection, clearTileSelection, type TabType,
 } from './state';
 import { draw, requestDraw, updateGhost, hideGhost, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
 import { updateCounter, switchTab } from './thumbnails';
-import { doSave, doTest, stopTest, doFullscreen, doClearAll, setZoom, resizeCanvas, markDirty, doStartCreating, doSelectMapSize, doShare, hideSaveOverlay, showPlaceError, showDeleteError } from './actions';
+import { query, queryAll } from './dom';
+import { hidePopup, showDeleteError, showPlaceError } from './popup';
+import { doClearAll, doSave, doShare } from './levelStore';
+import { doTest, markDirty, stopTest } from './testMode';
+import { doFullscreen } from './fullscreen';
+import { resizeCanvas, setZoom } from './viewport';
 
-const SONIC_TYPE = 151;
-const GOAL_TYPE = 44;
-
-// Listeners on `document` see shadow-retargeted targets (the host), so the
-// real target comes from composedPath().
+// document listeners see the shadow host as the target
 function realTarget(e: Event): EventTarget | null {
-  const path = typeof e.composedPath === 'function' ? e.composedPath() : null;
-  return (path && path.length > 0 ? path[0] : e.target) ?? null;
+  return e.composedPath()[0] ?? e.target;
 }
 
 function rejectWithPopup(msg: string, show: (msg: string) => void) {
@@ -24,10 +25,7 @@ function rejectWithPopup(msg: string, show: (msg: string) => void) {
   show(msg);
 }
 
-// ── Budgets ──
-
-// Each object needs a placed tile, so a tile can't be cleared when the
-// remaining tiles couldn't hold every object.
+// every object needs a placed tile
 function tileClearBlocked(bx: number, by: number): string | null {
   if (S.grid[by][bx] <= 0) return null;
   const total = totalObjects(), tiles = countPlacedTiles();
@@ -43,8 +41,6 @@ function rejectTileClear(bx: number, by: number): boolean {
   return why !== null;
 }
 
-// Checks every tile the object would touch (a ring bunch can spill into a
-// neighbour) against the per-tile cap. `except` skips the object being moved.
 function tileCrowdedReason(type: number, sub: number, x: number, y: number, except?: PlacedObject): string | null {
   for (const t of objectTiles(type, sub, x, y)) {
     const others = countObjectsInTile(S.objects, t.tc, t.tr, except);
@@ -55,13 +51,6 @@ function tileCrowdedReason(type: number, sub: number, x: number, y: number, exce
       : `This tile is full. It already holds ${others} of ${MAX_OBJECTS_PER_TILE} objects. Try a tile with more room.`;
   }
   return null;
-}
-
-// ── Selection helpers ──
-
-function clearTileSelection() {
-  S.selectedTileBx = -1;
-  S.selectedTileBy = -1;
 }
 
 function startObjectDrag(index: number, px: number, py: number) {
@@ -75,8 +64,6 @@ function startObjectDrag(index: number, px: number, py: number) {
   clearTileSelection();
 }
 
-// A click on sprite art selects the object; otherwise a filled cell selects
-// the tile, and an empty cell clears the selection.
 function selectAt(bx: number, by: number, px: number, py: number, mx: number, my: number) {
   const hit = objectHitIndex(mx, my);
   if (hit >= 0) {
@@ -95,8 +82,6 @@ function selectAt(bx: number, by: number, px: number, py: number, mx: number, my
   draw();
 }
 
-// ── Canvas: mousedown ──
-
 function startPan(e: MouseEvent) {
   S.panning = true;
   S.panStartX = e.clientX;
@@ -106,19 +91,15 @@ function startPan(e: MouseEvent) {
   S.canvas!.style.cursor = 'grabbing';
 }
 
-// The X badge on the selected tile clears it.
 function clearSelectedTile() {
   if (rejectTileClear(S.selectedTileBx, S.selectedTileBy)) return;
   S.grid[S.selectedTileBy][S.selectedTileBx] = 0;
-  clearTileSelection();
-  S.selectedObjIdx = -1;
+  clearSelection();
   S.dragObj = null;
   updateCounter();
   draw();
 }
 
-// Right-click removes the top object in the cell, or else the tile, so
-// objects are never left floating on a cleared tile.
 function eraseAt(bx: number, by: number) {
   const top = S.objects.map((o, i) => ({ o, i }))
     .reverse()
@@ -144,7 +125,7 @@ function onMouseDown(e: MouseEvent) {
     startPan(e);
     return;
   }
-  // Checked before the bounds test: the badge can hang off the grid edge.
+  // before the bounds check: the badge can hang off the grid edge
   if (e.button === 0 && hitTileBadge(mx, my, cellSize())) {
     clearSelectedTile();
     return;
@@ -154,12 +135,9 @@ function onMouseDown(e: MouseEvent) {
     eraseAt(bx, by);
     return;
   }
-  // On the Tiles tab, only plain left-clicks select (never mid palette-drag).
   const canSelect = S.activeTab !== 'tiles' || (e.button === 0 && !S.paletteDrag);
   if (canSelect) selectAt(bx, by, px, py, mx, my);
 }
-
-// ── Canvas: mousemove ──
 
 function onMouseMove(e: MouseEvent) {
   const { bx, by, px, py, mx, my } = canvasToWorld(e);
@@ -183,22 +161,16 @@ function onMouseMove(e: MouseEvent) {
     updateCounter();
   }
 
-  // Keeps the palette-drop preview in sync (the document handler sets the
-  // same values, so this is idempotent).
   if (S.paletteDrag) {
     S.previewOnCanvas = inside;
     S.previewPX = snap8(px);
     S.previewPY = snap8(py);
   }
 
-  // Coalesced to one paint per frame.
   requestDraw();
   ensureGlowLoop();
 }
 
-// ── Canvas: mouseup / mouseleave ──
-
-// A move that overfills a tile is reverted.
 function finishObjectDrag() {
   const o = S.dragObj;
   if (!o || S.selectedObjIdx < 0) return;
@@ -231,8 +203,6 @@ function onMouseLeave() {
 function onContextMenu(e: MouseEvent) {
   e.preventDefault();
 }
-
-// ── Keyboard ──
 
 function isTypingName(e: KeyboardEvent): boolean {
   const t = realTarget(e);
@@ -274,10 +244,6 @@ function onKeyUp(e: KeyboardEvent) {
   }
 }
 
-// ── Scrolling ──
-
-// The sticky canvas only paints the visible viewport, so any scroll needs a
-// redraw (throttled to one per frame).
 let canvasDrawPending = false;
 
 function redrawCanvasOnScroll() {
@@ -300,17 +266,12 @@ function onWheel(e: WheelEvent) {
   redrawCanvasOnScroll();
 }
 
-// The tray only scrolls horizontally, so forward whichever wheel delta
-// dominates (mouse wheel or touchpad swipe).
 function onThumbstripWheel(e: WheelEvent) {
   e.preventDefault();
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   S.thumbstrip!.scrollLeft += d;
 }
 
-// ── Palette drag (document level) ──
-
-// Ghost updates are coalesced to one per frame.
 let ghostEvent: MouseEvent | null = null;
 let ghostQueued = false;
 
@@ -330,7 +291,6 @@ function placementError(def: ObjectDef, x: number, y: number): string | null {
   if ((def.id === SONIC_TYPE || def.id === GOAL_TYPE) && S.objects.some(o => o.type === def.id)) {
     return `Your level already has ${def.id === SONIC_TYPE ? 'Sonic' : 'a Sign Post'}. Only one is allowed per level.`;
   }
-  // Each placed tile supports one object.
   const total = totalObjects(), tiles = countPlacedTiles();
   if (total >= tiles) {
     return `The level is full. There are ${total} objects for ${tiles} placed tiles. Paint more tiles to place more objects.`;
@@ -338,8 +298,6 @@ function placementError(def: ObjectDef, x: number, y: number): string | null {
   return tileCrowdedReason(def.id, def.sub ?? 0, x, y);
 }
 
-// Objects snap to 8px anywhere, including mid-air; the per-tile count is a
-// budget, not a solidity rule. The new object is selected right away.
 function dropObject(def: ObjectDef, px: number, py: number) {
   const x = snap8(px), y = snap8(py);
   const error = placementError(def, x, y);
@@ -351,12 +309,10 @@ function dropObject(def: ObjectDef, px: number, py: number) {
   S.selectedObjIdx = S.objects.length - 1;
 }
 
-// Drops only count when released over the canvas itself: the tray shares
-// its x-range, so a tray release would otherwise land under the tray.
+// The tray shares the canvas's x-range, so only count releases on the canvas.
 function onDocMouseUp(e: MouseEvent) {
   hideGhost();
   if (!S.paletteDrag) return;
-  // Fresh coords: hover state is stale after a wheel scroll without moving.
   const { bx, by, px, py } = canvasToWorld(e);
   if (realTarget(e) === S.canvas && inGrid(bx, by)) {
     if (S.activeTab === 'tiles') S.grid[by][bx] = S.paletteDragTile;
@@ -369,8 +325,6 @@ function onDocMouseUp(e: MouseEvent) {
   draw();
 }
 
-// ── Wiring ──
-
 const ACTIONS: Record<string, () => void> = {
   save: () => { doSave(); },
   test: () => { doTest(); },
@@ -379,55 +333,21 @@ const ACTIONS: Record<string, () => void> = {
   mylevels: () => { location.href = '/editors/mylevels'; },
   alllevels: () => { location.href = '/editors/alllevels'; },
   share: () => { doShare(); },
-  startcreating: doStartCreating,
-  saveok: hideSaveOverlay,
+  saveok: hidePopup,
 };
 
-function wireButtons(shadow: ShadowRoot) {
-  shadow.querySelectorAll('[data-zoom]').forEach(b => {
+function wireButtons() {
+  for (const b of queryAll('[data-zoom]')) {
     b.addEventListener('click', () => setZoom(parseFloat(b.getAttribute('data-zoom') || '1')));
-  });
-  shadow.querySelectorAll('.tab').forEach(b => {
+  }
+  for (const b of queryAll('.tab')) {
     b.addEventListener('click', () => switchTab(b.getAttribute('data-tab') as TabType));
-  });
-  shadow.querySelectorAll('[data-action]').forEach(b => {
-    b.addEventListener('click', () => ACTIONS[b.getAttribute('data-action') ?? '']?.());
-  });
-  shadow.querySelector('.btn-clear')?.addEventListener('click', doClearAll);
-}
-
-// The start button stays disabled until a name is typed; Enter submits.
-function wireStartScreen(shadow: ShadowRoot) {
-  const nameInput = shadow.querySelector('.start-name') as HTMLInputElement | null;
-  const startBtn = shadow.querySelector('.start-go') as HTMLButtonElement | null;
-  nameInput?.addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key === 'Enter') doStartCreating();
-  });
-  nameInput?.addEventListener('input', () => {
-    if (startBtn) startBtn.disabled = !nameInput.value.trim();
-  });
-}
-
-// One mouseover on the whole area (mouseenter wouldn't re-fire when moving
-// outward); closest() finds the innermost region under the cursor.
-function wireMapSizePicker(shadow: ShadowRoot) {
-  const mapArea = shadow.querySelector('.map-area');
-  const mapLabel = shadow.querySelector('.map-label');
-  mapArea?.addEventListener('mouseover', (e) => {
-    const t = (e.target as Element).closest?.('.map-opt');
-    if (!t || !mapArea.contains(t)) return;
-    shadow.querySelectorAll('.map-opt.map-hover').forEach((o) => {
-      if (o !== t) o.classList.remove('map-hover');
-    });
-    t.classList.add('map-hover');
-    const n = mapLabel?.querySelector('.map-name');
-    const d = mapLabel?.querySelector('.map-dims');
-    if (n) n.textContent = t.getAttribute('data-name') ?? '';
-    if (d) d.textContent = `${t.getAttribute('data-cols')} x ${t.getAttribute('data-rows')} tiles`;
-  });
-  shadow.querySelectorAll('.map-opt').forEach((b) => {
-    b.addEventListener('click', (e) => { e.stopPropagation(); doSelectMapSize(b); });
-  });
+  }
+  for (const b of queryAll('[data-action]')) {
+    const action = ACTIONS[b.getAttribute('data-action') ?? ''];
+    if (action) b.addEventListener('click', action);
+  }
+  query('.btn-clear')?.addEventListener('click', doClearAll);
 }
 
 function wireCanvas(canvas: HTMLCanvasElement) {
@@ -439,8 +359,7 @@ function wireCanvas(canvas: HTMLCanvasElement) {
   canvas.addEventListener('wheel', onWheel, { passive: false });
 }
 
-// The canvas-wrap reports its new size only after layout settles, so the
-// resize waits two frames after a fullscreen change.
+// the new size is only measurable after layout settles
 function wireResizing() {
   window.addEventListener('resize', resizeCanvas);
   const resizeAfterFullscreen = () => {
@@ -451,16 +370,13 @@ function wireResizing() {
 }
 
 export function wireEvents() {
-  const { canvas, canvasWrap, shadow, thumbstrip } = S;
+  const { canvas, canvasWrap, thumbstrip } = S;
   wireCanvas(canvas!);
-  // Palette drags cross DOM boundaries, so they're tracked on the document.
   document.addEventListener('mousemove', onDocMouseMove);
   document.addEventListener('mouseup', onDocMouseUp);
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('keyup', onKeyUp);
-  wireButtons(shadow!);
-  wireStartScreen(shadow!);
-  wireMapSizePicker(shadow!);
+  wireButtons();
   wireResizing();
   canvasWrap?.addEventListener('scroll', redrawCanvasOnScroll);
   thumbstrip?.addEventListener('wheel', onThumbstripWheel, { passive: false });

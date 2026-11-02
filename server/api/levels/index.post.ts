@@ -1,5 +1,3 @@
-// POST /api/levels
-// Save a new level for the signed-in user.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { eq, sql } from "drizzle-orm";
@@ -15,8 +13,6 @@ export default defineHandler(async (event) => {
   const { name, cols, rows, data } = readLevelBody(body);
   const now = new Date();
   const db = getRequestDb(event);
-  // UPDATE ... RETURNING is serialized by SQLite, so concurrent saves
-  // never collide.
   const seq = await db
     .update(levelSeq)
     .set({ nextId: sql`${levelSeq.nextId} + 1` })

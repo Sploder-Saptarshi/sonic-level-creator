@@ -1,6 +1,4 @@
-// Argon2id password hashing (Workers + Node). `?module` imports yield real
-// WebAssembly.Module objects, the only Workers-legal way to load WASM.
-// Hashes are PHC-encoded strings (params + salt embedded).
+// Workers can only load WASM through `?module` imports.
 import { argon2id, argon2Verify, setWASMModules } from "argon2-wasm-edge";
 import argon2WASM from "argon2-wasm-edge/wasm/argon2.wasm?module";
 import blake2bWASM from "argon2-wasm-edge/wasm/blake2b.wasm?module";
