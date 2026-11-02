@@ -1,34 +1,6 @@
-// server/utils/levels.ts — session-scoped level storage helpers (API + pages).
-// One drizzle handle per request: D1 on the edge, local SQLite on node.
-//
-// Query/row budgets (D1 bills rows_read — every helper below is minimal):
-//   requireUser            0-1 reads (0 without cookie, 1 session row with)
-//   readLevelBody          0 SQL (pure validation, fails before any write)
-//   requireRow             0 SQL (folds a 404 check onto an existing result)
-//   listMyLevels           1 query, metadata-only columns (never `data`),
-//                          N rows for N owned levels over the userId index
-//   listMyLevelsPage       1 query, one keyset page of owned metadata over
-//                          the (userId, updatedAt) index (LIMIT n+1 probe,
-//                          no OFFSET — deep pages cost what shallow ones do)
-//   getMyLevelTotal        1 query, 1 row (trigger-kept user.level_count)
-//   listPublicLevels       1 query, one keyset page of published metadata +
-//                          author over the (published, updatedAt) index
-//   getPublishedLevelTotal 1 query, 1 row (trigger-kept stats row)
-//   listPublicLevelsByUserId 1 query, one keyset page of published metadata
-//                          + author over the (userId, published, updatedAt)
-//                          index
-//   findUserById           1 query, 1 row (id + username + both per-user
-//                          counters; existence check and page total in one —
-//                          replaces countPublicLevelsByUserId entirely)
-//   listOpenReports        1 query, one keyset page over the (status,
-//                          createdAt) index (LIMIT n+1 probe, no OFFSET)
-//   getOpenReportTotal     1 query, 1 row (trigger-kept stats row)
-//   findVisibleLevelName   1 query, 1 row, name + published only (PK + visibility)
-//   findReportedLevelName  1 query, <= 1 row, name + published only (PK +
-//                          one open-report join; moderator fallback only)
-//   hasOpenReport          1 query, <= 1 row, report id only (levelId +
-//                          status probe; gateway moderator fallback only)
-//   findGatewayRow         1 query, 1 row, data/name/published/userId only
+// Level storage helpers shared by the API and page routes. D1 bills
+// rows_read: helpers select only the columns they need, never `data` in
+// listings, and every query walks an index.
 import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
 import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
@@ -41,17 +13,18 @@ import { account, level, report, stats, user } from "../db/schema";
 import { enforceSameOrigin } from "./authFlow";
 import { dbLogger } from "./timing";
 import { first, getSessionUser, type SessionUser } from "./session";
-import { getReplicaSession, readBookmark } from "./replica";
+import { getReplicaSession, pinFreshBookmark, readBookmark } from "./replica";
+import { notifyLevelDeleted } from "./webhook";
 
-export function getRequestDb(event: H3Event): ReturnType<typeof getNodeDb> {
+type RequestDb = ReturnType<typeof getNodeDb>;
+
+export function getRequestDb(event: H3Event): RequestDb {
   const env = getAuthEnv(event);
   if (env.kind === "d1") {
-    // Same sqlite query-builder surface as better-sqlite3 for basic CRUD.
-    // Full auth tables included (account pages update the user row).
-    // Per-request logger feeds the timing badge's query count.
-    return drizzleD1(env.d1!, { schema: { account, level, report, user }, logger: dbLogger(event) }) as unknown as ReturnType<
-      typeof getNodeDb
-    >;
+    return drizzleD1(env.d1!, {
+      schema: { account, level, report, user },
+      logger: dbLogger(event),
+    }) as unknown as RequestDb;
   }
   return getNodeDb(event);
 }
@@ -62,12 +35,8 @@ export async function requireUser(event: H3Event): Promise<SessionUser> {
   return user;
 }
 
-// Replica handle for read-only listings/player lookups on the edge:
-// drizzle over a per-request D1 session (bookmark-chained when the
-// browser carries one, else unconstrained), falling back to the primary
-// handle off the edge. Writes and freshness-sensitive reads (own data,
-// moderator review fallbacks) stay on getRequestDb — see
-// server/utils/replica.ts for the contract.
+// Read-only handle for replica-safe reads; primary off the edge. Writes and
+// freshness-sensitive reads use getRequestDb (see server/utils/replica.ts).
 export function getReplicaDb(event: H3Event): RequestDb {
   const session = getReplicaSession(event, readBookmark(event));
   if (!session) return getRequestDb(event);
@@ -91,7 +60,7 @@ export function cleanDims(v: unknown): number | null {
 
 export function cleanLevelData(v: unknown): string | null {
   const s = first(v);
-  // CSV text; 1MB cap keeps a single level well under D1 row limits.
+  // 1MB cap keeps a level well under D1 row limits.
   return typeof s === "string" && s.length <= 1_000_000 ? s : null;
 }
 
@@ -102,9 +71,6 @@ export interface LevelBody {
   data: string;
 }
 
-// Validate a create/update payload. 0 SQL: throws 400 before any DB
-// round-trip. Shared by POST /api/levels and PUT /api/levels/:id (was a
-// verbatim 10-line clone in both handlers).
 export function readLevelBody(body: Record<string, unknown>): LevelBody {
   const name = cleanLevelName(body?.name);
   const cols = cleanDims(body?.cols);
@@ -119,32 +85,24 @@ export function readLevelBody(body: Record<string, unknown>): LevelBody {
   return { name, cols, rows, data };
 }
 
-// Fold an existence check onto an already-fetched result: 0 extra SQL.
-// Shared by the [id] GET/PUT/DELETE/publish handlers (was a 3-line clone).
 export function requireRow<T>(rows: T[]): T {
   const row = rows[0];
   if (!row) throw new HTTPError({ status: 404, message: "Level not found" });
   return row;
 }
 
-// Level id from a form/body/router value: non-empty string <= 128 chars.
-// Shared by the mylevels delete form and API routes.
 export function cleanId(v: unknown): string | null {
   const s = first(v);
   return typeof s === "string" && s.length > 0 && s.length <= 128 ? s : null;
 }
 
-// Router/cookie id charset gate: ids are numeric strings or UUIDs, so
-// anything outside `[\w-]` is junk/a probe — reject before any SQL.
-// Shared by the play page, the gateway, the report endpoint, and the
-// per-user directory (was an inline regex clone in each).
+// Ids are numeric strings or UUIDs; anything else is a probe. Rejects
+// before any SQL.
 export function isSafeId(v: unknown): v is string {
   return typeof v === "string" && /^[\w-]{1,128}$/.test(v);
 }
 
-// Authenticated router-id preamble: CSRF guard + session + validated
-// `:id`. Shared by the [id] GET/PUT/DELETE/publish handlers (was a
-// 4-line clone in each). GET reads pass `{ sameOrigin: false }`.
+// CSRF guard + session + validated `:id`. GET passes `{ sameOrigin: false }`.
 export async function requireUserAndLevelId(
   event: H3Event,
   opts: { sameOrigin?: boolean } = {},
@@ -156,9 +114,7 @@ export async function requireUserAndLevelId(
   return { user, id };
 }
 
-// Ownership-checked rename write (RETURNING folds the existence check
-// in, no select round-trip). Shared by the mylevels + reports rename
-// forms (was a verbatim update clone in both).
+// RETURNING doubles as the existence check.
 export function renameLevelWhere(db: RequestDb, where: any, name: string) {
   return db
     .update(level)
@@ -167,24 +123,31 @@ export function renameLevelWhere(db: RequestDb, where: any, name: string) {
     .returning({ id: level.id });
 }
 
-// Ownership-checked delete + report cleanup, scoped to the just-deleted
-// row: D1 cannot rely on per-connection PRAGMA foreign_keys state, so
-// ON DELETE CASCADE may not fire there — and running the cleanup before
-// (or outside) the predicate-checked delete would let a forged id wipe
-// another level's reports. Returns the deleted rows (empty on miss) so
-// API callers can fold requireRow over the result. Shared by the API
-// DELETE handler and both form delete handlers (was a verbatim clone
-// in all three).
-export function deleteLevelWithReports(db: RequestDb, where: any) {
-  return (async () => {
-    const deleted = await db
-      .delete(level)
-      .where(where)
-      .returning({ id: level.id, name: level.name, published: level.published });
-    const row = deleted[0];
-    if (row) await db.delete(report).where(eq(report.levelId, row.id));
-    return deleted;
-  })();
+// D1 can't rely on PRAGMA foreign_keys, so reports are removed explicitly,
+// and only after the predicate-checked delete succeeds (a forged id can't
+// wipe another level's reports). Returns the deleted rows (empty on miss).
+export async function deleteLevelWithReports(db: RequestDb, where: any) {
+  const deleted = await db
+    .delete(level)
+    .where(where)
+    .returning({ id: level.id, name: level.name, published: level.published });
+  const row = deleted[0];
+  if (row) await db.delete(report).where(eq(report.levelId, row.id));
+  return deleted;
+}
+
+// Form handlers: owner-or-moderator writes, then pin a bookmark so the
+// redirect observes them.
+export async function renameLevelAs(event: H3Event, session: SessionUser, id: string, name: string) {
+  await renameLevelWhere(getRequestDb(event), levelWhereForUser(id, session), name);
+  await pinFreshBookmark(event);
+}
+
+export async function deleteLevelAs(event: H3Event, session: SessionUser, id: string) {
+  const [row] = await deleteLevelWithReports(getRequestDb(event), levelWhereForUser(id, session));
+  if (!row) return;
+  await pinFreshBookmark(event);
+  notifyLevelDeleted(event, { ...row, actor: session.username });
 }
 
 export function levelWhere(id: string, userId: string) {
@@ -192,53 +155,25 @@ export function levelWhere(id: string, userId: string) {
 }
 
 export function levelWhereForUser(id: string, session: SessionUser) {
-  // Moderators may touch any level except the seeded stock row (the
-  // default playable level — same exclusion as the public listings).
+  // Moderators may touch any level except the stock row.
   if (session.isModerator) {
     return and(eq(level.id, id), ne(level.id, STOCK_LEVEL_ID));
   }
   return and(eq(level.id, id), eq(level.userId, session.id));
 }
 
-type RequestDb = ReturnType<typeof getNodeDb>;
-
-// Seeded stock Green Hill row: the default playable level (also the
-// archive DEFAULT_LEVEL_ID). Playable via / and the gateway, but never
-// listed in All Levels and /play/2914 redirects home.
+// Seeded Green Hill level (DEFAULT_LEVEL_ID). Playable via / and the
+// gateway; never listed, and /play/2914 redirects home.
 export const STOCK_LEVEL_ID = "2914";
 
-// Rows per listing page (All Levels, Levels by X, My Levels).
 export const LEVELS_PER_PAGE = 15;
 
-// `?page=` query value: positive integer, 1 when missing/invalid.
-// Callers clamp to the page count from below (count query first).
 export function cleanPageParam(v: unknown): number {
   const n = Number(first(v));
   return Number.isInteger(n) && n >= 1 && n <= 100000 ? n : 1;
 }
 
-// The signed-in user's levels, metadata only (never the ~MB `data`
-// column): exactly 1 query over the userId index. Shared by
-// GET /api/levels and GET /editors/mylevels (params pick the column set).
-export function listMyLevels(db: RequestDb, userId: string, withPublished: true): Promise<Array<{ id: string; name: string; cols: number; rows: number; published: boolean | null; updatedAt: Date }>>;
-export function listMyLevels(db: RequestDb, userId: string, withPublished?: false): Promise<Array<{ id: string; name: string; cols: number; rows: number; updatedAt: Date }>>;
-export function listMyLevels(db: RequestDb, userId: string, withPublished?: boolean): Promise<any[]> {
-  // Two explicit branches: drizzle's select() typing rejects a
-  // conditionally-shaped columns object.
-  if (withPublished) {
-    return db
-      .select({
-        id: level.id,
-        name: level.name,
-        cols: level.cols,
-        rows: level.rows,
-        published: level.published,
-        updatedAt: level.updatedAt,
-      })
-      .from(level)
-      .where(eq(level.userId, userId))
-      .orderBy(desc(level.updatedAt));
-  }
+export function listMyLevels(db: RequestDb, userId: string) {
   return db
     .select({
       id: level.id,
@@ -252,26 +187,16 @@ export function listMyLevels(db: RequestDb, userId: string, withPublished?: bool
     .orderBy(desc(level.updatedAt));
 }
 
-// Keyset (cursor) pagination: every listing sorts (ts DESC, id DESC) with
-// the id tiebreak making the order total even when timestamps collide
-// (publish/rename stamp updatedAt at ms resolution — ties are routine).
-// A cursor pins the last row of the current page; the next page seeks
-// strictly past it inside the index instead of scanning + discarding
-// OFFSET rows. Cost per page is O(page size) at any depth. Trade-off vs
-// OFFSET: no random jumps — navigation is prev/next from a known row, and
-// rows inserted ahead shift later pages (same staleness the replica reads
-// already accept). The displayed `Page N/T` number rides along in the
-// prev/next links for continuity but is never used for fetching.
+// Keyset pagination: listings sort by (ts DESC, id DESC) and a cursor pins
+// the edge row of the current page, so every page costs O(page size). The
+// displayed page number rides along in links but never drives fetching.
 export interface PageCursor {
-  // updatedAt/createdAt in the raw stored unit (unix seconds — drizzle's
-  // sqlite timestamp mode) + the row id tiebreak.
+  // Stored unit: unix seconds.
   ts: number;
   id: string;
 }
 
 export interface KeysetPage {
-  // Forward from here (next page) / backward from here (prev page). Routes
-  // never send both; `after` wins when they do.
   after?: PageCursor | null;
   before?: PageCursor | null;
 }
@@ -282,9 +207,7 @@ export interface PageResult<T> {
   hasPrev: boolean;
 }
 
-// Opaque cursor token for URLs: base64url of [ts, id]. TextEncoder-based
-// (never btoa on raw input) so any id charset survives; works unchanged
-// on Workers and node.
+// base64url of [ts, id], UTF-8 safe.
 export function encodePageCursor(ts: number, id: string): string {
   const bytes = new TextEncoder().encode(JSON.stringify([ts, id]));
   let bin = "";
@@ -292,9 +215,7 @@ export function encodePageCursor(ts: number, id: string): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Validated `after=`/`before=` query value: null when missing/malformed
-// (callers fall back to the first page — a tampered cursor degrades to
-// page one, never to an error or a scan).
+// Malformed cursors return null, which degrades to the first page.
 export function cleanCursorParam(v: unknown): PageCursor | null {
   const s = first(v);
   if (typeof s !== "string" || s.length < 1 || s.length > 512) return null;
@@ -311,10 +232,8 @@ export function cleanCursorParam(v: unknown): PageCursor | null {
   }
 }
 
-// updatedAt/createdAt arrive as Date (drizzle timestamp mode) — fold to
-// the stored unit (unix seconds) so the cursor binds the exact integer
-// the index holds. Raw numbers are accepted too: values past 1e12 can
-// only be ms (seconds reach that in the year 33658) and fold down.
+// Folds Dates (and raw ms) to the stored unix-seconds integer so the cursor
+// binds exactly what the index holds.
 function storedTs(v: unknown): number {
   const ms = v instanceof Date ? v.getTime() : Number(v);
   if (!Number.isFinite(ms)) return 0;
@@ -322,16 +241,11 @@ function storedTs(v: unknown): number {
   return t > 1e12 ? Math.floor(t / 1000) : t;
 }
 
-// Cursor token for the edge row of a fetched page (first row for `before`
-// links, last row for `after` links).
 export function cursorFor(tsValue: unknown, id: string): string {
   return encodePageCursor(storedTs(tsValue), id);
 }
 
-// Parsed keyset query: `after` wins when both cursors are sent; `keyset`
-// is the KeysetPage the list*Page helpers take. Malformed cursors fall
-// back to the first page (never an error). Shared by all four listing
-// routes (was a 3-line clone in each).
+// `after` wins when both cursors are sent.
 export function parseKeysetQuery(q: Record<string, unknown>): {
   after: PageCursor | null;
   incoming: PageCursor | null;
@@ -346,10 +260,8 @@ export function parseKeysetQuery(q: Record<string, unknown>): {
   };
 }
 
-// Display-only page number + page count for the listing chrome. Rows are
-// fetched purely from the cursor, so a stale/tampered `page` can only
-// mislabel the indicator, never skip or repeat rows. Shared by all four
-// listing routes (was a 2-line clone in each).
+// Display-only: a tampered `page` can mislabel the indicator but never
+// changes which rows are fetched.
 export function clampListingPage(
   pageParam: unknown,
   total: number,
@@ -359,10 +271,7 @@ export function clampListingPage(
   return { page, totalPages };
 }
 
-// Prev/next cursor tokens for a fetched keyset page. Empty after-pages
-// (rows deleted since) offer the way back using the incoming cursor
-// itself as the `before` token. Shared by all four listing routes
-// (was a ~7-line clone in each).
+// An empty page (rows deleted since) links back via the incoming cursor.
 export function keysetCursors<T>(
   rows: T[],
   opts: {
@@ -374,24 +283,17 @@ export function keysetCursors<T>(
   },
 ): { prevCursor: string | null; nextCursor: string | null } {
   const { hasMore, hasPrev, incoming, tsOf, idOf } = opts;
-  const prevCursor =
-    rows.length > 0
-      ? hasPrev
-        ? cursorFor(tsOf(rows[0]!), idOf(rows[0]!))
-        : null
-      : incoming
-        ? encodePageCursor(incoming.ts, incoming.id)
-        : null;
+  const head = rows[0];
   const last = rows[rows.length - 1];
-  const nextCursor =
-    last && hasMore ? cursorFor(tsOf(last), idOf(last)) : null;
+  let prevCursor: string | null = null;
+  if (head && hasPrev) prevCursor = cursorFor(tsOf(head), idOf(head));
+  else if (!head && incoming) prevCursor = encodePageCursor(incoming.ts, incoming.id);
+  const nextCursor = last && hasMore ? cursorFor(tsOf(last), idOf(last)) : null;
   return { prevCursor, nextCursor };
 }
 
-// Generic keyset pagination helper: single place for the asc/desc +
-// limit+1 + hasMore/hasPrev dance. `query(where, orderBy)` builds the
-// drizzle select for the caller’s table/join shape; the helper supplies
-// the cursor predicate and the order direction.
+// Fetches limit+1 rows; the extra row signals another page without a COUNT.
+// `query` builds the caller's select; this supplies the seek and order.
 async function fetchKeysetPage<T>(opts: {
   limit: number;
   page: KeysetPage;
@@ -428,10 +330,6 @@ async function fetchKeysetPage<T>(opts: {
   return { rows, hasMore, hasPrev: !!c };
 }
 
-// One page of the signed-in user's levels (the withPublished column set,
-// metadata only): exactly 1 query over the (userId, updatedAt) index.
-// Fetches limit+1 rows; the extra row is the next/prev existence probe
-// (popped before return), so no COUNT query is ever needed for chevrons.
 export async function listMyLevelsPage(
   db: RequestDb,
   userId: string,
@@ -458,9 +356,6 @@ export async function listMyLevelsPage(
   });
 }
 
-// Total owned rows for the My Levels page count: 1 query reading exactly
-// 1 row (trigger-kept user.level_count — mirrors the unpaged countMyLevels
-// predicate: any state, stock row included).
 export async function getMyLevelTotal(
   db: RequestDb,
   userId: string,
@@ -472,12 +367,8 @@ export async function getMyLevelTotal(
   return rows[0]?.n ?? 0;
 }
 
-// Published directory, metadata + author, stock excluded in SQL:
-// exactly 1 query over the published index. `data` is never selected.
-// Per-user directory ("Levels by X") rows. `authorId` is the stable link
-// target: per-user URLs are keyed by user id (never the username, whose
-// charset may grow spaces/punctuation/capitals later). The heading and
-// bylines show the pretty-case `authorDisplay`. `data` is never selected.
+// Per-user URLs are keyed by `authorId` (usernames may contain spaces and
+// punctuation); bylines show `authorDisplay`.
 export interface PublicLevelRow {
   id: string;
   authorId: string;
@@ -489,8 +380,6 @@ export interface PublicLevelRow {
   updatedAt: unknown;
 }
 
-// Shared select shape for the two published directory listings
-// (was a verbatim 9-line clone in each).
 const PUBLIC_LEVEL_COLS = {
   id: level.id,
   authorId: level.userId,
@@ -519,8 +408,6 @@ export async function listPublicLevels(
   });
 }
 
-// Total published rows (stock excluded) for the All Levels page count:
-// 1 query reading exactly 1 row (trigger-kept stats row).
 export async function getPublishedLevelTotal(db: RequestDb): Promise<number> {
   const rows = await db
     .select({ n: stats.publishedLevels })
@@ -529,11 +416,6 @@ export async function getPublishedLevelTotal(db: RequestDb): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
-// Per-user directory ("Levels by X"), published only: exactly 1 query
-// over the userId index (published predicate + stock exclusion in SQL).
-// The joined user columns double as the page heading source, so pages
-// with levels cost no second lookup; empty results need findUserById to
-// tell unknown ids (404) apart from unpublished creators.
 export async function listPublicLevelsByUserId(
   db: RequestDb,
   userId: string,
@@ -562,10 +444,7 @@ export interface PublicUser {
   displayUsername: string | null;
 }
 
-// User lookup for the per-user pages: exactly 1 query reading exactly
-// 1 row via the PK — existence (404 unknown ids), heading name, AND the
-// published page total (trigger-kept user.published_level_count) in one.
-// Skipped entirely when not needed; empty results render from this row.
+// One PK read covers existence, heading name and the page total.
 export function findUserById(db: RequestDb, id: string) {
   return db
     .select({
@@ -579,12 +458,8 @@ export function findUserById(db: RequestDb, id: string) {
     .where(eq(user.id, id));
 }
 
-// Player lookup: exactly 1 query reading exactly 1 row (name + published
-// columns only) via PK + visibility predicate. Published rows serve
-// everyone; owners additionally see their own unpublished rows.
-// Moderators with an open report on the level fall through to
-// findReportedLevelName below (a second query only on that rare miss path
-// — the hot path stays at 1 query).
+// Published levels are visible to everyone, unpublished ones to their owner.
+// Moderators fall back to findReportedLevelName on a miss.
 export function findVisibleLevelName(
   db: RequestDb,
   id: string,
@@ -599,13 +474,8 @@ export function findVisibleLevelName(
     .where(and(eq(level.id, id), visible));
 }
 
-// Moderator fallback for the player: the same name + published columns for
-// an unpublished level that still has >= 1 open report. Exactly 1 query:
-// PK lookup on the level plus a probe into the open-report index that stops
-// at the first match (LIMIT 1, `data` never read). Call only after
-// findVisibleLevelName misses with a moderator session, so guests, members,
-// and owners never pay for it. Callers run it on the primary (a just-filed
-// report must be visible to the reviewing moderator).
+// Moderator fallback: an unpublished level with an open report. Run on the
+// primary so a just-filed report is visible.
 export function findReportedLevelName(db: RequestDb, id: string) {
   return db
     .select({ name: level.name, published: level.published })
@@ -618,10 +488,8 @@ export function findReportedLevelName(db: RequestDb, id: string) {
     .limit(1);
 }
 
-// Open-report probe for the gateway: exactly 1 query reading <= 1 report
-// row (id only) via the levelId + open-status indexes. Call only for an
-// unpublished row a moderator doesn't own (on the primary, so a just-filed
-// report is visible), so published/owned hits never pay for it.
+// Gateway moderator fallback. Run on the primary so a just-filed report is
+// visible.
 export function hasOpenReport(db: RequestDb, levelId: string) {
   return db
     .select({ id: report.id })
@@ -637,9 +505,6 @@ export interface GatewayRow {
   userId: string;
 }
 
-// Gateway lookup: exactly 1 query reading exactly 1 row (PK), fetching
-// only the columns the visibility check + byte encoder + played webhook
-// need.
 export function findGatewayRow(db: RequestDb, id: string) {
   return db
     .select({ data: level.data, name: level.name, published: level.published, userId: level.userId })
@@ -647,7 +512,6 @@ export function findGatewayRow(db: RequestDb, id: string) {
     .where(eq(level.id, id));
 }
 
-// Report reason from a form/JSON value: trimmed text, 1–500 chars.
 export function cleanReportReason(v: unknown): string | null {
   const s = first(v);
   if (typeof s !== "string") return null;
@@ -655,9 +519,7 @@ export function cleanReportReason(v: unknown): string | null {
   return reason.length >= 1 && reason.length <= 500 ? reason : null;
 }
 
-// File one report (reporter, level). Idempotent per open report: returns
-// { duplicate: true } instead of writing when this user already has an
-// open report on the level (the unique index is the race-safe backstop).
+// Idempotent per open report; the unique index is the race-safe backstop.
 export async function createReport(
   db: RequestDb,
   levelId: string,
@@ -705,8 +567,6 @@ export interface OpenReportRow {
   authorDisplay: string | null;
 }
 
-// Total open reports for the queue page count: 1 query reading exactly
-// 1 row (trigger-kept stats row).
 export async function getOpenReportTotal(db: RequestDb): Promise<number> {
   const rows = await db
     .select({ n: stats.openReports })
@@ -715,11 +575,7 @@ export async function getOpenReportTotal(db: RequestDb): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
-// One page of open reports with level + reporter + author, newest first:
-// exactly 1 query (status walk over the composite index, level/reporter/
-// author joins over PKs, `data` never read). Keyset on (createdAt, id);
-// fetches limit+1 rows as the next/prev existence probe. Callers group by
-// levelId for the moderator queue.
+// Newest first; callers group rows by level for the moderator queue.
 export async function listOpenReports(
   db: RequestDb,
   limit: number,
@@ -756,8 +612,7 @@ export async function listOpenReports(
   });
 }
 
-// Dismiss every open report on one level: exactly 1 indexed write.
-// Returns the number of dismissed rows.
+// Returns the number of dismissed reports.
 export async function dismissReportsForLevel(
   db: RequestDb,
   levelId: string,

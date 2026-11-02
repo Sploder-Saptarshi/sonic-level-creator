@@ -1,4 +1,4 @@
-// server/utils/page/chrome.ts — layout chrome, nav, sidebar, page helpers
+// Layout chrome: header bar, nav, sidebar, shared page shells.
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import sidenavTemplate from "../../templates/sidenav.html" with { type: "text" };
 import reportBodyTemplate from "../../templates/report.html" with { type: "text" };
@@ -14,8 +14,7 @@ import {
   UPSELL_HTML,
 } from "./constants";
 
-// Logged-in header: same lozenges, signed-in name + sign-out (username is
-// escaped here — the layout slot is raw).
+// Escapes the username: the layout slot is raw.
 export function userLanguageBar(username: string): string {
   const name = escapeHtml(username);
   return `<div id="languagebar" style="width:auto;min-width:200px;white-space:nowrap">  <span style="vertical-align:middle">Signed in as <b>${name}</b></span> <a class="lozenge1" style="vertical-align:middle;float:none;display:inline-block;margin-left:8px" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
@@ -35,11 +34,8 @@ export interface PageView {
   event?: H3Event;
 }
 
-// Session -> template view. Null (guest) maps to {} so pages render the
-// signed-out chrome; signed-in sessions get the name + sign-out bar.
-// One helper replaces the per-route ternary (was cloned in 5 routes).
-// Pass the event so the view also carries the request origin (used for
-// absolute og:/twitter: image URLs — never hardcoded).
+// Guests get the signed-out chrome. The event supplies the request origin
+// (for absolute embed image URLs) and the timing context.
 export function toPageView(session: SessionUser | null, event?: H3Event): PageView {
   const origin = event ? getRequestURL(event).origin : undefined;
   const base: PageView = {
@@ -55,21 +51,16 @@ export function toPageView(session: SessionUser | null, event?: H3Event): PageVi
   };
 }
 
-// Server-timing badge for the layout's <%~ it.srvTiming %> slot. Resolved
-// at layout-render time — the last step of the request — so wall/cpu/
-// queries/heap cover the whole render. "" without a request event (never
-// in practice: every route builds its view via toPageView(session, event)).
+// Resolved at layout-render time so the badge covers the whole request.
 export function timingFor(view: PageView): string {
   return view.event ? timingBadge(view.event) : "";
 }
 
-// Absolute embed image for link unfurls (Discord/Twitter require absolute
-// URLs). Derived from the request origin — no hardcoded domain.
+// Link unfurlers require absolute image URLs.
 export function embedImage(view: PageView): string {
   return view.origin ? `${view.origin}/images/embed.png` : "";
 }
 
-// HTML page responder: sets the content-type and returns the body.
 export function html(event: H3Event, body: string): string {
   setResponseHeader(event, "content-type", "text/html; charset=utf-8");
   setResponseHeader(event, "cache-control", "no-store");
@@ -107,9 +98,7 @@ export function footerMidLink(signedIn: boolean): string {
     : `<a href="/quickstart">Quickstart</a>`;
 }
 
-// Sidebar with the per-session slot filled in: guests see the sign-up
-// upsell, signed-in users get the Sonic side art (same left-side art as
-// the sign-in page).
+// Guests see the sign-up upsell; signed-in users see Sonic side art.
 export function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   return render(sidenavTemplate, {
     navButton: signedIn
@@ -121,7 +110,7 @@ export function sidebar(signedIn: boolean, sideActive = "sonic"): string {
   });
 }
 
-// Report block (two-pass fill: inner slots first, then the game template).
+// Rendered first, then injected raw into the game template.
 export function reportBlockHtml(view: PageView, levelId: number | string): string {
   return render(reportBodyTemplate, {
     reportButton: REPORTER_HTML,
@@ -144,10 +133,7 @@ export function editorButtons(signedIn: boolean): string {
   return buttons.join("\n                        ");
 }
 
-// Shared shell for the level-list pages (My Levels / All Levels / Levels
-// by X): same sidebar + layout + border wiring, only the active nav tab,
-// base title, body template, pre-rendered rows, and (for the per-user page)
-// the heading differ.
+// Shared shell for My Levels, All Levels, Levels by X and Reports.
 export function renderLevelListPage(
   view: PageView,
   active: string,

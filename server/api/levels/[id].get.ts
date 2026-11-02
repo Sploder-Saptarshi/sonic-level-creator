@@ -1,8 +1,6 @@
-// GET /api/levels/:id — fetch one of the signed-in user's levels.
-// SQL: 1 session lookup + exactly 1 indexed replica PK read (<= 1 row,
-// full row needed: the editor loads `data`). A replica miss gets one
-// primary retry (levels saved seconds ago); mutations pin bookmarks so
-// the retry is rarely needed.
+// GET /api/levels/:id
+// Fetch one of the signed-in user's levels. A replica
+// miss retries on the primary (levels saved seconds ago).
 import { defineHandler } from "nitro";
 import { level } from "../../db/schema";
 import {

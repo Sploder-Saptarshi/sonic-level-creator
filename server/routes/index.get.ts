@@ -1,6 +1,5 @@
-// GET / — level player page (SSR flashvars + bootstrap).
-// SQL: 0 for guests (no cookie fast-path), 1 session lookup otherwise.
-// App rows: 0 (static stock level id, no level query).
+// GET /
+// Level player for the stock level.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import { html, renderGamePage, toPageView } from "../utils/page";

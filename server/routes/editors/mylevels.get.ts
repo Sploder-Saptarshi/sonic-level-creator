@@ -1,12 +1,5 @@
-// GET /editors/mylevels — the signed-in user's saved levels.
-// SQL: 0 for guests (fast-path redirect), else 1 session lookup + exactly
-// 2 replica queries (1-row user.level_count counter read + one keyset page
-// of metadata over the (userId, updatedAt) index; `data` never read).
-// Counter and page are independent, so both race on the one replica
-// session: one round trip instead of two. No COUNT(*), no OFFSET.
-// Mutations pin bookmarks, so the redirect back here after
-// create/rename/delete/publish observes the write. Guests resume here
-// after sign-in via the attached ?next= target.
+// GET /editors/mylevels
+// The signed-in user's saved levels.
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
 import {
@@ -38,7 +31,6 @@ export default defineHandler(async (event) => {
     listMyLevelsPage(db, session.id, LEVELS_PER_PAGE, keyset),
   ]);
   const { page, totalPages } = clampListingPage(q.page, total);
-  // Display-only page number: rows are fetched purely from the cursor.
   const { prevCursor, nextCursor } = keysetCursors(levels, {
     hasMore,
     hasPrev,

@@ -1,4 +1,4 @@
-// server/utils/page/lists.ts — level-list and report rendering (My Levels / All Levels / Reports)
+// Level-list and report-queue pages.
 import alllevelsBodyTemplate from "../../templates/alllevels.html" with { type: "text" };
 import mylevelsBodyTemplate from "../../templates/mylevels.html" with { type: "text" };
 import userlevelsBodyTemplate from "../../templates/userlevels.html" with { type: "text" };

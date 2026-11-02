@@ -1,9 +1,5 @@
-// POST /member/account/password — change password.
-// SQL: 1 session lookup; guests bounce with 0 writes. Validation failures
-// re-render with 0 writes. The change itself is one Better Auth call: it
-// verifies the current password and hashes the new one with our Argon2id
-// hasher (nothing hand-rolled). Success pins a fresh D1 bookmark for
-// replica chaining (+1 primary read on the edge).
+// POST /member/account/password
+// Change password via Better Auth.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { html, renderAccountPage, toPageView } from "../../../utils/page";
@@ -19,6 +15,15 @@ import {
 import { pinFreshBookmark } from "../../../utils/replica";
 import { getSessionUser } from "../../../utils/session";
 
+function validateInput(body: Record<string, unknown>): string | { currentPassword: string; newPassword: string } {
+  const currentPassword = formString(body, "currentPassword");
+  const newPassword = formString(body, "newPassword");
+  if (!currentPassword || !newPassword) return "Enter your current and a new password.";
+  if (newPassword.length < 8) return "Passwords need at least 8 characters.";
+  if (newPassword !== formString(body, "confirmPassword")) return "Passwords do not match.";
+  return { currentPassword, newPassword };
+}
+
 export default defineHandler(async (event) => {
   enforceSameOrigin(event);
   const body = (await readBody(event)) as Record<string, unknown>;
@@ -27,28 +32,16 @@ export default defineHandler(async (event) => {
 
   const fail = (msg: string) =>
     html(event, renderAccountPage(toPageView(session, event), accountErrorBox(msg)));
-  const currentPassword = formString(body, "currentPassword");
-  const newPassword = formString(body, "newPassword");
-  const confirm = formString(body, "confirmPassword");
-  if (!currentPassword || !newPassword) {
-    return fail("Enter your current and a new password.");
-  }
-  if (newPassword.length < 8) {
-    return fail("Passwords need at least 8 characters.");
-  }
-  if (newPassword !== confirm) {
-    return fail("Passwords do not match.");
-  }
+  const input = validateInput(body);
+  if (typeof input === "string") return fail(input);
   const res = await callAuth(event, (auth) =>
     auth.api.changePassword({
-      body: { currentPassword, newPassword },
+      body: input,
       headers: event.req.headers,
       returnHeaders: true,
     } as any),
   );
-  if (!res.ok) {
-    return fail(res.error);
-  }
+  if (!res.ok) return fail(res.error);
   forwardCookies(event, res.value.headers);
   await pinFreshBookmark(event);
   return html(

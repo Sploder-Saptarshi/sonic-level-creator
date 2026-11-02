@@ -1,4 +1,3 @@
-// server/utils/page/index.ts — barrel re-export (keeps `from "../utils/page"` working)
 export { render, escapeJsAttr, pageTitle, bootstrap, formatDate } from "./render";
 export {
   GAME_SWF,

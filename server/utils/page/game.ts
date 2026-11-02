@@ -1,4 +1,4 @@
-// server/utils/page/game.ts — game / editor / play pages
+// Game, editor and /play pages.
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../../templates/editor.html" with { type: "text" };
@@ -46,7 +46,6 @@ export interface GamePageOptions {
   playerSwf?: string;
   hideReport?: boolean;
   hideTitle?: boolean;
-  hideEditorButtons?: boolean;
   hideTouchControls?: boolean;
   sideActive?: string;
   gameWidth?: number;

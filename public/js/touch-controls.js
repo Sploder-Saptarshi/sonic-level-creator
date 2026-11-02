@@ -1,69 +1,69 @@
-/* Touch controls for the Sonic level player (index + /play routes).
+/* Touch controls for the level player (/ and /play/:id).
  *
- * Overlay only activates on touch-capable devices:
- *   ('ontouchstart' in window) || navigator.maxTouchPoints > 0
- * Otherwise the container stays `display:none` and no listeners attach.
- * Visibility additionally requires the fullscreen stage (see
- * touch-controls.css): touch-fullscreen.js enters it on a touch inside
- * the SWF, so the controls only ever appear in fullscreen play.
- *
- * Sprites (see touch-controls.css header for measured bboxes):
- *   TL cell = left dpad outer area (silver base)
- *   TR cell = right button outline
- *   BL cell = joystick knob (dpad knob + jump-button cap)
- *   BR cell = gold feedback ring; only the pushed HALF is revealed
- *             (e.g. left push => left half of BR + right half of TL)
- *
- * The game SWF carries ExternalInterface touch hooks (tcKeyDown/tcKeyUp,
- * added with FFDec): they write straight into the game's keyPressState
- * array, so no keyboard focus and no synthetic key events are needed.
- * 4-way only: the dominant axis wins, the knob travels along that axis
- * alone. Key codes match the SWF's Utilities.KEY_*_INDEX values.
+ * Active only on touch devices, and only visible during gameplay on the
+ * fullscreen stage (see touch-controls.css). Input goes through the SWF's
+ * tcKeyDown/tcKeyUp ExternalInterface hooks, so the game needs no keyboard
+ * focus. The d-pad is 4-way: the dominant axis wins.
  */
 (function () {
   "use strict";
 
   var SPRITE = "/images/controls.png";
-  var TRAVEL = 16; // px knob travel at 132px dpad size (scaled by size/132)
-  var DEADZONE = 10; // px neutral radius at 132px dpad size
+  var BASE_SIZE = 132; // d-pad px size that TRAVEL and DEADZONE are tuned for
+  var TRAVEL = 16;
+  var DEADZONE = 10;
+  var MODE_FIELD = 2; // MainCanvas.MODE_FIELD: gameplay
+  var PLAYING_POLL_MS = 500;
 
-  // Touch codes match the SWF's Utilities.KEY_*_INDEX values exactly.
-  var KEYMAP = {
-    left: 37,
-    right: 39,
-    up: 38,
-    down: 40,
-    jump: 32
+  // The SWF's Utilities.KEY_*_INDEX values.
+  var KEYMAP = { left: 37, right: 39, up: 38, down: 40, jump: 32 };
+
+  var KNOB_DIRECTION = {
+    left: [-1, 0],
+    right: [1, 0],
+    up: [0, -1],
+    down: [0, 1]
   };
 
   function isTouchDevice() {
-    if ("ontouchstart" in window) return true;
-    if (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) return true;
-    if (typeof navigator !== "undefined" && navigator.msMaxTouchPoints > 0) return true;
-    return false;
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
   }
 
-  // Touch input via the SWF's ExternalInterface hooks (tcKeyDown/tcKeyUp,
-  // added to 52.swf with FFDec): they write straight into the game's
-  // keyPressState array. Same pattern as the editor's editorStartAudio
-  // hook — element method first, then the versioned ruffle() API.
-  function sendKey(type, code) {
-    var method = type === "keydown" ? "tcKeyDown" : "tcKeyUp";
-    var player =
+  function findPlayer() {
+    return (
       document.querySelector("#gameswf ruffle-player") ||
       document.querySelector("#gameswf object") ||
       document.querySelector("#gameswf embed") ||
-      document.getElementById("gameswf");
-    var targets = [];
-    if (player) targets.push(player);
+      document.getElementById("gameswf")
+    );
+  }
+
+  // The player element, then Ruffle's versioned API when it has one.
+  function swfTargets() {
+    var player = findPlayer();
+    if (!player) return [];
+    var targets = [player];
     try {
-      if (player && typeof player.ruffle === "function") {
-        var api = player.ruffle();
-        if (api) targets.push(api);
-      }
+      var api = typeof player.ruffle === "function" && player.ruffle();
+      if (api) targets.push(api);
     } catch (e) {
-      /* versioned API is best-effort */
+      // Older Ruffle builds have no versioned API.
     }
+    return targets;
+  }
+
+  // Returns undefined when the target lacks the hook or the call throws.
+  function callHook(target, method, arg) {
+    try {
+      return typeof target[method] === "function" ? target[method](arg) : undefined;
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  function sendKey(down, code) {
+    var method = down ? "tcKeyDown" : "tcKeyUp";
+    var targets = swfTargets();
     for (var i = 0; i < targets.length; i++) {
       try {
         if (typeof targets[i][method] === "function") {
@@ -71,92 +71,41 @@
           return;
         }
       } catch (e) {
-        /* try the next target */
+        // Fall through to the next target.
       }
     }
   }
 
-  function setDir(root, dir) {
-    if (dir) root.setAttribute("data-dir", dir);
-    else root.removeAttribute("data-dir");
+  // tcInGame's Boolean doesn't marshal reliably under Ruffle, so tcMode is
+  // checked as well.
+  function isPlaying() {
+    var targets = swfTargets();
+    for (var i = 0; i < targets.length; i++) {
+      if (callHook(targets[i], "tcInGame") === true) return true;
+      if (callHook(targets[i], "tcMode") === MODE_FIELD) return true;
+    }
+    return false;
   }
 
-  function init() {
-    if (!isTouchDevice()) return; // desktop: overlay stays hidden
-    var container = document.getElementById("gamecontainer");
-    var root = document.getElementById("touch-controls");
-    if (!container || !root) return;
-
-    // Preload the sheet so first touch never flashes unstyled.
-    var preload = new Image();
-    preload.src = SPRITE;
-
-    root.classList.add("tc-on");
-    // Only the two controls accept touches; the rest lets Flash through.
-    var dpad = root.querySelector(".tc-dpad");
-    var knob = root.querySelector(".tc-knob");
-    if (!dpad || !knob) return;
-    var jumpBtn = root.querySelector(".tc-btn");
-
-    // Show the controls only while gameplay is in progress (not on the
-    // title screen). The SWF exposes tcInGame()/tcMode() via
-    // ExternalInterface; unknown/unavailable counts as not playing.
-    // NOTE: tcMode() is authoritative — this Ruffle build demonstrably
-    // marshals Numbers (tcMode 1/2 verified live) while the Boolean
-    // return is unreliable, so gameplay is detected as mode == 2
-    // (MainCanvas.MODE_FIELD).
-    function refreshPlaying() {
-      var playing = false;
-      try {
-        var player =
-          document.querySelector("#gameswf ruffle-player") ||
-          document.querySelector("#gameswf object") ||
-          document.querySelector("#gameswf embed") ||
-          document.getElementById("gameswf");
-        var cbs = [];
-        if (player) cbs.push(player);
-        try {
-          if (player && typeof player.ruffle === "function") {
-            var api = player.ruffle();
-            if (api) cbs.push(api);
-          }
-        } catch (e) {
-          /* versioned API is best-effort */
-        }
-        for (var i = 0; i < cbs.length && !playing; i++) {
-          try {
-            if (typeof cbs[i].tcInGame === "function") {
-              if (cbs[i].tcInGame() === true) playing = true;
-            }
-          } catch (e) {
-            /* try the next target */
-          }
-          try {
-            if (!playing && typeof cbs[i].tcMode === "function") {
-              if (cbs[i].tcMode() === 2) playing = true;
-            }
-          } catch (e) {
-            /* try the next target */
-          }
-        }
-      } catch (e) {
-        playing = false;
-      }
-      if (playing) root.classList.add("tc-playing");
-      else root.classList.remove("tc-playing");
+  function watchPlaying(root) {
+    function refresh() {
+      root.classList.toggle("tc-playing", isPlaying());
     }
-    refreshPlaying();
-    setInterval(refreshPlaying, 500);
+    refresh();
+    setInterval(refresh, PLAYING_POLL_MS);
+  }
 
-    var held = null; // currently asserted dpad direction or null
-    var activePointer = null;
+  function createDpad(root, dpad, knob) {
+    var held = null;
+
+    function scale() {
+      return dpad.clientWidth / BASE_SIZE || 1;
+    }
 
     function release() {
-      if (held) {
-        sendKey("keyup", KEYMAP[held]);
-        held = null;
-      }
-      setDir(root, null);
+      if (held) sendKey(false, KEYMAP[held]);
+      held = null;
+      root.removeAttribute("data-dir");
       knob.style.transform = "translate(0px,0px)";
     }
 
@@ -164,183 +113,173 @@
       if (held === dir) return;
       release();
       held = dir;
-      setDir(root, dir);
-      var scale = dpad.clientWidth / 132 || 1;
-      var t = TRAVEL * scale;
-      var x = 0;
-      var y = 0;
-      if (dir === "left") x = -t;
-      else if (dir === "right") x = t;
-      else if (dir === "up") y = -t;
-      else if (dir === "down") y = t;
-      knob.style.transform = "translate(" + x + "px," + y + "px)";
-      sendKey("keydown", KEYMAP[dir]);
+      root.setAttribute("data-dir", dir);
+      var travel = TRAVEL * scale();
+      var offset = KNOB_DIRECTION[dir];
+      knob.style.transform = "translate(" + offset[0] * travel + "px," + offset[1] * travel + "px)";
+      sendKey(true, KEYMAP[dir]);
     }
 
-    function dirFromPoint(cx, cy) {
+    function directionAt(x, y) {
       var r = dpad.getBoundingClientRect();
-      var dx = cx - (r.left + r.width / 2);
-      var dy = cy - (r.top + r.height / 2);
-      var scale = dpad.clientWidth / 132 || 1;
-      if (Math.sqrt(dx * dx + dy * dy) < DEADZONE * scale) return null;
-      // 4-way constraint: dominant axis only.
+      var dx = x - (r.left + r.width / 2);
+      var dy = y - (r.top + r.height / 2);
+      if (Math.sqrt(dx * dx + dy * dy) < DEADZONE * scale()) return null;
       if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? "left" : "right";
       return dy < 0 ? "up" : "down";
     }
 
-    function onDown(e) {
-      if (activePointer !== null) return;
-      activePointer = e.pointerId !== undefined ? e.pointerId : "touch";
-      try {
-        dpad.setPointerCapture(e.pointerId);
-      } catch (err) {
-        /* capture optional */
-      }
-      var p = dirFromPoint(e.clientX, e.clientY);
-      if (p) press(p);
+    function aim(x, y) {
+      var dir = directionAt(x, y);
+      if (dir) press(dir);
       else release();
-      e.preventDefault();
     }
 
-    function onMove(e) {
-      var id = e.pointerId !== undefined ? e.pointerId : "touch";
-      if (id !== activePointer) return;
-      var p = dirFromPoint(e.clientX, e.clientY);
-      if (p) press(p);
-      else release();
-      e.preventDefault();
-    }
+    return { start: aim, move: aim, end: release };
+  }
 
-    function onUp(e) {
-      var id = e.pointerId !== undefined ? e.pointerId : "touch";
-      if (id !== activePointer) return;
-      activePointer = null;
-      release();
-      e.preventDefault();
-    }
-
-    if (window.PointerEvent) {
-      dpad.addEventListener("pointerdown", onDown);
-      dpad.addEventListener("pointermove", onMove);
-      dpad.addEventListener("pointerup", onUp);
-      dpad.addEventListener("pointercancel", onUp);
-    }
-    // Touch events always ride along: whichever fires first (touchstart
-    // or pointerdown) wins via the activePointer guard, so registration
-    // happens ONTAP on every engine instead of waiting for the slower
-    // path. Multi-touch safe: track identifier.
-    dpad.addEventListener(
-      "touchstart",
-      function (e) {
-        if (activePointer !== null) {
-          e.preventDefault();
-          return;
-        }
-        var t = e.changedTouches[0];
-        activePointer = t.identifier;
-        var p = dirFromPoint(t.clientX, t.clientY);
-        if (p) press(p);
-        else release();
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    dpad.addEventListener(
-      "touchmove",
-      function (e) {
-        for (var i = 0; i < e.changedTouches.length; i++) {
-          var t = e.changedTouches[i];
-          if (t.identifier !== activePointer) continue;
-          var p = dirFromPoint(t.clientX, t.clientY);
-          if (p) press(p);
-          else release();
-        }
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    var end = function (e) {
-      for (var i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier !== activePointer) continue;
-        activePointer = null;
-        release();
-      }
-      e.preventDefault();
-    };
-    dpad.addEventListener("touchend", end, { passive: false });
-    dpad.addEventListener("touchcancel", end, { passive: false });
-    // Leaving the control with the pointer down must not stick a key.
-    dpad.addEventListener("pointerleave", function (e) {
-      if (activePointer !== null && e.pointerType === "mouse") {
-        activePointer = null;
-        release();
-      }
-    });
-
-    // Jump button (TR outline + BL knob cap) => Space.
-    if (jumpBtn) {
-      var jumpPointer = null;
-      var jumpOn = function (e) {
-        if (jumpPointer !== null) return;
-        jumpPointer = e.pointerId !== undefined ? e.pointerId : "touch";
+  function createJumpButton(root) {
+    return {
+      start: function () {
         root.setAttribute("data-jump", "1");
-        sendKey("keydown", KEYMAP.jump);
-        e.preventDefault();
-      };
-      var jumpOff = function (e) {
-        var id = e.pointerId !== undefined ? e.pointerId : "touch";
-        if (id !== jumpPointer) return;
-        jumpPointer = null;
+        sendKey(true, KEYMAP.jump);
+      },
+      move: function () {},
+      end: function () {
         root.removeAttribute("data-jump");
-        sendKey("keyup", KEYMAP.jump);
-        e.preventDefault();
-      };
-      if (window.PointerEvent) {
-        jumpBtn.addEventListener("pointerdown", jumpOn);
-        jumpBtn.addEventListener("pointerup", jumpOff);
-        jumpBtn.addEventListener("pointercancel", jumpOff);
+        sendKey(false, KEYMAP.jump);
       }
-      // touchstart rides along unconditionally: whichever fires first
-      // wins via the jumpPointer guard, so the jump registers ONTAP on
-      // every engine.
-      jumpBtn.addEventListener(
-        "touchstart",
-        function (e) {
-          if (jumpPointer !== null) {
-            e.preventDefault();
-            return;
-          }
-          jumpPointer = e.changedTouches[0].identifier;
-          root.setAttribute("data-jump", "1");
-          sendKey("keydown", KEYMAP.jump);
-          e.preventDefault();
-        },
-        { passive: false }
-      );
-      var jEnd = function (e) {
-        for (var i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier !== jumpPointer) continue;
-          jumpPointer = null;
-          root.removeAttribute("data-jump");
-          sendKey("keyup", KEYMAP.jump);
-        }
-        e.preventDefault();
-      };
-      jumpBtn.addEventListener("touchend", jEnd, { passive: false });
-      jumpBtn.addEventListener("touchcancel", jEnd, { passive: false });
-    }
+    };
+  }
 
-    // Safety: never leave an arrow held if the page hides.
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) {
-        activePointer = null;
-        release();
+  // Lets one pointer at a time drive the handlers.
+  function createGesture(handlers) {
+    var active = null;
+    return {
+      start: function (id, x, y) {
+        if (active !== null) return false;
+        active = id;
+        handlers.start(x, y);
+        return true;
+      },
+      move: function (id, x, y) {
+        if (id !== active) return false;
+        handlers.move(x, y);
+        return true;
+      },
+      end: function (id) {
+        if (id !== active) return;
+        active = null;
+        handlers.end();
+      },
+      cancel: function () {
+        if (active === null) return;
+        active = null;
+        handlers.end();
       }
+    };
+  }
+
+  function pointerId(e) {
+    return e.pointerId !== undefined ? e.pointerId : "touch";
+  }
+
+  function capturePointer(el, id) {
+    try {
+      el.setPointerCapture(id);
+    } catch (e) {
+      // Capture is optional; synthesized pointers can't be captured.
+    }
+  }
+
+  function bindPointerEvents(el, gesture, options) {
+    if (!window.PointerEvent) return;
+    el.addEventListener("pointerdown", function (e) {
+      var started = gesture.start(pointerId(e), e.clientX, e.clientY);
+      if (started && options.capturePointer) capturePointer(el, e.pointerId);
+      e.preventDefault();
     });
-    window.addEventListener("blur", function () {
-      activePointer = null;
-      release();
+    el.addEventListener("pointermove", function (e) {
+      if (gesture.move(pointerId(e), e.clientX, e.clientY)) e.preventDefault();
     });
+    function end(e) {
+      gesture.end(pointerId(e));
+      e.preventDefault();
+    }
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+  }
+
+  function eachChangedTouch(e, fn) {
+    for (var i = 0; i < e.changedTouches.length; i++) fn(e.changedTouches[i]);
+    e.preventDefault();
+  }
+
+  function bindTouchEvents(el, gesture) {
+    var opts = { passive: false };
+    el.addEventListener("touchstart", function (e) {
+      var t = e.changedTouches[0];
+      gesture.start(t.identifier, t.clientX, t.clientY);
+      e.preventDefault();
+    }, opts);
+    el.addEventListener("touchmove", function (e) {
+      eachChangedTouch(e, function (t) {
+        gesture.move(t.identifier, t.clientX, t.clientY);
+      });
+    }, opts);
+    function end(e) {
+      eachChangedTouch(e, function (t) {
+        gesture.end(t.identifier);
+      });
+    }
+    el.addEventListener("touchend", end, opts);
+    el.addEventListener("touchcancel", end, opts);
+  }
+
+  // Touch events are bound alongside pointer events: whichever fires first
+  // owns the gesture, so taps register immediately on every engine.
+  // Returns a function that releases the control.
+  function bindControl(el, handlers, options) {
+    var gesture = createGesture(handlers);
+    bindPointerEvents(el, gesture, options);
+    bindTouchEvents(el, gesture);
+    if (options.releaseOnMouseLeave) {
+      el.addEventListener("pointerleave", function (e) {
+        if (e.pointerType === "mouse") gesture.cancel();
+      });
+    }
+    return gesture.cancel;
+  }
+
+  // Never leave a key held when the page loses focus.
+  function releaseOnHide(releases) {
+    function releaseAll() {
+      releases.forEach(function (release) {
+        release();
+      });
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) releaseAll();
+    });
+    window.addEventListener("blur", releaseAll);
+  }
+
+  function init() {
+    if (!isTouchDevice()) return;
+    var root = document.getElementById("touch-controls");
+    if (!root || !document.getElementById("gamecontainer")) return;
+    new Image().src = SPRITE; // Preload so the first touch never shows unstyled.
+    root.classList.add("tc-on");
+    var dpad = root.querySelector(".tc-dpad");
+    var knob = root.querySelector(".tc-knob");
+    if (!dpad || !knob) return;
+    watchPlaying(root);
+    var releases = [
+      bindControl(dpad, createDpad(root, dpad, knob), { capturePointer: true, releaseOnMouseLeave: true })
+    ];
+    var jumpButton = root.querySelector(".tc-btn");
+    if (jumpButton) releases.push(bindControl(jumpButton, createJumpButton(root), {}));
+    releaseOnHide(releases);
   }
 
   if (document.readyState === "loading") {

@@ -1,17 +1,9 @@
-// server/utils/timing.ts — per-request server-timing badge, rendered
-// bottom-right of every SSR page: wall-clock, CPU time, DB query count,
-// heap. Started once per request by server/plugins/timing.ts; queries are
-// counted through the drizzle logger on every db handle (plus one manual
-// bump for pinFreshBookmark's raw SELECT 1).
-//
-// Workers expose no CPU/RSS counters, so those render n/a on the edge and
-// real numbers on node — never faked. Badge content is pure numbers
-// (nothing user-controlled reaches it).
+// Per-request timing badge (wall-clock + DB query count) shown on every SSR
+// page. Queries are counted by the drizzle logger on each db handle.
 import type { H3Event } from "nitro";
 
 export interface TimingState {
   start: number;
-  // Statements executed this request (drizzle loggers + manual bumps).
   queries: number;
 }
 
@@ -22,7 +14,7 @@ function stateOf(event: H3Event): TimingState | null {
   return s && typeof s === "object" ? (s as TimingState) : null;
 }
 
-// Start the clock. First call wins; safe to call from anywhere.
+// First call wins.
 export function startTiming(event: H3Event): TimingState {
   let s = stateOf(event);
   if (!s) {
@@ -32,25 +24,16 @@ export function startTiming(event: H3Event): TimingState {
   return s;
 }
 
-// Manual +1 for statements that bypass drizzle (pinFreshBookmark).
+// For statements that bypass drizzle (pinFreshBookmark).
 export function countQuery(event: H3Event): void {
-  const s = stateOf(event) ?? startTiming(event);
-  s.queries += 1;
+  startTiming(event).queries += 1;
 }
 
-// Drizzle logger for every per-request db handle: counts each executed
-// statement, including Better Auth's internal ones (they share the handle).
+// Also counts Better Auth's internal queries, which share the handle.
 export function dbLogger(event: H3Event): { logQuery(): void } {
-  return {
-    logQuery() {
-      const s = stateOf(event) ?? startTiming(event);
-      s.queries += 1;
-    },
-  };
+  return { logQuery: () => countQuery(event) };
 }
 
-// Renders the badge for the layout's <%~ it.srvTiming %> slot (currently
-// wall-clock only). Empty when timing never started (non-request contexts).
 export function timingBadge(event: H3Event): string {
   const s = stateOf(event);
   if (!s) return "";

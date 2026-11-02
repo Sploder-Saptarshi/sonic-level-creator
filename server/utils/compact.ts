@@ -1,9 +1,6 @@
-// server/utils/compact.ts — compact level storage codec (RLE grid +
-// tuple objects as JSON). Single source of truth: imported by the editor
-// bundle (via ts/format.ts re-export) and the gateway (server-side).
-// Measured 10–27x smaller than comma-decimal CSV: CSV spends ~3.5 chars
-// per byte and charges full price for empty cells, while levels are
-// mostly zeros. No fallbacks — only this format is read or written.
+// Compact level storage: RLE grid + object tuples as JSON, 10–27x smaller
+// than comma-decimal CSV. Shared by the editor bundle (via ts/format.ts) and
+// the gateway.
 export interface CompactObject {
   x: number;
   y: number;
@@ -35,54 +32,62 @@ export function encodeCompact(
 const isInt = (n: unknown): n is number =>
   typeof n === "number" && Number.isInteger(n);
 
-export function decodeLevel(
-  data: string,
-): { grid: number[][]; objects: CompactObject[] } | null {
+const inRange = (n: number, max: number) => n >= 0 && n <= max;
+
+interface CompactDoc {
+  w: number;
+  h: number;
+  r: unknown[];
+  o: unknown[];
+}
+
+function parseDoc(data: string): CompactDoc | null {
   const t = (data ?? "").trim();
-  if (!t || !t.startsWith("{")) return null;
+  if (!t.startsWith("{")) return null;
   let doc: any;
   try {
     doc = JSON.parse(t);
   } catch {
     return null;
   }
-  if (
-    !doc || !isInt(doc.w) || !isInt(doc.h) || doc.w < 1 || doc.w > 256 ||
-    doc.h < 1 || doc.h > 256 || !Array.isArray(doc.r) || !Array.isArray(doc.o)
-  ) {
-    return null;
-  }
-  const total = doc.w * doc.h;
+  const validSize = isInt(doc?.w) && isInt(doc.h) && doc.w >= 1 && doc.w <= 256 && doc.h >= 1 && doc.h <= 256;
+  return validSize && Array.isArray(doc.r) && Array.isArray(doc.o) ? doc : null;
+}
+
+// Each run is bounds-checked before expanding, so a hostile row can't make
+// the server push billions of cells.
+function expandRuns(runs: unknown[], total: number): number[] | null {
+  if (runs.length > total + 1) return null;
   const flat: number[] = [];
-  let runs = 0;
-  for (const run of doc.r) {
-    if (
-      !Array.isArray(run) || run.length !== 2 || !isInt(run[0]) ||
-      !isInt(run[1]) || run[0] < 0 || run[0] > 0xffffffff || run[1] < 1
-    ) return null;
-    // RLE-bomb guard: each run must fit the cells still unfilled, and the
-    // run count can't exceed cells + 1. Both are checked BEFORE expanding —
-    // the old trailing flat.length check only ran after a billion-push loop
-    // had already burned CPU on every getLevel/play of the poisoned level.
-    if (++runs > total + 1) return null;
-    if (run[1] > total - flat.length) return null;
-    for (let i = 0; i < run[1]; i++) flat.push(run[0]);
+  for (const run of runs) {
+    if (!Array.isArray(run) || run.length !== 2) return null;
+    const [value, count] = run;
+    if (!isInt(value) || !isInt(count) || !inRange(value, 0xffffffff) || count < 1) return null;
+    if (count > total - flat.length) return null;
+    for (let i = 0; i < count; i++) flat.push(value);
   }
-  if (flat.length !== total) return null;
-  const grid: number[][] = [];
-  for (let r = 0; r < doc.h; r++) {
-    grid.push(flat.slice(r * doc.w, (r + 1) * doc.w));
-  }
+  return flat.length === total ? flat : null;
+}
+
+function parseObjects(entries: unknown[]): CompactObject[] | null {
   const objects: CompactObject[] = [];
-  for (const e of doc.o) {
+  for (const e of entries) {
     if (!Array.isArray(e) || e.length !== 5 || !e.every(isInt)) return null;
-    const [x, y, variant, type, sub] = e;
-    if (
-      x < 0 || x > 65535 || y < 0 || y > 65535 ||
-      variant < 0 || variant > 255 || type < 0 || type > 255 ||
-      sub < 0 || sub > 255
-    ) return null;
+    const [x, y, variant, type, sub] = e as number[];
+    const valid = inRange(x, 65535) && inRange(y, 65535) && inRange(variant, 255) && inRange(type, 255) && inRange(sub, 255);
+    if (!valid) return null;
     objects.push({ x, y, variant, type, sub });
   }
+  return objects;
+}
+
+export function decodeLevel(data: string): { grid: number[][]; objects: CompactObject[] } | null {
+  const doc = parseDoc(data);
+  if (!doc) return null;
+  const flat = expandRuns(doc.r, doc.w * doc.h);
+  const objects = parseObjects(doc.o);
+  if (!flat || !objects) return null;
+  const grid: number[][] = [];
+  for (let r = 0; r < doc.h; r++) grid.push(flat.slice(r * doc.w, (r + 1) * doc.w));
   return { grid, objects };
 }

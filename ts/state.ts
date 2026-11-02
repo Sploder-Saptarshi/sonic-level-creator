@@ -1,63 +1,57 @@
 import {
-  BLOCK_PX, DEFAULT_COLS, DEFAULT_ROWS, GRID_SNAP,
+  BLOCK_PX, DEFAULT_COLS, DEFAULT_ROWS,
   ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES,
-  countObjectsInTile, pixelToTile,
-  PlacedObject, ObjectDef,
+  countObjectsInTile,
+  type PlacedObject, type ObjectDef,
 } from './format';
 
 export type TabType = 'tiles' | 'objects' | 'rings' | 'enemies' | 'essentials';
 
-/** Mutable editor state — single source of truth. */
+/** Mutable editor state. */
 export const S = {
   grid: [] as number[][],
   objects: [] as PlacedObject[],
   activeTab: 'tiles' as TabType,
   selectedTile: 1,
   selectedObj: null as ObjectDef | null,
-  // Chosen on the "Start a new level" screen; used for the save filename.
-  // Empty until the user types a name (the field shows a placeholder).
   levelName: '',
-  // Server row id once saved (null until the first server save).
+  // Null until the first save.
   levelId: null as string | null,
   zoom: 2,
   spaceHeld: false,
   selectedObjIdx: -1,
-  // Selected tile cell (block coords, -1 when nothing selected). Clicking a
-  // filled cell selects it: draw() outlines it + paints a remove badge.
+  // Selected tile cell in block coords; -1 when nothing is selected.
   selectedTileBx: -1,
   selectedTileBy: -1,
   dragObj: null as PlacedObject | null,
   dragOffX: 0,
   dragOffY: 0,
-  // Canvas position where the current object drag started (world px).
-  // Used on drop to enforce the per-tile cap when moving existing objects.
+  // World px where the current object drag started (per-tile cap on drop).
   dragStartX: 0,
   dragStartY: 0,
 
-  // Palette drag (started from thumbnail, ends on canvas)
+  // Drag from a palette thumbnail onto the canvas.
   paletteDrag: false,
   paletteDragTile: 0,
   paletteDragDef: null as ObjectDef | null,
 
-  // Palette-drag drop preview (snapped world px, only live while the cursor
-  // is over the canvas itself — canvas-drawn, no HTML duplication)
+  // Snapped drop preview, live only while the cursor is over the canvas.
   previewPX: 0,
   previewPY: 0,
   previewOnCanvas: false,
 
-  // Hover highlight (tile cell under the cursor, -1 when outside grid)
+  // Tile cell under the cursor; -1 outside the grid.
   hoverBx: -1,
   hoverBy: -1,
   gloweyImg: null as HTMLImageElement | null,
 
-  // Pan state
   panning: false,
   panStartX: 0,
   panStartY: 0,
   panStartSX: 0,
   panStartSY: 0,
 
-  // DOM refs (populated in boot)
+  // DOM refs, set in boot().
   shadow: null as ShadowRoot | null,
   canvas: null as HTMLCanvasElement | null,
   ctx: null as CanvasRenderingContext2D | null,
@@ -69,15 +63,12 @@ export const S = {
   ghostEl: null as HTMLElement | null,
 };
 
-// ── Helpers ──
-
 export function cellSize(): number {
   return Math.round(128 * effZoom());
 }
 
-// Effective zoom: never smaller than the minimum that fills the viewport,
-// so no zoom button can leave a blank canvas area. The buttons keep their
-// labels (100%/50%/25%) — small maps just render larger than literal.
+// Never below the zoom that fills the viewport, so small maps leave no blank
+// area (the zoom buttons keep their nominal labels).
 export function effZoom(): number {
   const cols = S.grid[0]?.length ?? 0, rows = S.grid.length;
   const wrap = S.canvasWrap;
@@ -109,9 +100,8 @@ export function resetInteraction() {
   S.dragObj = null;
 }
 
-/** Convert mouse event to grid + pixel coordinates (single source of truth).
- *  mx/my are absolute canvas-px coords (canvas is viewport-sized + sticky,
- *  so the wrap scroll offset is added back); bx/by the cell; px/py world. */
+/** Mouse event -> cell (bx/by), world px (px/py) and canvas px (mx/my).
+ *  The canvas is viewport-sized and sticky, so the scroll offset is added. */
 export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: number; py: number; mx: number; my: number } {
   const rect = S.canvas!.getBoundingClientRect();
   const cs = cellSize();
@@ -129,7 +119,6 @@ export function canvasToWorld(e: MouseEvent): { bx: number; by: number; px: numb
   };
 }
 
-/** Resolve tab to its object-definition list. */
 export function defsForTab(tab: TabType): ObjectDef[] {
   if (tab === 'objects') return OBJECTS;
   if (tab === 'rings') return RING_TYPES;
@@ -142,10 +131,7 @@ export function objectsInTile(tc: number, tr: number, except?: PlacedObject): nu
 }
 
 export function totalObjects(): number {
-  // Global counter: every placed entry counts as one — a ring bunch is a
-  // single object no matter how many rings it holds. (The per-tile budget
-  // in countObjectsInTile still counts rings individually, each in the
-  // tile it actually lands in.)
+  // A ring bunch counts once here; the per-tile budget counts each ring.
   return S.objects.length;
 }
 
@@ -157,7 +143,7 @@ export function countPlacedTiles(): number {
 
 const defCache = new Map<string, ObjectDef | null>();
 export function findDef(typeId: number, variant?: number, sub?: number): ObjectDef | null {
-  // Memoized (pure lookup): draw() calls this per art-less object per frame.
+  // Memoized: draw() calls this per object per frame.
   const key = `${typeId}|${variant ?? ''}|${sub ?? ''}`;
   const hit = defCache.get(key);
   if (hit !== undefined) return hit;

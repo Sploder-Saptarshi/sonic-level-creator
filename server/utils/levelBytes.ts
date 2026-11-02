@@ -1,14 +1,12 @@
-// server/utils/levelBytes.ts — compact level row -> game byte string.
-// The Flash game parses ONE comma-decimal string feeding parseBinFile
-// immediately followed by parseActFile, so the reply is BIN bytes +
-// ACT bytes joined with commas (mirrors ts/format.ts encoders).
+// Stored level -> the game's single comma-decimal string: BIN bytes followed
+// by ACT bytes. The editor bundle reuses these encoders for test play.
 import { decodeLevel, type CompactObject } from "./compact";
 
 function pushU32(out: number[], v: number): void {
   out.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
 }
 
-function encodeBin(grid: number[][]): number[] {
+export function encodeBin(grid: number[][]): number[] {
   const rows = grid.length, cols = grid[0].length;
   const out: number[] = [];
   pushU32(out, 4);
@@ -22,9 +20,8 @@ function encodeBin(grid: number[][]): number[] {
   return out;
 }
 
-function encodeAct(objects: CompactObject[]): number[] {
-  // X-sorted like stock tables (the SWF streams with mono-directional
-  // cursors that break on the first out-of-range X).
+export function encodeAct(objects: CompactObject[]): number[] {
+  // The SWF streams objects with forward-only cursors, so sort by X.
   const sorted = [...objects].sort((a, b) => a.x - b.x || a.y - b.y);
   const entries: number[] = [];
   for (const o of sorted) {
@@ -40,7 +37,7 @@ function encodeAct(objects: CompactObject[]): number[] {
   return out;
 }
 
-// Compact row data -> "v,v,v,..." game string. Null on corrupt data.
+// Null on corrupt data.
 export function levelToCsv(data: string): string | null {
   const parsed = decodeLevel(data);
   if (!parsed || !parsed.grid.length || !parsed.grid[0].length) return null;

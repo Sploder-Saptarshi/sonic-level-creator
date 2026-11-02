@@ -1,6 +1,5 @@
-// POST /member/signout — clear the session, back to the front page.
-// Pins a fresh D1 bookmark afterwards (+1 primary read on the edge) so
-// replica session reads observe the deletion immediately.
+// POST /member/signout
+// End the session and return to the front page.
 import { defineHandler } from "nitro";
 import { sendRedirect } from "nitro/h3";
 import { createAuth } from "../../auth/config";
@@ -16,7 +15,7 @@ export default defineHandler(async (event) => {
     } as any);
     forwardCookies(event, res.headers);
   } catch {
-    // clearing a broken/expired session still lands home
+    // A broken or expired session still lands home.
   }
   await pinFreshBookmark(event);
   return sendRedirect(event, "/");

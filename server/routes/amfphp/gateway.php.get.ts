@@ -1,4 +1,5 @@
-// GET /amfphp/gateway.php — the gateway is POST-only (mirrors legacy).
+// GET /amfphp/gateway.php
+// POST-only, like the legacy endpoint.
 import { defineHandler } from "nitro";
 import { setResponseHeader } from "nitro/h3";
 import { HTTPError } from "nitro";

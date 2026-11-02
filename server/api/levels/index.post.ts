@@ -1,7 +1,5 @@
-// POST /api/levels — save a new level for the signed-in user.
-// SQL: 1 session lookup + 1 sequencer UPDATE (atomic, 1 row) + 1 row insert.
-// Success pins a fresh D1 bookmark for replica chaining (+1 primary read
-// on the edge). Validation is pure (0 SQL) and runs before any write.
+// POST /api/levels
+// Save a new level for the signed-in user.
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { eq, sql } from "drizzle-orm";
@@ -17,9 +15,8 @@ export default defineHandler(async (event) => {
   const { name, cols, rows, data } = readLevelBody(body);
   const now = new Date();
   const db = getRequestDb(event);
-  // Atomic sequencer: single UPDATE ... RETURNING is serialized by SQLite
-  // on the primary, so concurrent POSTs never collide (no MAX+1 retry loop).
-  // Seeded from MAX(CAST(id AS INT)) in migration 0010; next is MAX+1.
+  // UPDATE ... RETURNING is serialized by SQLite, so concurrent saves
+  // never collide.
   const seq = await db
     .update(levelSeq)
     .set({ nextId: sql`${levelSeq.nextId} + 1` })

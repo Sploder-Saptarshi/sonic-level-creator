@@ -1,15 +1,6 @@
-// GET /editors/alllevels/:userid — per-user directory ("Levels by X"),
-// linked from author names in All Levels. Published levels only.
-// Keyed by user id (stable when usernames later gain spaces/punctuation/
-// capitals); the heading shows the pretty-case username.
-// SQL: guests pay exactly 2 app queries (1-row user PK read carrying both
-// the heading and the trigger-kept published counter, + one keyset page
-// over the (userId, published, updatedAt) index, stock excluded in SQL,
-// `data` never read). Session check and user lookup are independent, so
-// both race on the one replica session. Unknown ids 404 even with zero
-// rows; known creators render empty. No COUNT(*), no OFFSET. Listing
-// queries run on read replicas when available (seconds-stale at worst).
-// Signed-in adds 1 session lookup. No login required.
+// GET /editors/alllevels/:userid
+// "Levels by X" (published only). Keyed by
+// user id because usernames may contain spaces and punctuation.
 import { defineHandler, HTTPError } from "nitro";
 import { getQuery, getRouterParam } from "nitro/h3";
 import {
@@ -36,8 +27,6 @@ export default defineHandler(async (event) => {
     throw new HTTPError({ status: 404, message: "Unknown creator" });
   }
   const db = getReplicaDb(event);
-  // Existence, heading name, and page total in a single PK row — raced
-  // with the session check on the same session.
   const [session, foundRows] = await Promise.all([
     getSessionUser(event),
     findUserById(db, userId),
@@ -52,7 +41,6 @@ export default defineHandler(async (event) => {
       renderUserLevelsPage({ ...toPageView(session, event), levels: [] }, display),
     );
   }
-  // Display-only page number: rows are fetched purely from the cursor.
   const q = getQuery(event);
   const { page, totalPages } = clampListingPage(q.page, total);
   const { incoming, keyset } = parseKeysetQuery(q);
@@ -69,11 +57,7 @@ export default defineHandler(async (event) => {
     tsOf: (l) => l.updatedAt,
     idOf: (l) => l.id,
   });
-  // Heading from the page rows when present (same as before), else the
-  // already-fetched user row: still 0 extra SQL either way.
-  const heading = levels.length > 0
-    ? (levels[0]!.authorDisplay ?? levels[0]!.author ?? display)
-    : display;
+  const heading = levels[0]?.authorDisplay ?? levels[0]?.author ?? display;
   return html(
     event,
     renderUserLevelsPage(

@@ -1,6 +1,5 @@
-// server/auth/config.ts — Better Auth instance factory (both presets).
-// One instance per request (Workers bindings only exist per request).
-// Sessions are server-side rows in D1/SQLite; passwords are Argon2id.
+// Better Auth factory. One instance per request: Workers bindings only
+// exist per request.
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins";
@@ -14,9 +13,7 @@ import { isAsciiUsername } from "../utils/session";
 import { dbLogger } from "../utils/timing";
 import type { H3Event } from "nitro";
 
-// Server-side session lifetimes, in ms. Single source of truth: the
-// better-auth config below consumes seconds, and the hand-rolled hot-path
-// lookup (getSessionUser) consumes ms for its refresh arithmetic.
+// Session lifetimes in ms; shared with getSessionUser's refresh logic.
 export const SESSION_EXPIRES_IN_MS = 60 * 60 * 24 * 7 * 1000;
 export const SESSION_UPDATE_AGE_MS = 60 * 60 * 24 * 1000;
 
@@ -24,9 +21,7 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
   const env = getAuthEnv(event);
   let db;
   if (env.kind === "d1") {
-    // A replica session serves auth reads from a caught-up replica; writes
-    // through it still go to the primary. Only the session lookup passes
-    // one (getSessionUser) — every write path stays on the primary.
+    // Only getSessionUser passes a replica; writes always reach the primary.
     db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, { schema, logger: dbLogger(event) });
   } else {
     ensureNodeMigrated();
@@ -37,18 +32,13 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
     secret: env.secret,
     advanced: {
       ipAddress: {
-        // Cloudflare overwrites CF-Connecting-IP at the edge, so it can't
-        // be spoofed in prod and always holds the single real client IP
-        // (plain x-forwarded-for usually carries a multi-IP chain there,
-        // which Better Auth distrusts → empty ip_address). Locally the
-        // header is absent and dev falls back to 127.0.0.1.
+        // CF-Connecting-IP is set by the edge and can't be spoofed;
+        // x-forwarded-for is the local fallback.
         ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
       },
     },
-    // Explicit BETTER_AUTH_URL wins (production + local override). Without
-    // it the origin is derived per request from an allowlisted host set —
-    // the dynamic form silences Better Auth's "Base URL is not set"
-    // warning and keeps varying dev ports working with no env changes.
+    // BETTER_AUTH_URL wins; otherwise derive the origin per request from
+    // an allowlist (works across dev ports).
     baseURL: env.baseURL ?? {
       allowedHosts: ["localhost:*", "127.0.0.1:*", "sonicrelvl.pages.dev"],
     },
@@ -60,9 +50,7 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
     ],
     database: drizzleAdapter(db as any, { provider: "sqlite" }),
     user: {
-      // Exposes the DB `role` column on session.user (output only).
-      // `input: false` rejects any client-supplied role at sign-up —
-      // promotion is a direct DB write, never a form field.
+      // Output-only: sign-up can never set a role. Promote via SQL.
       additionalFields: {
         role: { type: "string", required: false, input: false },
       },
@@ -78,10 +66,8 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
       expiresIn: SESSION_EXPIRES_IN_MS / 1000,
       updateAge: SESSION_UPDATE_AGE_MS / 1000,
     },
-    // Printable-ASCII usernames (spaces, punctuation, capitals allowed).
-    // Replaces the plugin default (/^[a-zA-Z0-9_.]+$/), which would reject
-    // them at sign-up AND sign-in. Length stays at the plugin defaults
-    // (3–30, matching the signup form).
+    // Printable ASCII instead of the plugin's /^[a-zA-Z0-9_.]+$/.
+    // Length keeps the plugin default (3–30).
     plugins: [username({ usernameValidator: isAsciiUsername })],
   });
 }

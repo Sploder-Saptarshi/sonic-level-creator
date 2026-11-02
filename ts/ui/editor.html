@@ -1,0 +1,90 @@
+<div class="editor">
+  <div class="main">
+    <div class="canvas-area">
+      <div class="topbar">
+        <div class="topbar-l">
+          <label>Zoom:</label>
+          <button class="btn btn-active" data-zoom="2">100%</button>
+          <button class="btn" data-zoom="1">50%</button>
+          <button class="btn" data-zoom="0.5">25%</button>
+        </div>
+        <div class="topbar-r">
+          <span>Object Counter:</span>
+          <span class="counter">0</span>
+          <button class="btn btn-clear" title="Clear entire level"><svg viewBox="0 0 12 12" width="12" height="12"><line x1="3" y1="3" x2="9" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="3" x2="3" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <div class="canvas-inner"><canvas class="display"></canvas></div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="panel-left">
+        <div class="tabs">
+          <button class="tab tab-active" data-tab="tiles">Tiles</button>
+          <button class="tab" data-tab="objects">Objects</button>
+          <button class="tab" data-tab="rings">Rings</button>
+          <button class="tab" data-tab="enemies">Enemies</button>
+          <button class="tab" data-tab="essentials">Essentials</button>
+        </div>
+        <div class="thumbstrip"></div>
+      </div>
+      <div class="panel-right">
+        <h4>Options</h4>
+        <a class="act-btn" data-action="test"><span>Test Level</span></a>
+        <a class="act-btn" data-action="save"><span>Save</span></a>
+        <a class="act-btn" data-action="fullscreen"><span>Go Fullscreen</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="bottombar-l">
+      <button class="btm-btn" data-action="mylevels"><span>My Levels</span></button>
+      <button class="btm-btn" data-action="alllevels"><span>All Levels</span></button>
+    </div>
+    <button class="share-btn" data-action="share"><img src="/images/share-btn.png" alt="Share" /></button>
+  </div>
+
+  <div class="ghost" id="ghost"></div>
+</div>
+
+<div class="testmode">
+  <div class="ruffle-holder"></div>
+  <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
+</div>
+
+<div class="save-overlay hidden">
+  <div class="save-card">
+    <h2 class="save-title">Saving...</h2>
+    <p class="save-msg">Please wait while your level is saved.</p>
+    <a class="act-btn save-ok hidden" data-action="saveok"><span>OK</span></a>
+  </div>
+</div>
+
+<div class="start-overlay">
+  <div class="start-card">
+    <h2>Start a new level</h2>
+    <p>Ready to start creating a new level? Choose a level name to get started! Be creative!</p>
+    <label for="start-name">Level Name</label>
+    <div class="start-row">
+      <input class="start-name" id="start-name" type="text" value="" placeholder="My Awesome Level" maxlength="60" />
+      <button class="start-go" data-action="startcreating" disabled>Start creating...</button>
+    </div>
+    <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
+  </div>
+
+  <div class="size-card" hidden>
+    <h2>Select Map Size</h2>
+    <p>Select the size of Map you would like to create.</p>
+    <div class="map-area">
+      <div class="map-opt map-large" data-name="Large" data-cols="35" data-rows="8">
+        <div class="map-opt map-medium" data-name="Medium" data-cols="26" data-rows="6">
+          <div class="map-opt map-small" data-name="Small" data-cols="12" data-rows="4"></div>
+        </div>
+      </div>
+      <div class="map-label"><span class="map-name">Medium</span><span class="map-dims">26 x 6 tiles</span></div>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,5 @@
-// GET /member/signin — member sign-in page (SSR).
-// SQL: 0 for guests (no cookie fast-path), 1 session lookup + bounce for
-// signed-in users (honoring ?next=, else the default landing). App rows: 0.
+// GET /member/signin
+// Sign-in page; signed-in users are redirected on.
 import { defineHandler } from "nitro";
 import { getQuery, getRequestURL, sendRedirect } from "nitro/h3";
 import { html, renderSigninPage } from "../../utils/page";

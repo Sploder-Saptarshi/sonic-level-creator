@@ -1,6 +1,5 @@
-// GET /member/signup — member sign-up page (SSR).
-// SQL: 0 for guests (no cookie fast-path), 1 session lookup + bounce for
-// signed-in users (honoring ?next=, else the default landing). App rows: 0.
+// GET /member/signup
+// Sign-up page; signed-in users are redirected on.
 import { defineHandler } from "nitro";
 import { getQuery, getRequestURL, sendRedirect } from "nitro/h3";
 import { html, renderSignupPage } from "../../utils/page";
