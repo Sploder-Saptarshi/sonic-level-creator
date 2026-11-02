@@ -12,11 +12,11 @@ window.SwfHooks = (function () {
   }
 
   // the hooks only exist once the movie has registered them
-  function call(method, arg) {
+  function call(method) {
     var player = getPlayer();
     if (!player || typeof player[method] !== "function") return undefined;
     try {
-      return player[method](arg);
+      return player[method].apply(player, Array.prototype.slice.call(arguments, 1));
     } catch (e) {
       return undefined;
     }
