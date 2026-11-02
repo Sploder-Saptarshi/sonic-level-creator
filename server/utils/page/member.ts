@@ -1,4 +1,3 @@
-// server/utils/page/member.ts — sign-in / sign-up / account / quickstart pages
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import signinBodyTemplate from "../../templates/signin.html" with { type: "text" };
 import signupBodyTemplate from "../../templates/signup.html" with { type: "text" };
@@ -23,8 +22,6 @@ import {
 } from "./chrome";
 import type { PageQuery } from "./query";
 
-const TURNSTILE_SITEKEY = DEV_TURNSTILE_SITEKEY;
-
 function renderMemberPage(
   bodyTpl: string,
   baseTitle: string,
@@ -39,7 +36,7 @@ function renderMemberPage(
     next,
     signupHref: withNext("/member/signup"),
     signinHref: withNext("/member/signin"),
-    turnstileSitekey: view.turnstileSitekey || TURNSTILE_SITEKEY,
+    turnstileSitekey: view.turnstileSitekey || DEV_TURNSTILE_SITEKEY,
     turnstileAction,
   });
   return render(layoutTemplate, {

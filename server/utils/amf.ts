@@ -1,13 +1,4 @@
-// server/utils/amf.ts — minimal AMF0 gateway (Workers-safe, no deps).
-// Direct port of public/amfphp/gateway.php: same envelope, same services,
-// same reply shapes. Handles both services sharing the URL:
-//   PlaySEGAAPI.*    (insertCoin, getNonce, levelUp, pauseGame, unPause,
-//                     gameOver, getScores, getNumRings, getUsername, debit)
-//   LevelEditorAPI.* (getLevel, ...)
-// Level bytes come ONLY from the database (no disk reads): getLevel resolves
-// a level id to its comma-decimal BIN+ACT string, '' when unknown/corrupt.
-
-export type AmfValue =
+type AmfValue =
   | null
   | boolean
   | number
@@ -17,6 +8,13 @@ export type AmfValue =
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+
+// limits for unauthenticated input; real SWF requests are tiny
+const MAX_AMF_BYTES = 256 * 1024;
+const MAX_MSGS = 64;
+const MAX_ARR = 4096;
+const MAX_OBJ_KEYS = 4096;
+const MAX_DEPTH = 16;
 
 class Reader {
   private v: DataView;
@@ -60,8 +58,6 @@ class Reader {
     return dec.decode(this.bytes(this.u32()));
   }
   val(depth = 0): AmfValue {
-    // No unbounded recursion: nested arrays/objects past MAX_DEPTH are a
-    // stack-exhaustion bomb, not game traffic.
     if (depth > MAX_DEPTH) throw new Error("amf nesting too deep");
     const t = this.u8();
     switch (t) {
@@ -155,20 +151,8 @@ function envelope(respId: string, value: AmfValue): number[] {
   ];
 }
 
-// Parser budgets: the gateway serves unauthenticated binary POSTs, so a
-// hostile body must not buy unbounded CPU/memory. Legit SWF traffic is a
-// handful of tiny calls (one short string arg); anything past these caps is
-// a bomb, not a game client.
-export const MAX_AMF_BYTES = 256 * 1024;
-const MAX_MSGS = 64;
-const MAX_ARR = 4096;
-const MAX_OBJ_KEYS = 4096;
-const MAX_DEPTH = 16;
+const API_NONCE = "playsega_offline";
 
-export const API_NONCE = "playsega_offline";
-
-// One AMF0 POST body -> reply bytes. getLevelBytes maps a level id string
-// (or null) to its game byte string; '' serves unknown/corrupt ids.
 export async function handleAmf(
   raw: Uint8Array,
   getLevelBytes: (levelId: string | null) => Promise<string>,
@@ -182,8 +166,6 @@ export async function handleAmf(
     r.str();
     r.u8();
     const skip = r.u32();
-    // Unbounded skip lands past the buffer (RangeError) or desyncs the
-    // stream into attacker-chosen bytes — clamp it to the body.
     if (skip > raw.length - r.p) throw new Error("amf header overrun");
     r.p += skip;
   }
@@ -202,37 +184,24 @@ export async function handleAmf(
   return new Uint8Array(out);
 }
 
+const STUB_REPLIES: Record<string, AmfValue> = {
+  insertCoin: true,
+  getNonce: API_NONCE,
+  levelUp: 1,
+  pauseGame: true,
+  unPause: true,
+  gameOver: [],
+  getScores: "",
+  getNumRings: 0,
+  getUsername: "Guest",
+  debit: true,
+};
+
 async function playsegaCall(
   method: string,
   args: AmfValue[],
   getLevelBytes: (levelId: string | null) => Promise<string>,
 ): Promise<AmfValue> {
-  switch (method) {
-    case "insertCoin":
-      return true;
-    case "getNonce":
-      return API_NONCE;
-    case "levelUp":
-      return 1;
-    case "pauseGame":
-      return true;
-    case "unPause":
-      return true;
-    case "gameOver":
-      return [];
-    case "getScores":
-      return "";
-    case "getNumRings":
-      return 0;
-    case "getUsername":
-      return "Guest";
-    case "debit":
-      return true;
-    case "getLevel": {
-      const id = typeof args[0] === "string" ? args[0] : null;
-      return getLevelBytes(id);
-    }
-    default:
-      return null;
-  }
+  if (method === "getLevel") return getLevelBytes(typeof args[0] === "string" ? args[0] : null);
+  return Object.hasOwn(STUB_REPLIES, method) ? STUB_REPLIES[method]! : null;
 }

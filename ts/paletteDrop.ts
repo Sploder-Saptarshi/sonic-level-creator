@@ -1,0 +1,57 @@
+// Dragging tiles and objects from the tray onto the grid.
+
+import { snap8, type ObjectDef } from './format';
+import { S, inGrid, canvasToWorld } from './state';
+import { draw, updateGhost, hideGhost } from './render';
+import { updateCounter } from './thumbnails';
+import { realTarget } from './dom';
+import { showPlaceError } from './popup';
+import { markDirty } from './testMode';
+import { placementError, rejectWithPopup } from './rules';
+
+let ghostEvent: MouseEvent | null = null;
+let ghostQueued = false;
+
+function onDocMouseMove(e: MouseEvent) {
+  ghostEvent = e;
+  if (ghostQueued) return;
+  ghostQueued = true;
+  requestAnimationFrame(() => {
+    ghostQueued = false;
+    const ev = ghostEvent;
+    ghostEvent = null;
+    if (ev) updateGhost(ev);
+  });
+}
+
+function dropObject(def: ObjectDef, px: number, py: number) {
+  const x = snap8(px), y = snap8(py);
+  const error = placementError(def, x, y);
+  if (error) {
+    rejectWithPopup(error, showPlaceError);
+    return;
+  }
+  S.objects.push({ x, y, variant: def.variant ?? 0, type: def.id, sub: def.sub ?? 0 });
+  S.selectedObjIdx = S.objects.length - 1;
+}
+
+// The tray shares the canvas's x-range, so only count releases on the canvas.
+function onDocMouseUp(e: MouseEvent) {
+  hideGhost();
+  if (!S.paletteDrag) return;
+  const { bx, by, px, py } = canvasToWorld(e);
+  if (realTarget(e) === S.canvas && inGrid(bx, by)) {
+    if (S.activeTab === 'tiles') S.grid[by][bx] = S.paletteDragTile;
+    else if (S.paletteDragDef) dropObject(S.paletteDragDef, px, py);
+    updateCounter();
+    markDirty();
+  }
+  S.paletteDrag = false;
+  S.paletteDragDef = null;
+  draw();
+}
+
+export function wirePaletteDrop() {
+  document.addEventListener('mousemove', onDocMouseMove);
+  document.addEventListener('mouseup', onDocMouseUp);
+}

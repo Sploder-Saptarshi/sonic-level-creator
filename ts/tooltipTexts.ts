@@ -1,4 +1,4 @@
-export interface TooltipEntry {
+interface TooltipEntry {
   id: number;        // object type ID from MainCanvas.as (e.g. 151 = Sonic Placer)
   variant?: number;  // ACT byte 4 (mirroring/facing), default 0
   sub?: number;      // ACT byte 6 (ring count / art row / contents), default 0

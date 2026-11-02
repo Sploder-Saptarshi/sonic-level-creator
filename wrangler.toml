@@ -11,10 +11,10 @@ database_id = "7112ad7b-4fb4-4f75-b32a-455fefe29a41"
 migrations_dir = "drizzle"
 
 # Turnstile (sign-in/up bot check). Public vars live here; the secret
-# never does — set it via `wrangler pages secret put TURNSTILE_SECRET`
+# never does: set it via `wrangler pages secret put TURNSTILE_SECRET`
 # (Pages) or `wrangler secret put TURNSTILE_SECRET` (Workers).
 # Event webhooks (level published/deleted/played, user sign-in/sign-up):
-# no vars here — set the target via `wrangler pages secret put WEBHOOK_URL`
+# no vars here; set the target via `wrangler pages secret put WEBHOOK_URL`
 # (Workers: `wrangler secret put WEBHOOK_URL`). Unset means silent no-op;
 # local dev never sends regardless.
 [vars]

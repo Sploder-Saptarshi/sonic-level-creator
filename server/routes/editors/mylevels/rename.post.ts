@@ -1,21 +1,7 @@
-// POST /editors/mylevels/rename — ownership-checked rename (moderators may
-// rename any level). SQL: 0 for guests (fast-path redirect), else 1 session
-// lookup + exactly 1 indexed write (RETURNING folds the existence check in,
-// no select round-trip). Rows written: <= 1. The write pins a fresh D1
-// bookmark for replica chaining (+1 primary read on the edge), so the
-// redirect back to My Levels observes it. Blank/oversize names fail
-// validation (no write); guests land on My Levels after sign-in (the POST
-// endpoint itself isn't landable, so no ?next= to it).
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import {
-  cleanId,
-  cleanLevelName,
-  getRequestDb,
-  levelWhereForUser,
-  renameLevelWhere,
-} from "../../../utils/levels";
-import { pinFreshBookmark } from "../../../utils/replica";
+import { cleanId, cleanLevelName } from "../../../utils/validation";
+import { renameLevelAs } from "../../../utils/levels";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
 
@@ -26,9 +12,6 @@ export default defineHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, unknown>;
   const id = cleanId(body?.id);
   const name = cleanLevelName(body?.name);
-  if (id && name) {
-    await renameLevelWhere(getRequestDb(event), levelWhereForUser(id, session), name);
-    await pinFreshBookmark(event);
-  }
+  if (id && name) await renameLevelAs(event, session, id, name);
   return sendRedirect(event, "/editors/mylevels");
 });

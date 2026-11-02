@@ -1,19 +1,19 @@
-// ts/thumbnails.ts — Thumbnail strip, tabs, counter, desc
-
-import { BLOCK_PX, USED_BLOCKS, MAX_OBJECTS_PER_TILE, blockSheetXY } from './format';
+import { BLOCK_PX, USED_BLOCKS, blockSheetXY, type ObjectDef } from './format';
 import {
-  S, cellSize, defsForTab, totalObjects, countPlacedTiles,
-  updateDesc, type TabType,
+  S, defsForTab, totalObjects, countPlacedTiles,
+  updateDesc, clearSelection, type TabType,
 } from './state';
 import { draw } from './render';
-import { partsFor, paintThumb, isMirrored } from './sprites';
+import { partsFor, isMirrored } from './spriteData';
+import { paintThumb } from './sprites';
 import { TOOLTIPS } from './tooltipTexts';
-import { timingLog } from './main';
+import { timingLog } from './timing';
+import { queryAll } from './dom';
 
-// Last logged paint counts (log only on change — sprite arrivals rebuild often).
+const NO_ART_NOTE = ' (invisible in-game: no art in this zone)';
+
 let lastThumbLog = '';
 
-// ── Custom tooltip (replaces native title) ──
 let tipEl: HTMLElement | null = null;
 let tipTimer: ReturnType<typeof setTimeout> | null = null;
 let tipAnchor: HTMLElement | null = null;
@@ -29,14 +29,8 @@ function ensureTip(): HTMLElement {
   bottom.className = 'tip-bottom';
   tipEl.appendChild(text);
   tipEl.appendChild(bottom);
-  // Append to shadow root so fixed positioning escapes thumbstrip overflow.
-  // Fallback to document.body outside shadow context.
-  const host = S.shadow as unknown as HTMLElement | null;
-  if (host && (host as any).appendChild) {
-    (S.shadow as unknown as ShadowRoot).appendChild(tipEl);
-  } else {
-    document.body.appendChild(tipEl);
-  }
+  // outside the tray so it isn't clipped
+  (S.shadow ?? document.body).appendChild(tipEl);
   return tipEl;
 }
 
@@ -54,7 +48,6 @@ function hideTip() {
 function positionTip(anchor: HTMLElement) {
   const el = ensureTip();
   const r = anchor.getBoundingClientRect();
-  // Measure after content is set but before visible (off-screen measure).
   el.style.left = '0';
   el.style.top = '-9999px';
   el.classList.add('visible');
@@ -63,16 +56,12 @@ function positionTip(anchor: HTMLElement) {
   el.style.visibility = '';
   el.classList.remove('visible');
   const gap = 2;
-  // Arrow's thumb anchor stays at 30% of the square from its left; the
-  // tooltip's arrow sits with a small left gap (30px from tooltip left).
-  // Keep that anchor even when the bubble is viewport-clamped.
   const ARROW_GAP = 30;
   const thumbArrowX = r.left + r.width * 0.30;
   let left = thumbArrowX - ARROW_GAP;
   let top = r.top - tr.height - gap;
   const pad = 4;
   left = Math.max(pad, Math.min(left, window.innerWidth - tr.width - pad));
-  // If not enough space above, flip below (keeps tooltip on-screen).
   if (top < pad) top = r.bottom + gap;
   el.style.left = Math.round(left) + 'px';
   el.style.top = Math.round(top) + 'px';
@@ -95,120 +84,111 @@ function attachTip(el: HTMLElement, text: string) {
   el.addEventListener('mouseenter', () => scheduleTip(text, el));
   el.addEventListener('mouseleave', hideTip);
   el.addEventListener('mousedown', hideTip);
-  el.addEventListener('wheel', hideTip, { passive: true } as any);
+  el.addEventListener('wheel', hideTip, { passive: true });
 }
 
-function findTip(id: number, variant = 0, sub = 0): { name: string; desc: string } | undefined {
-  return TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant && (t.sub ?? 0) === sub)
-      ?? TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant)
-      ?? TOOLTIPS.find(t => t.id === id);
-}
+const tipKey = (t: { id: number; variant?: number; sub?: number }) => `${t.id}|${t.variant ?? 0}|${t.sub ?? 0}`;
+const TOOLTIP_TEXT = new Map(TOOLTIPS.map(t => [tipKey(t), `${t.name}: ${t.desc}`]));
 
-function tooltipForTile(blockId: number): string {
-  const t = TOOLTIPS.find(e => e.id === -1 && (e.sub ?? 0) === blockId);
-  return t ? `${t.name}: ${t.desc}` : "";
-}
-
-function tooltipForDef(def: { id: number; name: string; desc: string; variant?: number; sub?: number }): string {
-  const t = findTip(def.id, def.variant ?? 0, def.sub ?? 0);
-  return t ? `${t.name}: ${t.desc}` : "";
+function tooltipForDef(def: ObjectDef): string {
+  return TOOLTIP_TEXT.get(tipKey(def)) ?? "";
 }
 
 export function updateCounter() {
   if (!S.counterEl) return;
-  const totalTiles = S.grid.length * (S.grid[0]?.length || 0);
-  const placedTiles = countPlacedTiles();
-  S.counterEl.textContent = `${totalObjects()}/${placedTiles}`;
+  S.counterEl.textContent = `${totalObjects()}/${countPlacedTiles()}`;
+}
+
+function startPaletteDrag() {
+  clearSelection();
+  S.paletteDrag = true;
+}
+
+function tileThumb(blockId: number): { el: HTMLElement; painted: boolean } {
+  const el = document.createElement('div');
+  el.className = 'thumb';
+  const cvs = document.createElement('canvas');
+  cvs.width = BLOCK_PX;
+  cvs.height = BLOCK_PX;
+  const img = S.spritesheetImg;
+  const painted = !!img?.complete;
+  if (painted) {
+    const { x: sx, y: sy } = blockSheetXY(blockId);
+    cvs.getContext('2d')!.drawImage(img!, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
+  }
+  el.appendChild(cvs);
+  el.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    startPaletteDrag();
+    S.paletteDragTile = blockId;
+    updateDesc(`Block ${blockId} — drag onto grid to place`);
+    draw();
+  });
+  return { el, painted };
+}
+
+function objectThumb(def: ObjectDef): { el: HTMLElement; cvs: HTMLCanvasElement | null } {
+  const el = document.createElement('div');
+  const sub = def.sub ?? 0, variant = def.variant ?? 0;
+  const parts = partsFor(def.id, sub, variant);
+  const note = parts ? '' : NO_ART_NOTE;
+  attachTip(el, tooltipForDef(def) + note);
+  let cvs: HTMLCanvasElement | null = null;
+  if (parts) {
+    el.className = 'thumb thumb-obj';
+    cvs = document.createElement('canvas');
+    paintThumb(cvs.getContext('2d')!, parts, 1, !!def.mirror || isMirrored(def.id, variant, sub));
+    el.appendChild(cvs);
+  } else {
+    el.className = 'thumb thumb-txt';
+    el.textContent = def.name;
+  }
+  el.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    startPaletteDrag();
+    S.paletteDragDef = def;
+    updateDesc(`${def.name}: ${def.desc}` + note);
+    draw();
+  });
+  return { el, cvs };
+}
+
+function fitThumbCanvas(el: HTMLElement, cvs: HTMLCanvasElement) {
+  const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
+  if (boxH <= 0 || boxW <= 0 || cvs.width <= 0 || cvs.height <= 0) return;
+  const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
+  cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + 'px';
+  cvs.style.height = Math.max(1, Math.floor(cvs.height * s)) + 'px';
+}
+
+function paletteBlockIds(): number[] {
+  const ids: number[] = [];
+  for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
+    if (i !== 7 && i !== 35 && i !== 71) ids.push(i);
+  }
+  return ids;
 }
 
 export function buildThumbnails() {
   hideTip();
-  const { thumbstrip, spritesheetImg, activeTab } = S;
+  const { thumbstrip, activeTab } = S;
   if (!thumbstrip) return;
   thumbstrip.innerHTML = '';
   let painted = 0, total = 0;
-
   if (activeTab === 'tiles') {
-    // Palette: blocks 1–107 only (108+ unused), excluding blocks 7, 35, 71.
-    for (let i = 1; i <= 107 && i < USED_BLOCKS; i++) {
-      if (i === 7 || i === 35 || i === 71) continue;
-      const el = document.createElement('div');
-      el.className = 'thumb';
-      // no tooltip for tiles tray per request
-      const cvs = document.createElement('canvas');
-      cvs.width = BLOCK_PX;
-      cvs.height = BLOCK_PX;
-      const c = cvs.getContext('2d')!;
-      if (spritesheetImg?.complete) {
-        const { x: sx, y: sy } = blockSheetXY(i);
-        c.drawImage(spritesheetImg, sx, sy, BLOCK_PX, BLOCK_PX, 0, 0, BLOCK_PX, BLOCK_PX);
-        painted++;
-      }
+    for (const id of paletteBlockIds()) {
+      const thumb = tileThumb(id);
+      if (thumb.painted) painted++;
       total++;
-      el.appendChild(cvs);
-      el.addEventListener('mousedown', (ev) => {
-        ev.preventDefault();
-        S.selectedTile = i;
-        S.selectedObj = null;
-        S.selectedObjIdx = -1;
-        S.selectedTileBx = -1;
-        S.selectedTileBy = -1;
-        S.paletteDrag = true;
-        S.paletteDragTile = i;
-        updateDesc(`Block ${i} — drag onto grid to place`);
-        draw();
-      });
-      thumbstrip.appendChild(el);
+      thumbstrip.appendChild(thumb.el);
     }
   } else {
     for (const def of defsForTab(activeTab)) {
-      const el = document.createElement('div');
-      const sub = def.sub ?? 0, variant = def.variant ?? 0;
-      const mirror = !!def.mirror || isMirrored(def.id, variant, sub);
-      const noArt = !partsFor(def.id, sub, variant);
-      const baseTip = tooltipForDef(def);
-      const tipText = baseTip + (noArt ? ' (invisible in-game: no art in this zone)' : '');
-      attachTip(el, tipText);
-      const parts = partsFor(def.id, sub, variant);
-      let cvs: HTMLCanvasElement | null = null;
-      if (parts) {
-        // True-sprite thumbnail (transparent bg, 1x integer scale, pixel-crisp)
-        el.className = 'thumb thumb-obj';
-        cvs = document.createElement('canvas');
-        paintThumb(cvs.getContext('2d')!, parts, 1, mirror);
-        el.appendChild(cvs);
-        painted++;
-      } else {
-        // Game-invisible type (no zone art / no draw routine): labeled box
-        el.className = 'thumb thumb-txt';
-        el.textContent = def.name;
-      }
-      el.addEventListener('mousedown', (ev) => {
-        ev.preventDefault();
-        S.selectedObj = def;
-        S.selectedObjIdx = -1;
-        S.selectedTileBx = -1;
-        S.selectedTileBy = -1;
-        S.paletteDrag = true;
-        S.paletteDragDef = def;
-        updateDesc(`${def.name}: ${def.desc}` + (noArt ? ' (invisible in-game: no art in this zone)' : ''));
-        draw();
-      });
+      const { el, cvs } = objectThumb(def);
+      if (cvs) painted++;
       thumbstrip.appendChild(el);
       total++;
-      if (cvs) {
-        // Deterministic 1x sizing with proportional shrink-only into the
-        // 80% bounding box (see .thumb canvas CSS), measured from the live
-        // box (post-append, so layout is real): immune to
-        // flex/aspect-ratio/max-clamp quirks, so art can never be
-        // squeezed on one axis.
-        const boxH = el.clientHeight * 0.8, boxW = el.clientWidth * 0.8;
-        if (boxH > 0 && boxW > 0 && cvs.width > 0 && cvs.height > 0) {
-          const s = Math.min(1, boxW / cvs.width, boxH / cvs.height);
-          cvs.style.width = Math.max(1, Math.floor(cvs.width * s)) + 'px';
-          cvs.style.height = Math.max(1, Math.floor(cvs.height * s)) + 'px';
-        }
-      }
+      if (cvs) fitThumbCanvas(el, cvs);
     }
   }
   const summary = `${activeTab} painted=${painted}/${total}`;
@@ -220,14 +200,19 @@ export function buildThumbnails() {
 
 export function switchTab(tab: TabType) {
   S.activeTab = tab;
-  S.selectedObj = null;
-  S.selectedObjIdx = -1;
-  S.selectedTileBx = -1;
-  S.selectedTileBy = -1;
-  S.shadow!.querySelectorAll('.tab').forEach(b => {
+  clearSelection();
+  for (const b of queryAll('.tab')) {
     b.classList.toggle('tab-active', b.getAttribute('data-tab') === tab);
-  });
+  }
   buildThumbnails();
   updateDesc(`${tab.charAt(0).toUpperCase() + tab.slice(1)} tab — select an item below`);
   draw();
+}
+
+// The tray only scrolls sideways, so map whichever wheel axis dominates.
+export function wireTrayScroll() {
+  S.thumbstrip?.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    S.thumbstrip!.scrollLeft += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  }, { passive: false });
 }

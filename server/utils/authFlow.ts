@@ -1,6 +1,3 @@
-// server/utils/authFlow.ts — shared form-auth plumbing (both presets).
-// HTML forms POST here; we call Better Auth server-side so validation
-// errors re-render in-page and session cookies are set on our own responses.
 import { createAuth } from "../auth/config";
 import { escapeHtml, first, getSessionUser, isAsciiUsername } from "./session";
 import { appendResponseHeader, getQuery, getRequestURL, sendRedirect } from "nitro/h3";
@@ -16,10 +13,6 @@ export function errorBox(msg: string): string {
 </div>`;
 }
 
-// Account-page result boxes. The account page doesn't load signin.css, so
-// these carry their own acct- styles (see accountHeadExtra in page.ts).
-// Colors match the member forms (orange errors) and the editor go-button
-// green (success).
 function accountBox(msg: string, cls: string): string {
   if (!msg) return "";
   return `<div class="acct-msg ${cls}">${escapeHtml(msg)}</div>`;
@@ -34,17 +27,12 @@ export function accountOkBox(msg: string): string {
 }
 
 export function forwardCookies(event: H3Event, headers: Headers): void {
-  const cookies =
-    typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
-  for (const c of cookies) appendResponseHeader(event, "set-cookie", c);
+  for (const c of headers.getSetCookie()) appendResponseHeader(event, "set-cookie", c);
 }
 
-export function apiMessage(e: unknown): string {
-  if (e && typeof e === "object" && "message" in e &&
-    typeof (e as any).message === "string" && (e as any).message) {
-    return (e as any).message;
-  }
-  return "Something went wrong. Please try again.";
+function apiMessage(e: unknown): string {
+  const message = (e as { message?: unknown } | null)?.message;
+  return typeof message === "string" && message ? message : "Something went wrong. Please try again.";
 }
 
 export function cleanUsernameInput(v: unknown): string | null {
@@ -54,29 +42,19 @@ export function cleanUsernameInput(v: unknown): string | null {
   return t.length >= 3 && t.length <= 30 && isAsciiUsername(t) ? t : null;
 }
 
-// First string value of a form field ("" when missing/non-string).
-// Shared by the sign-in/sign-up POST handlers (replaces their local
-// `first` clones and per-field typeof guards).
 export function formString(body: Record<string, unknown>, key: string): string {
   const s = first(body?.[key]);
   return typeof s === "string" ? s : "";
 }
 
-// True when the request already carries a valid session. 0 SQL for
-// guests (no cookie fast-path in getSessionUser), 1 indexed lookup
-// otherwise. Shared guard for the sign-in/sign-up pages (signed-in
-// users bounce to their return target, else the default landing).
 export function alreadySignedIn(event: H3Event): Promise<boolean> {
   return getSessionUser(event).then((s) => s !== null);
 }
 
-// Default post-login landing: My Levels (was the editor).
-export const DEFAULT_LANDING = "/editors/mylevels";
+const DEFAULT_LANDING = "/editors/mylevels";
 
-// Validate a `next` return target. Relative paths only — absolute URLs,
-// protocol-relative `//host`, backslashes, and whitespace are rejected
-// (open-redirect prevention). Null when unusable.
-export function cleanNext(v: unknown): string | null {
+// relative paths only, to prevent open redirects
+function cleanNext(v: unknown): string | null {
   const s = first(v);
   if (typeof s !== "string") return null;
   if (s.length < 1 || s.length > 512) return null;
@@ -85,9 +63,6 @@ export function cleanNext(v: unknown): string | null {
   return s;
 }
 
-// Validated `next` from the form body (preferred) or query string, ""
-// when absent/invalid. Used to re-render the hidden form field so the
-// target survives validation errors.
 export function requestNext(
   event: H3Event,
   body?: Record<string, unknown>,
@@ -95,8 +70,6 @@ export function requestNext(
   return cleanNext(body?.next) ?? cleanNext(getQuery(event).next) ?? "";
 }
 
-// Landing after a successful sign-in/sign-up: the validated return
-// target, else the default landing. Pure (0 SQL).
 export function resolveNext(
   event: H3Event,
   body?: Record<string, unknown>,
@@ -104,34 +77,23 @@ export function resolveNext(
   return requestNext(event, body) || DEFAULT_LANDING;
 }
 
-// CSRF guard for mutating routes (every POST/PUT/DELETE under /member/*,
-// /editors/*, and /api/levels/*). Browsers always send Origin on
-// POST/PUT/DELETE and page JS can never spoof it cross-site (forbidden
-// header), so a present-but-foreign Origin is always a forgery — reject
-// with 403. Absent Origin means a non-browser client (curl, the game SWF):
-// nothing to forge, so nothing to check — and a victim's browser can never
-// take this branch on a cross-site POST. Compared against the request Host
-// (the site the browser actually addressed — attacker Host-spoofing can't
-// help them, since the browser still stamps the real attacker Origin).
-// This backs up the SameSite=Lax session cookie (which already withholds
-// cookies on cross-site POSTs) for ancient browsers, and it kills login
-// CSRF on the member forms outright.
+// CSRF check. Browsers always send Origin on POST; no Origin means a
+// non-browser client (curl, the SWF).
 export function enforceSameOrigin(event: H3Event): void {
   const origin = event.req.headers.get("origin");
-  if (!origin) return;
-  let ok = false;
-  try {
-    ok = new URL(origin).host === getRequestURL(event).host;
-  } catch {
-    ok = false;
+  if (origin && !isSameHost(origin, getRequestURL(event).host)) {
+    throw new HTTPError({ status: 403, message: "Forbidden" });
   }
-  if (!ok) throw new HTTPError({ status: 403, message: "Forbidden" });
 }
 
-// Guest guard for protected pages: 302 to sign-in with the return target
-// attached. Defaults to the current path+query (so /editors/?load=abc
-// resumes correctly); pass an explicit target when the current URL isn't
-// landable (e.g. the delete POST endpoint -> /editors/mylevels).
+function isSameHost(origin: string, host: string): boolean {
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export function redirectToSignin(event: H3Event, returnTo?: string) {
   let target = returnTo;
   if (target === undefined) {
@@ -142,18 +104,12 @@ export function redirectToSignin(event: H3Event, returnTo?: string) {
   return sendRedirect(event, `/member/signin?next=${encodeURIComponent(target)}`);
 }
 
-// base64url without padding. Input is always printable ASCII (usernames
-// are validated first), so btoa is safe on both Node and Workers.
 function base64Url(s: string): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// Deterministic placeholder email for password auth (real inboxes are
-// never used; sign-in is by username). Email-safe names keep the historic
-// plain form — every pre-existing account uses it, so it must not change.
-// Anything else (spaces, punctuation) is base64url-encoded so the result
-// always passes email validation. Theoretical collision (a plain name
-// literally shaped like an encoded one, `u-…`) just fails signup dedupe.
+// Sign-in is by username; the email is a placeholder. Don't change the
+// plain form, existing accounts use it.
 export function syntheticEmail(username: string): string {
   const lower = username.toLowerCase();
   if (/^[a-z0-9._-]+$/.test(lower)) return `${lower}@users.sonicrelvl.local`;

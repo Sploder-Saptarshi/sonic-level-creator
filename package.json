@@ -2,6 +2,7 @@
   "name": "sonic-level-creator",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Sonic Level Creator editor — TypeScript sources bundled to public/editors/assets/editor.js",
   "engines": {
     "node": ">=20.19"

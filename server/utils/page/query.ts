@@ -1,4 +1,3 @@
-// server/utils/page/query.ts — legacy query stubs for ?user &session &levelid &territory &title &zoneone
 import { first, isAsciiUsername } from "../session";
 import {
   API_CONNECTOR_ID,

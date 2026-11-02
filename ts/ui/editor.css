@@ -1,6 +1,3 @@
-// ts/ui.ts — Shadow DOM CSS + HTML templates
-
-export const EDITOR_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :host { display: block; width: 100%; height: 100%; margin: 0; padding: 0; }
 .editor { display: flex; flex-direction: column; width: 100%; height: 100%;
@@ -9,9 +6,7 @@ export const EDITOR_CSS = `
   background: #fff; overflow: hidden; user-select: none;
   border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
 
-/* ── top bar: flush header band inside the canvas container — full-bleed,
-   top edge flush with the panel top, bottom border doubling as the divider
-   over the canvas ── */
+/* top bar */
 .topbar { display: flex; align-items: center; justify-content: space-between;
   margin: 0; padding: 4px 10px;
   background: linear-gradient(#f4f4f4, #d9d9d9);
@@ -32,17 +27,14 @@ export const EDITOR_CSS = `
   padding: 0 8px; font-weight: bold; color: #6b4a00; }
 .topbar-r > span:first-child { color: #777; }
 
-/* ── main split: canvas on top, tabs+options below ── */
 .main { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }
 
-/* ── canvas area: white rounded panel with padding ── */
 .canvas-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
   background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; padding: 0; }
 .canvas-wrap { flex: 1; overflow: auto; background: #fff; min-height: 0;
   border-radius: 0 0 7px 7px;
   scrollbar-color: #c2c2c2 #f0f0f0; scrollbar-width: thin; }
-/* Grid-sized scroll space; the canvas itself is viewport-sized and sticky
-   (see resizeCanvas) so the backing store never exceeds the visible area. */
+
 .canvas-inner { position: relative; }
 canvas.display { display: block; cursor: crosshair; border: none;
   position: sticky; top: 0; left: 0; }
@@ -51,7 +43,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .canvas-wrap::-webkit-scrollbar-thumb { background: #c2c2c2; border-radius: 5px;
   border: 2px solid #f0f0f0; }
 
-/* ── bottom: tabs+strip panel + options box (30% height) ── */
+/* palette + options */
 .bottom { display: flex; height: 25%; min-height: 170px; max-height: 750px; gap: 8px; flex-shrink: 0; }
 .panel-left { flex: 3; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; border: 1px solid #c9c9c9; border-radius: 8px; }
@@ -67,8 +59,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .thumb { height: 100%; aspect-ratio: 1; border: none; border-radius: 10px; cursor: pointer;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   background: #fff; }
-/* Tray art lives in an 80%-of-box bounding box: natural size, shrinking
-   only when larger than the box (tiles and objects alike). */
+
 .thumb canvas { display: block; width: auto; height: auto; max-width: 80%; max-height: 80%;
   image-rendering: pixelated; image-rendering: crisp-edges; }
 .thumb-txt { width: auto; min-width: 36px; padding: 2px 6px; font-size: 10px;
@@ -81,13 +72,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .panel-right h4 { margin: 0; padding: 8px 14px 6px; font-size: 14px; color: #333;
   text-align: left; background: linear-gradient(#f4f4f4, #d9d9d9);
   border-radius: 9px 9px 0 0; border-bottom: 1px solid #c4c4c4; }
-/* Options buttons: glossy site lozenge in pure CSS — no image assets.
-   Tuned to the reference render: pale flash top (#ffedbe) falling to deep
-   orange (#ffa028) with the turn at 45%, darker #e8932b rim, 8px corners,
-   inset top highlight for the gloss, 13px near-black label. Hover lifts the
-   whole ramp. Markup stays <a class="act-btn"><span>…</span></a> so the
-   [data-action] wiring is untouched. Buttons carry their own side margins
-   so the header divider runs full-bleed edge to edge. */
+
 .act-btn { display: block; height: 28px; margin: 0 14px;
   background: linear-gradient(to bottom, #ffedbe 0%, #ffc46a 45%, #ffa028 100%);
   border: 1px solid #e8932b; border-radius: 8px;
@@ -96,22 +81,17 @@ canvas.display { display: block; cursor: crosshair; border: none;
   text-decoration: none; cursor: pointer; }
 .act-btn span { display: flex; align-items: center; justify-content: center;
   height: 100%; text-align: center;
-  /* Measured against a screenshot: the flex-centered label sits ~0.5px low,
-     so nudge up half a pixel. */
+  /* label renders ~0.5px low */
   transform: translateY(-0.5px); }
 .act-btn:link, .act-btn:active, .act-btn:visited { color: #333; text-decoration: none; font-weight: bold; }
 .act-btn:hover { background: linear-gradient(to bottom, #fff6dd 0%, #ffd38c 45%, #ffb14e 100%);
   color: #333; outline: none; }
 
-/* ── bottom bar: uncolored, site lozenge2 sliding doors verbatim ── */
+/* bottom bar */
 .bottombar { display: flex; align-items: center; justify-content: space-between;
   padding: 4px 2px; background: transparent; color: #555; flex-shrink: 0; }
 .bottombar-l { display: flex; gap: 0; }
-/* Exact replica of a.lozenge2 (css/playsega.css) for the footer buttons:
-   grey sliding doors with the real GIFs. Root-absolute paths since shadow
-   <style> URLs resolve against the document base. Only addition vs site:
-   border:none (these are <button>s, not <a>s). Markup carries the same
-   inner <span>; [data-action] wiring is untouched. */
+/* same as the site's a.lozenge2 */
 .btm-btn { background: transparent url('/images/bg_button_grey_end.gif') no-repeat scroll top right;
   color: #fff; display: inline-block; font-weight: bold; height: 22px;
   margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
@@ -121,28 +101,19 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .btm-btn:link, .btm-btn:active, .btm-btn:visited { color: #fff; text-decoration: none; font-weight: bold; }
 .btm-btn:hover { background-position: bottom right; color: #fff; outline: none; }
 .btm-btn:hover span { background-position: bottom left; }
-/* Share uses the site button art directly (no sliding doors). The markup
-   keeps data-action so the wiring is untouched. */
+
 .share-btn { background: none; border: none; padding: 0; cursor: pointer;
   transform: translateY(-5px); }
 .share-btn:hover img { filter: brightness(1.05); }
 .share-btn:active { transform: translateY(-4px); }
-/* Native art is 76x15: render at 1.25x wide with the height squashed a bit. */
 .share-btn img { display: block; border: none; }
 
-/* ── floating ghost ── */
 .ghost { display: none; position: fixed; pointer-events: none; z-index: 9999;
   opacity: 0.7; border: 2px dashed #fff; background-color: rgba(0,0,0,0.3);
   image-rendering: pixelated; }
 .ghost.visible { display: block; }
 
-/* ── object tooltip (replaces native title) — 1:1 with reference ──
-   White up-top with blue text, thin bottom gray gradient (same as
-   Options header), no border, soft bottom shadow, pointer at 30% from
-   left with a small left gap. Hidden by default; toggled .visible by
-   JS after a hover delay. Fixed so it escapes the thumbstrip's overflow
-   clip. Arrow is a downward-pointing white triangle, not a centered
-   diamond. */
+/* tooltip */
 .obj-tooltip {
   position: fixed;
   z-index: 10000;
@@ -156,8 +127,6 @@ canvas.display { display: block; cursor: crosshair; border: none;
   opacity: 0;
   visibility: hidden;
   transition: opacity 120ms ease;
-  /* single drop-shadow that wraps bubble + diamond stem as one shape,
-     so there's no seam between the gray footer and the point */
   filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.16));
 }
 .obj-tooltip.visible { opacity: 1; visibility: visible; }
@@ -182,10 +151,6 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .obj-tooltip::after {
   content: "";
   position: absolute;
-  /* start of tooltip with a small left gap; offset keeps the stem glued
-     to the thumb's 30% point when the bubble is viewport-clamped.
-     Flat-top triangle flush to the gray footer so the gradient flows
-     into the point with no diamond notch or seam. */
   left: calc(22px + var(--tip-arrow-offset, 0px));
   bottom: -8px;
   width: 0;
@@ -198,13 +163,8 @@ canvas.display { display: block; cursor: crosshair; border: none;
   box-shadow: none;
 }
 
-/* ── start screen: opaque overlay so the editor is not visible behind ──
-   White card, blue headings, pale input, green pill button, Sonic right.
-   Root-absolute img path since shadow URLs resolve against document base. */
+/* start screen */
 .start-overlay { position: absolute; inset: 0; z-index: 50;
-  /* Covers the editor UI entirely and re-draws its frame pixel-identically
-     (1px #c9c9c9 border, no top border, bottom rounding) over the same gray
-     gradient — chrome stays visible, inner UI does not. */
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(#ffffff, #e8e8e8);
   border: 1px solid #c9c9c9; border-top: none; border-radius: 0 0 10px 10px; }
@@ -212,7 +172,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-card { position: relative; background: #fff; border: 1px solid #b5b5b5;
   border-radius: 10px; padding: 12px 12px 24px; width: 420px;
   max-width: calc(100% - 32px); min-height: 330px; text-align: left; }
-/* Pinned bottom-right, out of flow: zero reflow when the PNG arrives. */
+
 .start-sonic { position: absolute; right: 16px; bottom: 12px; height: 224px; width: auto; }
 .start-card h2 { color: #1767c9; font-size: 26px; font-weight: bold;
   margin: 0 0 4px; }
@@ -233,8 +193,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-go:hover { background: linear-gradient(to bottom, #e0f3b0 0%, #c0e07c 50%, #abdb5c 100%); }
 .start-go:disabled { opacity: 0.45; cursor: default; }
 .start-go:disabled:hover { background: linear-gradient(to bottom, #d3ec9a 0%, #b3d666 50%, #9ecf4e 100%); }
-/* Mobile blocker variant: heading pinned inside the top edge (fully
-   inside the box), message text left + Sonic render right below it. */
+/* mobile notice */
 .start-card.mobile-block { display: flex; flex-wrap: wrap; align-items: center;
   gap: 0 14px; width: 560px; min-height: 0; padding: 6px 12px; }
 .start-card.mobile-block h2 { position: absolute; top: 6px; left: 12px;
@@ -243,13 +202,10 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .start-card.mobile-block p { margin: 0; }
 .start-card.mobile-block .start-sonic { position: static; height: 190px;
   flex-shrink: 0; align-self: flex-start; }
-/* Full-width action row: All Levels button pinned bottom-left, pulled
-   slightly upward. */
 .start-card.mobile-block .mobile-actions { width: 100%; display: flex;
   justify-content: flex-start; margin-top: -30px; }
 
-/* ── step 2: Select Map Size — nested hover regions, outer = largest.
-   Counts are grid cells (the original UI calls them "tiles"). */
+/* map size picker */
 .size-card { background: #fff; border: 1px solid #b5b5b5; border-radius: 10px;
   padding: 16px 20px 20px; width: 460px; max-width: calc(100% - 32px);
   text-align: left; }
@@ -261,21 +217,14 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .map-medium { background: #669fe5; padding: 40px; }
 .map-small { background: #4087df; min-height: 96px;
   display: flex; align-items: center; justify-content: center; }
-/* 2px yellow glow on the hovered region. */
 .map-opt.map-hover { box-shadow: 0 0 6px 2px #f5c542; }
 .map-label { position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; pointer-events: none;
   color: #fff; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 .map-label .map-name { font-size: 22px; }
 .map-label .map-dims { font-size: 12px; }
-*/
 
-/* ── test mode: persistent player overlaying the whole editor space ──
-   The player is created once at boot and kept alive (muted) behind the
-   editor so Test opens warm. .warm renders it with real dimensions but
-   invisible (display:none would leave Ruffle with nothing to boot into);
-   .active shows it. No synthetic clicks — the user clicks the title. */
-.editor.hidden { display: none; }
+/* test mode: .warm keeps the player laid out but invisible so Ruffle can boot */
 .testmode { display: none; width: 100%; height: 100%; margin: 0; padding: 0;
   position: absolute; inset: 0; z-index: 5; background: #fff; overflow: hidden;
   border-radius: 0 0 10px 10px; }
@@ -287,12 +236,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .ruffle-holder { position: absolute; inset: 0; display: flex; align-items: flex-start;
   justify-content: center; background: #fff; }
 .ruffle-holder ruffle-player { display: block; width: 640px; height: 448px; flex: 0 0 auto; background: #000; transform-origin: top center; }
-/* Fullscreen + test mode: black letterbox bars around the 640×448 SWF.
-   Ruffle's letterbox:on + showAll already centers inside the player
-   (player 100% of holder, holder absolute inset:0 of testmode, testmode
-   flex centered). Host needs viewport size override (inline 700px from
-   server/templates/editor.html) and black backdrop; test runner stays #000,
-   editor stays #fff. */
+/* fullscreen */
 :host(:fullscreen) {
   width: 100vw !important;
   height: 100vh !important;
@@ -329,11 +273,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
   transform-origin: center center;
 }
 ::backdrop { background: #000; }
-/* Exact replica of a.lozenge1 (css/playsega.css) — the orange "Sign up!"
-   sliding doors with the real GIFs. Root-absolute paths since shadow
-   <style> URLs resolve against the document base. Only addition vs site:
-   border:none + positioning (this is a <button> pinned top-left, not an <a>).
-   Markup carries the same inner <span>; [data-action] wiring is untouched. */
+/* same as the site's a.lozenge1 */
 .stop-test { background: transparent url('/images/bg_button_a.gif') no-repeat scroll top right;
   color: #4c4c4c; display: block; float: left; font-weight: bold; height: 22px;
   margin-right: 6px; padding: 0 18px 0 0; border: none; text-decoration: none;
@@ -345,11 +285,7 @@ canvas.display { display: block; cursor: crosshair; border: none;
 .stop-test:hover { background-position: bottom right; color: #4c4c4c; outline: none; }
 .stop-test:hover span { background-position: bottom left; }
 
-/* ── save overlay: user feedback while saving + save-complete ──
-    Translucent dim over the editor (editor stays visible behind) + opaque
-    centered card reusing the start-card look. The OK dismiss button reuses
-    .act-btn verbatim (same sliding-doors gloss as Test Level / Save) —
-    only centered + fixed width here. */
+/* save overlay */
 .save-overlay { position: absolute; inset: 0; z-index: 60;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.20);
@@ -364,97 +300,3 @@ canvas.display { display: block; cursor: crosshair; border: none;
   line-height: 1.4; margin: 0 0 16px; }
 .save-card .act-btn { width: 140px; margin: 0 auto; }
 .save-card .act-btn.hidden { display: none; }
-`;
-
-export const EDITOR_HTML = `
-<div class="editor">
-  <div class="main">
-    <div class="canvas-area">
-      <div class="topbar">
-        <div class="topbar-l">
-          <label>Zoom:</label>
-          <button class="btn btn-active" data-zoom="2">100%</button>
-          <button class="btn" data-zoom="1">50%</button>
-          <button class="btn" data-zoom="0.5">25%</button>
-        </div>
-        <div class="topbar-r">
-          <span>Object Counter:</span>
-          <span class="counter">0</span>
-          <button class="btn btn-clear" title="Clear entire level"><svg viewBox="0 0 12 12" width="12" height="12"><line x1="3" y1="3" x2="9" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="3" x2="3" y2="9" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg></button>
-        </div>
-      </div>
-      <div class="canvas-wrap">
-        <div class="canvas-inner"><canvas class="display"></canvas></div>
-      </div>
-    </div>
-
-    <div class="bottom">
-      <div class="panel-left">
-        <div class="tabs">
-          <button class="tab tab-active" data-tab="tiles">Tiles</button>
-          <button class="tab" data-tab="objects">Objects</button>
-          <button class="tab" data-tab="rings">Rings</button>
-          <button class="tab" data-tab="enemies">Enemies</button>
-          <button class="tab" data-tab="essentials">Essentials</button>
-        </div>
-        <div class="thumbstrip"></div>
-      </div>
-      <div class="panel-right">
-        <h4>Options</h4>
-        <a class="act-btn" data-action="test"><span>Test Level</span></a>
-        <a class="act-btn" data-action="save"><span>Save</span></a>
-        <a class="act-btn" data-action="fullscreen"><span>Go Fullscreen</span></a>
-      </div>
-    </div>
-  </div>
-
-  <div class="bottombar">
-    <div class="bottombar-l">
-      <button class="btm-btn" data-action="mylevels"><span>My Levels</span></button>
-      <button class="btm-btn" data-action="alllevels"><span>All Levels</span></button>
-    </div>
-    <button class="share-btn" data-action="share"><img src="/images/share-btn.png" alt="Share" /></button>
-  </div>
-
-  <div class="ghost" id="ghost"></div>
-</div>
-
-<div class="testmode">
-  <div class="ruffle-holder"></div>
-  <button class="stop-test" data-action="stoptest"><span>Stop testing</span></button>
-</div>
-
-<div class="save-overlay hidden">
-  <div class="save-card">
-    <h2 class="save-title">Saving...</h2>
-    <p class="save-msg">Please wait while your level is saved.</p>
-    <a class="act-btn save-ok hidden" data-action="saveok"><span>OK</span></a>
-  </div>
-</div>
-
-<div class="start-overlay">
-  <div class="start-card">
-    <h2>Start a new level</h2>
-    <p>Ready to start creating a new level? Choose a level name to get started! Be creative!</p>
-    <label for="start-name">Level Name</label>
-    <div class="start-row">
-      <input class="start-name" id="start-name" type="text" value="" placeholder="My Awesome Level" maxlength="60" />
-      <button class="start-go" data-action="startcreating" disabled>Start creating...</button>
-    </div>
-    <img class="start-sonic" src="/editors/assets/sonic.png" alt="Sonic" width="1945" height="3010" />
-  </div>
-
-  <div class="size-card" hidden>
-    <h2>Select Map Size</h2>
-    <p>Select the size of Map you would like to create.</p>
-    <div class="map-area">
-      <div class="map-opt map-large" data-name="Large" data-cols="35" data-rows="8">
-        <div class="map-opt map-medium" data-name="Medium" data-cols="26" data-rows="6">
-          <div class="map-opt map-small" data-name="Small" data-cols="12" data-rows="4"></div>
-        </div>
-      </div>
-      <div class="map-label"><span class="map-name">Medium</span><span class="map-dims">26 x 6 tiles</span></div>
-    </div>
-  </div>
-</div>
-`;

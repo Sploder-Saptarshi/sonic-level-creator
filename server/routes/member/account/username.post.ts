@@ -1,18 +1,11 @@
-// POST /member/account/username — change username (requires password).
-// SQL: 1 session lookup; guests bounce with 0 writes. Validation failures
-// re-render with 0 writes. Authed renames cost 1 account read (password
-// check) + 1 availability read (Better Auth) + 1 user-row write; the write
-// pins a fresh D1 bookmark for replica chaining (+1 primary read on the
-// edge) before the session re-read below, so the new name shows at once.
-// Case-only renames (own name, different casing) skip the availability
-// read. The freak synthetic-email collision surfaces as a write-time UNIQUE
-// failure, mapped back to "taken".
 import { defineHandler } from "nitro";
+import type { H3Event } from "nitro";
 import { eq } from "drizzle-orm";
 import { readBody } from "nitro/h3";
 import { verifyPassword } from "../../../auth/argon2";
 import { account as accountTable, user as userTable } from "../../../db/schema";
-import { html, renderAccountPage, toPageView } from "../../../utils/page";
+import { html, toPageView } from "../../../utils/page/chrome";
+import { renderAccountPage } from "../../../utils/page/member";
 import {
   accountErrorBox,
   accountOkBox,
@@ -23,62 +16,40 @@ import {
   redirectToSignin,
   syntheticEmail,
 } from "../../../utils/authFlow";
-import { getRequestDb } from "../../../utils/levels";
+import { getRequestDb } from "../../../utils/db";
 import { pinFreshBookmark } from "../../../utils/replica";
-import { getSessionUser } from "../../../utils/session";
+import { getSessionUser, type SessionUser } from "../../../utils/session";
 
-export default defineHandler(async (event) => {
-  enforceSameOrigin(event);
-  const body = (await readBody(event)) as Record<string, unknown>;
-  const session = await getSessionUser(event);
-  if (!session) return redirectToSignin(event, "/member/account");
+type Db = ReturnType<typeof getRequestDb>;
 
-  const fail = (msg: string) =>
-    html(event, renderAccountPage(toPageView(session, event), accountErrorBox(msg)));
+function validateInput(body: Record<string, unknown>, session: SessionUser): string | { username: string; password: string } {
   const username = cleanUsernameInput(body?.username);
-  const currentPassword = formString(body, "currentPassword");
-  if (!username) {
-    return fail("Pick a username, 3–30 printable ASCII characters.");
-  }
-  if (!currentPassword) {
-    return fail("Enter your current password.");
-  }
-  if (username === session.username) {
-    return fail("That's already your username.");
-  }
-  const isCaseOnlyChange =
-    username.toLowerCase() === session.username.toLowerCase();
+  const password = formString(body, "currentPassword");
+  if (!username) return "Pick a username, 3–30 printable ASCII characters.";
+  if (!password) return "Enter your current password.";
+  if (username === session.username) return "That's already your username.";
+  return { username, password };
+}
 
-  // Current password first (same verifier Better Auth signs in with — no
-  // hand-rolled crypto). Failing here skips the availability read below.
-  const db = getRequestDb(event);
-  const accounts = await db
+async function passwordMatches(db: Db, userId: string, password: string): Promise<boolean> {
+  const [row] = await db
     .select({ password: accountTable.password })
     .from(accountTable)
-    .where(eq(accountTable.userId, session.id))
+    .where(eq(accountTable.userId, userId))
     .limit(1);
-  const hash = accounts[0]?.password;
-  if (!hash || !(await verifyPassword({ password: currentPassword, hash }))) {
-    return fail("Your current password is incorrect.");
-  }
+  return !!row?.password && (await verifyPassword({ password, hash: row.password }));
+}
 
-  // Availability through the username plugin (exact sign-up normalization).
-  // Case-only changes (own username, different casing) skip this — the
-  // lookup key stays the same, so no other account can be colliding.
-  if (!isCaseOnlyChange) {
-    const avail = await callAuth(event, (auth) =>
-      auth.api.isUsernameAvailable({
-        body: { username },
-        headers: event.req.headers,
-      }),
-    );
-    if (!avail.ok || !avail.value.available) {
-      return fail(avail.ok ? "That username is taken." : avail.error);
-    }
-  }
+async function availabilityError(event: H3Event, session: SessionUser, username: string): Promise<string | null> {
+  if (username.toLowerCase() === session.username.toLowerCase()) return null;
+  const avail = await callAuth(event, (auth) =>
+    auth.api.isUsernameAvailable({ body: { username }, headers: event.req.headers }),
+  );
+  if (!avail.ok) return avail.error;
+  return avail.value.available ? null : "That username is taken.";
+}
 
-  // One write: lookup key (lowercased) + pretty display + synthetic email.
-  // Sessions and levels key off userId, so both survive the rename.
+async function writeUsername(db: Db, userId: string, username: string): Promise<string | null> {
   try {
     await db
       .update(userTable)
@@ -89,24 +60,37 @@ export default defineHandler(async (event) => {
         email: syntheticEmail(username),
         updatedAt: new Date(),
       })
-      .where(eq(userTable.id, session.id));
+      .where(eq(userTable.id, userId));
+    return null;
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "";
-    if (/unique constraint/i.test(msg)) {
-      return fail("That username is taken.");
-    }
-    return fail("Something went wrong. Please try again.");
+    const unique = e instanceof Error && /unique constraint/i.test(e.message);
+    return unique ? "That username is taken." : "Something went wrong. Please try again.";
   }
+}
 
-  // Re-read the session so the page (and header) show the new name at once
-  // (the pinned bookmark keeps the replica re-read fresh).
+export default defineHandler(async (event) => {
+  enforceSameOrigin(event);
+  const body = (await readBody(event)) as Record<string, unknown>;
+  const session = await getSessionUser(event);
+  if (!session) return redirectToSignin(event, "/member/account");
+  const fail = (msg: string) =>
+    html(event, renderAccountPage(toPageView(session, event), accountErrorBox(msg)));
+
+  const input = validateInput(body, session);
+  if (typeof input === "string") return fail(input);
+  const db = getRequestDb(event);
+  if (!(await passwordMatches(db, session.id, input.password))) {
+    return fail("Your current password is incorrect.");
+  }
+  const error =
+    (await availabilityError(event, session, input.username)) ??
+    (await writeUsername(db, session.id, input.username));
+  if (error) return fail(error);
+
   await pinFreshBookmark(event);
   const fresh = await getSessionUser(event);
   return html(
     event,
-    renderAccountPage(
-      toPageView(fresh ?? session, event),
-      accountOkBox(`Username changed to ${username}.`),
-    ),
+    renderAccountPage(toPageView(fresh ?? session, event), accountOkBox(`Username changed to ${input.username}.`)),
   );
 });

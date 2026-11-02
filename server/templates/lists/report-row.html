@@ -1,0 +1,6 @@
+<div class="report-row" style="padding: 6px 0; border-bottom: <%~ it.border %>; overflow: hidden">
+      <div style="float: left"><b><a href="/play/<%= it.id %>" rel="nofollow"><%= it.name %></a></b> <span style="color: #666">by <a href="/editors/alllevels/<%~ it.authorPath %>"><%= it.author %></a> &middot; <%= it.cols %> x <%= it.rows %> tiles &middot; <%~ it.reportCount %></span>
+<%~ it.reasons %></div>
+      <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/<%= it.id %>" rel="nofollow"><span>Play</span></a><%~ it.modButtons %>
+      <form action="/editors/reports/dismiss" method="post" style="display: inline"><input type="hidden" name="levelId" value="<%= it.id %>" /><span class="button"><button type="submit" name="submit" value="dismiss">Dismiss</button></span></form></div>
+    </div>

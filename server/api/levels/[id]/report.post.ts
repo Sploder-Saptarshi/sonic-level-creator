@@ -1,25 +1,12 @@
-// POST /api/levels/:id/report — report a level as inappropriate.
-// Signed-in users only (401 otherwise); reason is 1–500 chars (400).
-// Unknown ids 404. The seeded stock row fakes success without writing
-// anything (its report form lives on the index page, but Green Hill is
-// known-good — 0 SQL, no auth needed). One open report per user per
-// level — re-posts are idempotent (200, duplicate: true).
-// SQL: 1 session lookup + 1 level existence read + 1 report read (+1 row
-// insert on first report). A new report pins a fresh D1 bookmark for
-// replica chaining (+1 primary read on the edge; duplicates skip it).
 import { defineHandler } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { HTTPError } from "nitro";
 import { level } from "../../../db/schema";
-import {
-  cleanReportReason,
-  createReport,
-  getRequestDb,
-  isSafeId,
-  requireRow,
-  requireUser,
-  STOCK_LEVEL_ID,
-} from "../../../utils/levels";
+import { cleanReportReason, isSafeId } from "../../../utils/validation";
+import { createReport } from "../../../utils/reports";
+import { getRequestDb } from "../../../utils/db";
+import { requireRow, requireUser } from "../../../utils/guards";
+import { STOCK_LEVEL_ID } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin } from "../../../utils/authFlow";
 import { eq } from "drizzle-orm";

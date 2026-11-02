@@ -1,24 +1,19 @@
-// ts/format.ts — types, object-definition tables, BIN/ACT encoders, CSV, tile-counter
-
-export const TILE_PX = 16;
 export const BLOCK_PX = 256;
 export const DEFAULT_COLS = 64;
 export const DEFAULT_ROWS = 12;
 export const MAX_OBJECTS_PER_TILE = 7;
-export const GRID_SNAP = 8;
+const GRID_SNAP = 8;
 
-// --- Object definitions per tab ---
+export const SONIC_TYPE = 151;
+export const GOAL_TYPE = 44;
+
 export interface ObjectDef {
   id: number;
   name: string;
   desc: string;
   isRing?: boolean;
   ringLayout?: number;
-  // Subtype bytes written on placement (ACT byte 4 = variant/facing,
-  // ACT byte 6 = sub). Enemies use mirrored R-subtypes for initial
-  // direction (variant 1); objects use duplicated tray entries per
-  // verified sub/variant combo (spring orientation, spike width,
-  // monitor contents, platform behavior, ...).
+  // ACT byte 4 (variant/facing) and byte 6 (sub)
   variant?: number;
   mirror?: boolean;
   sub?: number;
@@ -30,13 +25,8 @@ export const ESSENTIALS: ObjectDef[] = [
   { id: 36, name: 'Star Post', desc: 'Checkpoint post' },
 ];
 
-// Ring layouts: type selects the fan-out direction/steps (see §6.1),
-// sub fans out to 1 + sub rings. One tray entry per (layout × count),
-// like the object subtype entries — counts 1..7 cover the stock GH range
-// (stock ZONE1ACT uses subs 0..6) and the 7-objects-per-tile budget.
-// The single-ring placement (sub 0) is kept only for the first horizontal
-// layout; all other layouts start at count 2 (sub 1+) since a lone ring is
-// directionless. 9 layouts × 7 counts − 8 removed = 55 entries.
+// A ring bunch holds 1 + sub rings. A lone ring has no direction, so only
+// Ring Row gets a single-ring entry.
 const RING_LAYOUTS: { id: number; base: string; desc: string }[] = [
   { id: 0, base: 'Ring Row', desc: 'Horizontal ring line (+X)' },
   { id: 1, base: 'Ring Column', desc: 'Vertical ring line (+Y)' },
@@ -53,9 +43,6 @@ export const RING_TYPES: ObjectDef[] = [];
 for (let li = 0; li < RING_LAYOUTS.length; li++) {
   const layout = RING_LAYOUTS[li];
   for (let n = 1; n <= 7; n++) {
-    // Skip the single-ring placement (sub 0) for every layout except the
-    // first horizontal row — a lone ring is directionless, so only the
-    // canonical Ring Row keeps its count-1 entry.
     if (n === 1 && li !== 0) continue;
     RING_TYPES.push({
       id: layout.id,
@@ -69,11 +56,7 @@ for (let li = 0; li < RING_LAYOUTS.length; li++) {
 }
 
 export const OBJECTS: ObjectDef[] = [
-  // Springs (type 2): sub/16 orientation (0 up, 1 sideways, 2+ down),
-  // sub%16==2 yellow art + weak bounce; sideways facing by variant.
-  // Stock GH: yellow-up x15, red-side-R (16,1) x6.
-  // Tray order is flat but grouped by family: all red subtypes, then
-  // all yellow subtypes (up -> sideways R/L -> down).
+  // sub/16: 0 up, 1 sideways, 2+ down. sub%16 == 2 is yellow.
   { id: 2, name: 'Red Spring', desc: 'Red spring pad (bounces up)', sub: 0 },
   { id: 2, name: 'Red Spring R', desc: 'Sideways red spring (faces right)', variant: 0, sub: 16 },
   { id: 2, name: 'Red Spring L', desc: 'Sideways red spring (faces left, stock GH)', variant: 1, sub: 16 },
@@ -82,14 +65,7 @@ export const OBJECTS: ObjectDef[] = [
   { id: 2, name: 'Yellow Spring R', desc: 'Sideways yellow spring, weak (faces right)', variant: 0, sub: 18 },
   { id: 2, name: 'Yellow Spring L', desc: 'Sideways yellow spring, weak (faces left)', variant: 1, sub: 18 },
   { id: 2, name: 'Yellow Spring Down', desc: 'Ceiling yellow spring, weak', sub: 34 },
-  // Spikes (type 9): width/orientation by sub; variant 2 = ceiling (ROT180),
-  // wall subs (16/18/82) face by variant 0/1. Stock GH: 0/32/48/64 + one 16.
-  // Tray order is flat, sorted by spike count ascending (1 -> 3 -> 5 -> 6),
-  // then by gap ascending (contiguous sheet before spaced columns; the
-  // ceiling twin sits right after its floor twin, wall singles before
-  // full-wall sheets). Counts: sub 32 / 82 = 1 spike, sub 48 = 3 spikes
-  // at 24px spacing, sub 0 / 16 / 18 = 5 contiguous spikes, sub 64 =
-  // 6 spikes at 24px spacing (see spike_draw in MainCanvas.as).
+  // Sorted by spike count. Variant 2 is the ceiling version.
   { id: 9, name: 'Spikes Narrow', desc: 'Single-column spikes (stock GH)', sub: 32 },
   { id: 9, name: 'Spikes Single L', desc: 'Single wall spike (faces left)', variant: 0, sub: 82 },
   { id: 9, name: 'Spikes Single R', desc: 'Single wall spike (faces right)', variant: 1, sub: 82 },
@@ -100,52 +76,38 @@ export const OBJECTS: ObjectDef[] = [
   { id: 9, name: 'Spikes Wall R', desc: 'Wall spikes (faces right)', variant: 1, sub: 16 },
   { id: 9, name: 'Spikes Wall 18', desc: 'Sliding wall spikes, sub 18 (extends on a timer)', variant: 0, sub: 18 },
   { id: 9, name: 'Spikes Wide', desc: 'Six-column spikes (stock GH)', sub: 64 },
-  // Switch (type 15): sub = switchflag index it drives. No stock GH usage.
   { id: 15, name: 'Switch 0', desc: 'Switch driving flag 0', sub: 0 },
   { id: 15, name: 'Switch 1', desc: 'Switch driving flag 1', sub: 1 },
   { id: 15, name: 'Switch 2', desc: 'Switch driving flag 2', sub: 2 },
-  // Buttons (type 45): sub selects art row (0/3 row 0, 1 row 2, else row 1).
-  // Invisible in-game until touched; editor previews idle art. Stock GH: 1/2/3.
   { id: 45, name: 'Button 1', desc: 'Button sub 1 (stock GH; shows when touched)', sub: 1 },
   { id: 45, name: 'Button 2', desc: 'Button sub 2 (stock GH; shows when touched)', sub: 2 },
   { id: 45, name: 'Button 3', desc: 'Button sub 3 (stock GH; shows when touched)', sub: 3 },
-  // Monitors (type 43 = stock GH flavor): sub = contents
-  // (1 dud, 2 1UP, 3 speed, 4 shield, 5 invinc, 6 rings; 0 dead, 7+ invisible).
   { id: 43, name: 'Monitor Dud', desc: 'Empty monitor (stock art row 0)', sub: 1 },
   { id: 43, name: 'Monitor 1UP', desc: 'Extra-life monitor (stock GH)', sub: 2 },
   { id: 43, name: 'Monitor Speed', desc: 'Speed-shoes monitor (stock GH)', sub: 3 },
   { id: 43, name: 'Monitor Shield', desc: 'Shield monitor (stock GH)', sub: 4 },
   { id: 43, name: 'Monitor Invinc', desc: 'Invincibility monitor (stock GH)', sub: 5 },
   { id: 43, name: 'Monitor Rings', desc: '10-rings monitor (stock GH)', sub: 6 },
-  // Tall bridge (type 4, stock sub 16) / standard bridge (type 5, stock sub 12)
   { id: 4, name: 'Tall Bridge', desc: 'Tall bridge / pole (stock GH sub 16)', sub: 16 },
   { id: 5, name: 'Bridge', desc: 'Standard bridge (stock GH sub 12)', sub: 12 },
-  // Bridge edge (type 38, stock sub 3): variant 0 mirrored, else normal.
   { id: 38, name: 'Bridge Edge L', desc: 'Bridge end, mirrored (stock GH)', variant: 0, mirror: true, sub: 3 },
   { id: 38, name: 'Bridge Edge R', desc: 'Bridge end, normal (stock GH)', variant: 1, sub: 3 },
-  // Breakable wall (type 6): sub != 0 mirrors debris. Stock: (0,0) + (1,1).
   { id: 6, name: 'Breakable Wall', desc: 'Breakable wall segment (stock GH)', sub: 0 },
   { id: 6, name: 'Breakable Wall M', desc: 'Breakable wall, mirrored debris (stock GH)', variant: 1, mirror: true, sub: 1 },
-  // GH breakable (type 18): sub 0/1/2 visual styles, all in stock GH.
   { id: 18, name: 'Break Wall A', desc: 'GH breakable wall, style A (stock GH)', sub: 0 },
   { id: 18, name: 'Break Wall B', desc: 'GH breakable wall, style B (stock GH)', sub: 1 },
   { id: 18, name: 'Break Wall C', desc: 'GH breakable wall, style C (stock GH)', sub: 2 },
-  // Swing (type 3): sub = chain length - 1 (stock 6/7/8); sub 5 or
-  // variant 1 reverses swing direction (same idle art).
+  // sub = chain length - 1
   { id: 3, name: 'Swing S', desc: 'Swinging platform, short (stock GH sub 6)', sub: 6 },
   { id: 3, name: 'Swing M', desc: 'Swinging platform, medium (stock GH sub 7)', sub: 7 },
   { id: 3, name: 'Swing L', desc: 'Swinging platform, long (stock GH sub 8)', sub: 8 },
   { id: 3, name: 'Swing Reverse', desc: 'Short swing, reversed direction (variant 1)', variant: 1, sub: 6 },
-  // Shima platforms (type 16): motion by sub (same idle art except pillar).
-  // Stock 16: 0/1/2/3/5/6. Pillar art only for sub 16.
   { id: 16, name: 'Shima Platform', desc: 'GH floating platform, static', sub: 0 },
   { id: 16, name: 'Shima Mover H', desc: 'Platform moving horizontally (first LEFT, stock GH)', sub: 1 },
   { id: 16, name: 'Shima Mover V', desc: 'Platform moving vertically (first UP, stock GH)', sub: 2 },
   { id: 16, name: 'Shima Crumble', desc: 'Crumbling platform (falls DOWN, stock GH)', sub: 3 },
   { id: 16, name: 'Shima Pillar', desc: 'Tall pillar platform (bobs vertically, sub 16 art)', sub: 16 },
   { id: 16, name: 'Shima Switch', desc: 'Switch-rise platform (rises UP, flag 128)', sub: 7 },
-  // Kageb blocks (type 37): sub 0/1/2 solid frames, 16/17/18 decor frames.
-  // All six in stock GH; other subs < 16 fall back to frame 0 art.
   { id: 37, name: 'Kageb A', desc: 'GH block, solid frame 0 (stock GH)', sub: 0 },
   { id: 37, name: 'Kageb B', desc: 'GH block, solid frame 1 (stock GH)', sub: 1 },
   { id: 37, name: 'Kageb C', desc: 'GH block, solid frame 2 (stock GH)', sub: 2 },
@@ -169,13 +131,9 @@ export const ENEMIES: ObjectDef[] = [
   { id: 57, name: 'Kani R', desc: 'Crab badnik (walks right)', variant: 1, mirror: true },
 ];
 
-// Per-zone enemy subsets (zone 7 / custom = Green Hill set)
-export const ZONE_ENEMIES: number[] = [41, 40, 86, 39, 57];
-
-// --- Block spritesheet layout ---
-export const SHEET_SIZE = 4096;
-export const SHEET_COLS = 16;
-export const SHEET_BLOCK_SIZE = SHEET_SIZE / SHEET_COLS; // 256
+const SHEET_SIZE = 4096;
+const SHEET_COLS = 16;
+const SHEET_BLOCK_SIZE = SHEET_SIZE / SHEET_COLS;
 export const TOTAL_BLOCKS = 256;
 export const USED_BLOCKS = 135;
 
@@ -186,100 +144,34 @@ export function blockSheetXY(id: number): { x: number; y: number } {
   };
 }
 
-// --- BIN encoder (4 identical layers, u32 BE) ---
-export function encodeBin(grid: number[][]): number[] {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  const out: number[] = [];
-  function pushU32(v: number) {
-    out.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
-  }
-  pushU32(4); // layer count
-  for (let layer = 0; layer < 4; layer++) {
-    pushU32(rows);
-    for (let r = 0; r < rows; r++) {
-      pushU32(cols);
-      for (let c = 0; c < cols; c++) {
-        pushU32(grid[r][c]);
-      }
-    }
-  }
-  return out;
-}
-
-// --- ACT encoder (4 identical tables, u16 length + byte entries) ---
 export interface PlacedObject {
-  x: number; // level pixels
+  x: number;
   y: number;
-  variant: number; // byte 4
-  type: number;    // byte 5
-  sub: number;     // byte 6
+  variant: number;
+  type: number;
+  sub: number;
 }
 
-export function encodeAct(objects: PlacedObject[]): number[] {
-  // The SWF streams objects with mono-directional cursors (objChkNum /
-  // objChkPoint in addObjectChk) that break on the first out-of-range X, so
-  // the table MUST be X-sorted like stock ZONE1ACT. Placement order is
-  // arbitrary (e.g. a pillar near Sonic placed last would sit at the end of
-  // the table and never spawn until the player scrolls forward and back), so
-  // sort a copy here and leave S.objects (selection indices) untouched.
-  const sorted = [...objects].sort((a, b) => a.x - b.x || a.y - b.y);
-  const entries: number[] = [];
-  for (const obj of sorted) {
-    // ACT X/Y are raw world pixels — write through untouched (WYSIWYG).
-    entries.push(
-      (obj.x >>> 8) & 0xff, obj.x & 0xff,
-      (obj.y >>> 8) & 0xff, obj.y & 0xff,
-      obj.variant & 0xff, obj.type & 0xff, obj.sub & 0xff,
-    );
-  }
-  const tableLen = entries.length;
-  const out: number[] = [];
-  // 4 u16 BE lengths
-  for (let t = 0; t < 4; t++) {
-    out.push((tableLen >>> 8) & 0xff, tableLen & 0xff);
-  }
-  // 4 copies of table data
-  for (let t = 0; t < 4; t++) {
-    for (const b of entries) out.push(b);
-  }
-  return out;
-}
-
-// --- CSV conversion ---
 export function toCSV(binBytes: number[], actBytes: number[]): string {
-  const all = binBytes.concat(actBytes);
-  return all.join(',');
+  return binBytes.concat(actBytes).join(',');
 }
 
-// --- Compact storage codec: single source of truth in
-// server/utils/compact.ts (re-exported here for the editor bundle). ---
-export {
-  encodeCompact,
-  decodeLevel,
-  type CompactObject,
-} from "../server/utils/compact";
+export { encodeCompact, decodeLevel, type CompactObject } from "../server/utils/compact";
+export { encodeBin, encodeAct } from "../server/utils/levelBytes";
 
-// --- Tile counter: count objects in a given tile ---
-// Global budget counts every ACT entry as 1 (a ring bunch is one entry).
-// Per-tile budget counts live objects where they actually sit: a ring
-// bunch fans out from its anchor (same steps as ringParts() in
-// sprites.ts), so its 1 + sub rings can spill into a neighbouring tile
-// and each ring counts toward the tile it lands in. Max fan-out is 192px
-// < 256px, so one bunch touches at most two tiles.
-export function isRingType(type: number): boolean {
+// Each ring counts toward the tile it lands in, so a bunch can spill into
+// the next tile.
+function isRingType(type: number): boolean {
   return type <= 1 || (type >= 63 && type <= 69);
 }
 
-// Fan-out step per ring layout (mirrors ringParts() in sprites.ts).
-const RING_STEPS: Record<number, [number, number]> = {
+export const RING_STEPS: Record<number, [number, number]> = {
   0: [24, 0], 1: [0, 24],
   63: [-16, 16], 64: [16, 16], 65: [32, 32],
   66: [16, 0], 67: [32, 0], 68: [0, 16], 69: [0, 32],
 };
 
-/** Live ring positions of a bunch: anchor + fan-out offsets. */
-export function ringPositions(type: number, sub: number, x: number, y: number): Array<{ x: number; y: number }> {
+function ringPositions(type: number, sub: number, x: number, y: number): Array<{ x: number; y: number }> {
   const [dx, dy] = RING_STEPS[type] ?? [0, 0];
   const n = 1 + sub;
   const out: Array<{ x: number; y: number }> = [];
@@ -287,14 +179,6 @@ export function ringPositions(type: number, sub: number, x: number, y: number): 
   return out;
 }
 
-/** Per-tile cost of a single ACT entry: expanded ring count, else 1. */
-export function objectTileCost(type: number, sub: number): number {
-  return isRingType(type) ? 1 + sub : 1;
-}
-
-/** How many live objects one entry adds to a single tile: the rings
- *  landing there for a bunch (0 when it spills elsewhere), else 1 when
- *  its anchor sits there. */
 export function objectTileCostInTile(
   type: number, sub: number, x: number, y: number,
   tileCol: number, tileRow: number,
@@ -309,8 +193,6 @@ export function objectTileCostInTile(
   return c;
 }
 
-/** Unique tiles one entry touches: its anchor tile plus any tile its
- *  rings spill into. */
 export function objectTiles(type: number, sub: number, x: number, y: number): Array<{ tc: number; tr: number }> {
   const seen = new Map<string, { tc: number; tr: number }>();
   const touch = (px: number, py: number) => {
@@ -337,15 +219,10 @@ export function countObjectsInTile(
   return count;
 }
 
-// --- Snap to grid ---
 export function snap8(v: number): number {
   return Math.round(v / GRID_SNAP) * GRID_SNAP;
 }
 
 export function pixelToTile(px: number): number {
   return Math.floor(px / BLOCK_PX);
-}
-
-export function tileToPixel(tile: number): number {
-  return tile * BLOCK_PX;
 }

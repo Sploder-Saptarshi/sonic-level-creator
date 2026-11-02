@@ -1,0 +1,7 @@
+<div style="padding: 6px 0; border-bottom: <%~ it.border %>; overflow: hidden">
+      <div style="float: left"><b><a href="/play/<%= it.id %>" rel="nofollow"><%= it.name %></a></b> <span style="color: #666"><%= it.cols %> x <%= it.rows %> tiles<%~ it.date %></span><%~ it.published %></div>
+      <div style="float: right; cursor: pointer"><a class="lozenge2" href="/play/<%= it.id %>" rel="nofollow"><span>Play</span></a>
+      <a class="lozenge2" href="/editors/?load=<%= it.id %>" rel="nofollow"><span>Open</span></a>
+      <%~ it.renameForm %>
+      <%~ it.deleteForm %></div>
+    </div>

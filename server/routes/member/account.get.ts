@@ -1,8 +1,6 @@
-// GET /member/account — My Account page (UI shell only for now).
-// SQL: 0 for guests (fast-path redirect), else 1 session lookup. Guests
-// resume here after sign-in via the attached ?next= target.
 import { defineHandler } from "nitro";
-import { html, renderAccountPage, toPageView } from "../../utils/page";
+import { html, toPageView } from "../../utils/page/chrome";
+import { renderAccountPage } from "../../utils/page/member";
 import { redirectToSignin } from "../../utils/authFlow";
 import { getSessionUser } from "../../utils/session";
 

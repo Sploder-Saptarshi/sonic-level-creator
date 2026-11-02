@@ -2,18 +2,18 @@
 
 ## Stack
 
-Nitro 3 server (`nitro.config.ts`, `server/`) + Eta templates + esbuild editor
+Nitro 3 server (`nitro.config.ts`, `server/`) + Eta-syntax templates + esbuild editor
 bundle. Web document root is `public/` (Nitro serves it as static);
 `/` and `/editors/` are SSR routes, everything else static.
 
 - `server/templates/` — hand-written Eta-syntax `.html` templates
   (`<%= %>` escaped, `<%~ %>` raw for trusted markup only), inlined via
   `with { type: "text" }` and rendered by a minimal eval-free interpolator
-  in `server/utils/page.ts` (the Eta package itself was dropped: its
+  in `server/utils/page/render.ts` (the Eta package itself was dropped: its
   `new Function` compile is banned on Workers). No fs reads (Workers-safe).
 - `server/routes/index.get.ts` → game page, `server/routes/editors/index.get.ts`
-  → editor page. Query stubs `?user= ?session= ?levelid= ?territory= ?title=`
-  until auth lands (see `server/utils/page.ts`).
+  → editor page. Legacy query stubs `?user= ?session= ?levelid= ?territory=
+  ?title=` are still accepted (sanitized in `server/utils/page/query.ts`).
 - PHP backend removed: `/amfphp/gateway.php` is natively ported to
   `server/routes/amfphp/gateway.php.post.ts`; dead `/ajax/**` +
   `/editors/save.php` scripts deleted (ticker/report/feedback call sites
@@ -82,7 +82,8 @@ the `d1-bookmark` cookie, so the redirect/fetch after a write observes it.
   sonic-level-creator --local|--remote`. Never hand-edit applied migrations.
 - Forms POST to `/member/signin|signup` (server-side API calls, cookies +
   redirects, `formError` re-render). Raw Better Auth endpoints at
-  `/api/auth/*`. Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
+  `/api/auth/*`, except sign-in/sign-up (404 there so they can't skip
+  Turnstile). Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
   put` (+ `BETTER_AUTH_URL` env var); local dev falls back to an insecure
   default — never deploy it.
 - Moderators: `user.role = 'moderator'` (default `'user'`, migration

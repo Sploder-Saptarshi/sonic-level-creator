@@ -1,4 +1,3 @@
-// server/utils/page/game.ts — game / editor / play pages
 import layoutTemplate from "../../templates/layout.html" with { type: "text" };
 import gameBodyTemplate from "../../templates/game.html" with { type: "text" };
 import editorBodyTemplate from "../../templates/editor.html" with { type: "text" };
@@ -6,11 +5,9 @@ import { escapeHtml } from "../session";
 import { bootstrap, pageTitle, render } from "./render";
 import {
   API_CONNECTOR_ID,
-  DEFAULT_LEVEL_ID,
   DEFAULT_PLAYER_NAME,
   GAME_SWF,
   NAV_LANGUAGEBAR,
-  PRELOADER_SIGNEDIN_SWF,
   PRELOADER_SWF,
   TOUCH_CONTROLS_HTML,
   editorHeadExtra,
@@ -38,7 +35,7 @@ import {
   type PageQuery,
 } from "./query";
 
-export interface GamePageOptions {
+interface GamePageOptions {
   contentSwf?: string;
   playerName?: string;
   title?: string;
@@ -46,7 +43,6 @@ export interface GamePageOptions {
   playerSwf?: string;
   hideReport?: boolean;
   hideTitle?: boolean;
-  hideEditorButtons?: boolean;
   hideTouchControls?: boolean;
   sideActive?: string;
   gameWidth?: number;
@@ -70,7 +66,7 @@ export function renderGamePage(
     levelId,
     levelIdJs: JSON.stringify(levelId),
     zoneOneFrag: `,isZoneOne: ${cleanZoneOne(query.zoneone)}`,
-    playerSwf: opts.playerSwf ?? (view.username ? PRELOADER_SIGNEDIN_SWF : PRELOADER_SWF),
+    playerSwf: opts.playerSwf ?? PRELOADER_SWF,
     reportBlock: opts.hideReport ? "" : reportBlockHtml(view, levelId),
     playerHeading: opts.hideTitle
       ? escapeHtml(playerName)
@@ -138,7 +134,7 @@ export function renderPlayPage(
     levelId,
     levelIdJs: JSON.stringify(levelId),
     zoneOneFrag: "",
-    playerSwf: view.username ? PRELOADER_SIGNEDIN_SWF : PRELOADER_SWF,
+    playerSwf: PRELOADER_SWF,
     reportBlock: reportBlockHtml(view, levelId),
     playerHeading: `${unpublishedBadge}${escapeHtml(DEFAULT_PLAYER_NAME)} - ${escapeHtml(levelName)}`,
     contentSwf: GAME_SWF,
