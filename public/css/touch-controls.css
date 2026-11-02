@@ -96,7 +96,7 @@
      compensation — the gold art sits ~1px right of the silver art in the
      sheet (TL center 126.5 vs BR center 384.5), so without this the rings
      misalign by 1px to the right. (-133.03, -132.52) at 132px. */
-  background-position: calc(-133.03 * var(--du)) calc(-132.52 * var(--du));
+  background-position: calc(-133.03 * var(--du) + 1px) calc(-132.52 * var(--du));
   opacity: 0;
 }
 
