@@ -1,29 +1,17 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins";
-import { drizzle as drizzleD1 } from "drizzle-orm/d1";
-import { drizzle as drizzleNode } from "drizzle-orm/better-sqlite3";
-import type { D1Database, D1DatabaseSession } from "@cloudflare/workers-types";
-import * as schema from "../db/schema";
-import { hashPassword, verifyPassword } from "./argon2";
-import { ensureNodeMigrated, getAuthEnv, getNodeClient } from "./env";
-import { isAsciiUsername } from "../utils/session";
-import { dbLogger } from "../utils/timing";
 import type { H3Event } from "nitro";
+import { hashPassword, verifyPassword } from "./argon2";
+import { getAuthEnv } from "./env";
+import { getRequestDb } from "../utils/db";
+import { isAsciiUsername } from "../utils/session";
 
 export const SESSION_EXPIRES_IN_MS = 60 * 60 * 24 * 7 * 1000;
 export const SESSION_UPDATE_AGE_MS = 60 * 60 * 24 * 1000;
 
-export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
+export function createAuth(event: H3Event) {
   const env = getAuthEnv(event);
-  let db;
-  if (env.kind === "d1") {
-    db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, { schema, logger: dbLogger(event) });
-  } else {
-    ensureNodeMigrated();
-    db = drizzleNode(getNodeClient(), { schema, logger: dbLogger(event) });
-  }
-
   return betterAuth({
     secret: env.secret,
     advanced: {
@@ -41,7 +29,7 @@ export function createAuth(event: H3Event, replica?: D1DatabaseSession | null) {
       "http://localhost:8787",
       "https://sonicrelvl.pages.dev",
     ],
-    database: drizzleAdapter(db as any, { provider: "sqlite" }),
+    database: drizzleAdapter(getRequestDb(event), { provider: "sqlite" }),
     user: {
       // never settable from sign-up; promote via SQL
       additionalFields: {

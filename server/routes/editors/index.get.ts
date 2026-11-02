@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
-import { html, renderEditorPage, toPageView } from "../../utils/page";
+import { html, toPageView } from "../../utils/page/chrome";
+import { renderEditorPage } from "../../utils/page/game";
 import { redirectToSignin } from "../../utils/authFlow";
 import { getSessionUser } from "../../utils/session";
 

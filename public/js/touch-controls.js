@@ -23,31 +23,12 @@
     return "ontouchstart" in window || navigator.maxTouchPoints > 0;
   }
 
-  function getPlayer() {
-    var root = document.getElementById("gameswf");
-    if (!root) return null;
-    if (/^ruffle-(player|object)$/i.test(root.tagName)) return root;
-    return root.querySelector("ruffle-player, ruffle-object");
-  }
-
-  // the hooks only exist once the movie has registered them
-  function callHook(method, arg) {
-    var player = getPlayer();
-    if (!player || typeof player[method] !== "function") return undefined;
-    try {
-      return player[method](arg);
-    } catch (e) {
-      return undefined;
-    }
-  }
-
-  function sendKey(down, code) {
-    callHook(down ? "tcKeyDown" : "tcKeyUp", code);
-  }
+  var hooks = window.SwfHooks;
+  var sendKey = hooks.sendKey;
 
   // tcInGame's boolean doesn't always survive Ruffle; tcMode does
   function isPlaying() {
-    return callHook("tcInGame") === true || callHook("tcMode") === MODE_FIELD;
+    return hooks.call("tcInGame") === true || hooks.call("tcMode") === MODE_FIELD;
   }
 
   function watchPlaying(root) {

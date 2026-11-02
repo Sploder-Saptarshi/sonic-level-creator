@@ -19,7 +19,7 @@ const TEST_LOAD_OPTS = {
   forceScale: true,
 };
 
-let testPlayer: any = null;
+let testPlayer: RufflePlayerElement | null = null;
 let testBooting: Promise<void> | null = null;
 let testReady = false;
 
@@ -46,7 +46,7 @@ function ensureTestPlayer(): boolean {
   if (testPlayer) return true;
   const els = testEls();
   if (!els) return false;
-  const ruffle = (window as any).RufflePlayer?.newest?.();
+  const ruffle = window.RufflePlayer?.newest?.();
   if (!ruffle) {
     console.error('[editor] Ruffle not loaded, cannot start test mode');
     return false;
@@ -99,7 +99,7 @@ function publishStagedCSV(csv: string | null) {
   stagedCSV = csv;
 }
 
-(window as any).__swfGetStagedLevel = () => stagedCSV;
+window.__swfGetStagedLevel = () => stagedCSV;
 
 let preStageTimer: ReturnType<typeof setTimeout> | null = null;
 

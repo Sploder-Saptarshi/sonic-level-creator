@@ -1,4 +1,4 @@
-export type AmfValue =
+type AmfValue =
   | null
   | boolean
   | number
@@ -10,7 +10,7 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 // limits for unauthenticated input; real SWF requests are tiny
-export const MAX_AMF_BYTES = 256 * 1024;
+const MAX_AMF_BYTES = 256 * 1024;
 const MAX_MSGS = 64;
 const MAX_ARR = 4096;
 const MAX_OBJ_KEYS = 4096;
@@ -151,7 +151,7 @@ function envelope(respId: string, value: AmfValue): number[] {
   ];
 }
 
-export const API_NONCE = "playsega_offline";
+const API_NONCE = "playsega_offline";
 
 export async function handleAmf(
   raw: Uint8Array,

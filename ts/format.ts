@@ -2,7 +2,7 @@ export const BLOCK_PX = 256;
 export const DEFAULT_COLS = 64;
 export const DEFAULT_ROWS = 12;
 export const MAX_OBJECTS_PER_TILE = 7;
-export const GRID_SNAP = 8;
+const GRID_SNAP = 8;
 
 export const SONIC_TYPE = 151;
 export const GOAL_TYPE = 44;
@@ -131,9 +131,9 @@ export const ENEMIES: ObjectDef[] = [
   { id: 57, name: 'Kani R', desc: 'Crab badnik (walks right)', variant: 1, mirror: true },
 ];
 
-export const SHEET_SIZE = 4096;
-export const SHEET_COLS = 16;
-export const SHEET_BLOCK_SIZE = SHEET_SIZE / SHEET_COLS;
+const SHEET_SIZE = 4096;
+const SHEET_COLS = 16;
+const SHEET_BLOCK_SIZE = SHEET_SIZE / SHEET_COLS;
 export const TOTAL_BLOCKS = 256;
 export const USED_BLOCKS = 135;
 
@@ -161,7 +161,7 @@ export { encodeBin, encodeAct } from "../server/utils/levelBytes";
 
 // Each ring counts toward the tile it lands in, so a bunch can spill into
 // the next tile.
-export function isRingType(type: number): boolean {
+function isRingType(type: number): boolean {
   return type <= 1 || (type >= 63 && type <= 69);
 }
 
@@ -171,7 +171,7 @@ export const RING_STEPS: Record<number, [number, number]> = {
   66: [16, 0], 67: [32, 0], 68: [0, 16], 69: [0, 32],
 };
 
-export function ringPositions(type: number, sub: number, x: number, y: number): Array<{ x: number; y: number }> {
+function ringPositions(type: number, sub: number, x: number, y: number): Array<{ x: number; y: number }> {
   const [dx, dy] = RING_STEPS[type] ?? [0, 0];
   const n = 1 + sub;
   const out: Array<{ x: number; y: number }> = [];

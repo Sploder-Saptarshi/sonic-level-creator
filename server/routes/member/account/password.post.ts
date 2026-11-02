@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
-import { html, renderAccountPage, toPageView } from "../../../utils/page";
+import { html, toPageView } from "../../../utils/page/chrome";
+import { renderAccountPage } from "../../../utils/page/member";
 import {
   accountErrorBox,
   accountOkBox,
@@ -37,7 +38,7 @@ export default defineHandler(async (event) => {
       body: input,
       headers: event.req.headers,
       returnHeaders: true,
-    } as any),
+    }),
   );
   if (!res.ok) return fail(res.error);
   forwardCookies(event, res.value.headers);

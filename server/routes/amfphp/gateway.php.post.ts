@@ -3,15 +3,10 @@ import type { H3Event } from "nitro";
 import { getCookie, readRawBody, setCookie, setResponseHeader } from "nitro/h3";
 import { handleAmf } from "../../utils/amf";
 import { levelToCsv } from "../../utils/levelBytes";
-import {
-  findGatewayRow,
-  getReplicaDb,
-  getRequestDb,
-  hasOpenReport,
-  isSafeId,
-  STOCK_LEVEL_ID,
-  type GatewayRow,
-} from "../../utils/levels";
+import { findGatewayRow, STOCK_LEVEL_ID, type GatewayRow } from "../../utils/levels";
+import { getReplicaDb, getRequestDb } from "../../utils/db";
+import { hasOpenReport } from "../../utils/reports";
+import { isSafeId } from "../../utils/validation";
 import { getSessionUser, type SessionUser } from "../../utils/session";
 import { notifyLevelPlayed } from "../../utils/webhook";
 

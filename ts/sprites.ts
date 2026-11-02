@@ -3,7 +3,7 @@ import { BADGE_ORANGE, BADGE_WHITE, partsFor, spriteBBox, spriteImageUrls, type 
 
 const cache = new Map<string, HTMLImageElement>();
 
-export function spriteImg(url: string): HTMLImageElement {
+function spriteImg(url: string): HTMLImageElement {
   let img = cache.get(url);
   if (!img) {
     img = new Image();

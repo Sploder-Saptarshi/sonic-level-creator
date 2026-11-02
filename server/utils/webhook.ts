@@ -2,21 +2,21 @@ import type { H3Event } from "nitro";
 import { getRequestURL } from "nitro/h3";
 import { getCloudflareEnv } from "../auth/env";
 
-export type WebhookEventName =
+type WebhookEventName =
   | "level.published"
   | "level.deleted"
   | "level.played"
   | "user.signed_in"
   | "user.signed_up";
 
-export interface WebhookLevel {
+interface WebhookLevel {
   id: string;
   name?: string;
   author?: string;
   url?: string;
 }
 
-export interface WebhookBody {
+interface WebhookBody {
   event: WebhookEventName;
   site: string;
   at: string;
@@ -43,7 +43,7 @@ const COLOR_SIGNED_IN = 0x36d0f6;
 const COLOR_SIGNED_UP = 0x1a79cd;
 
 // local dev never sends
-export function getWebhookUrl(event: H3Event): string | undefined {
+function getWebhookUrl(event: H3Event): string | undefined {
   const cf = getCloudflareEnv(event);
   if (!cf?.DB) return undefined;
   const url = cf.WEBHOOK_URL;

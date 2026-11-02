@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { getQuery, getRequestURL, sendRedirect } from "nitro/h3";
-import { html, renderSigninPage } from "../../utils/page";
+import { html } from "../../utils/page/chrome";
+import { renderSigninPage } from "../../utils/page/member";
 import { alreadySignedIn, requestNext, resolveNext } from "../../utils/authFlow";
 import { getTurnstileSitekey } from "../../utils/turnstile";
 

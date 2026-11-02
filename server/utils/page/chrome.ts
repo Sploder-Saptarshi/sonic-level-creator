@@ -13,7 +13,7 @@ import {
   UPSELL_HTML,
 } from "./constants";
 
-export function userLanguageBar(username: string): string {
+function userLanguageBar(username: string): string {
   const name = escapeHtml(username);
   return `<div id="languagebar" style="width:auto;min-width:200px;white-space:nowrap">  <span style="vertical-align:middle">Signed in as <b>${name}</b></span> <a class="lozenge1" style="vertical-align:middle;float:none;display:inline-block;margin-left:8px" href="javascript:void(0)" onclick="javascript:document.signoutForm.submit()" rel="nofollow"><span>Sign out</span></a>
   <form name="signoutForm" action="/member/signout" method="post" style="display:none"></form>
@@ -119,7 +119,7 @@ function editorButton(label: string, href: string): string {
                          </a>`;
 }
 
-export function editorButtons(signedIn: boolean): string {
+function editorButtons(signedIn: boolean): string {
   const buttons = [editorButton("Create Level", "/editors/")];
   if (signedIn) buttons.push(editorButton("My Levels", "/editors/mylevels"));
   buttons.push(editorButton("All Levels", "/editors/alllevels"));

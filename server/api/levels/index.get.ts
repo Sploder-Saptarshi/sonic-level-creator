@@ -1,5 +1,7 @@
 import { defineHandler } from "nitro";
-import { getReplicaDb, listMyLevels, requireUser } from "../../utils/levels";
+import { getReplicaDb } from "../../utils/db";
+import { listMyLevels } from "../../utils/levels";
+import { requireUser } from "../../utils/guards";
 
 export default defineHandler(async (event) => {
   const user = await requireUser(event);

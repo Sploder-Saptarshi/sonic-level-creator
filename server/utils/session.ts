@@ -1,17 +1,13 @@
 // Hand-rolled version of Better Auth's getSession: one query instead of
 // two, none without a cookie, and it reads from a replica on the edge.
-import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import type { H3Event } from "nitro";
 import { getCookie } from "nitro/h3";
-import type { D1Database, D1DatabaseSession } from "@cloudflare/workers-types";
 import { SESSION_EXPIRES_IN_MS, SESSION_UPDATE_AGE_MS } from "../auth/config";
-import { getAuthEnv, getNodeDb } from "../auth/env";
+import { getAuthEnv } from "../auth/env";
 import { session as sessionTable, user as userTable } from "../db/schema";
-import { getReplicaSession, readBookmark, writeBookmark } from "./replica";
-import { dbLogger } from "./timing";
-
-type SessionDb = ReturnType<typeof getNodeDb>;
+import { openReplica, type Db } from "./db";
+import { writeBookmark } from "./replica";
 
 export interface SessionUser {
   id: string;
@@ -76,18 +72,7 @@ async function readSessionToken(event: H3Event): Promise<string | null> {
   return verifyCookieSignature(raw, getAuthEnv(event).secret);
 }
 
-function sessionDb(event: H3Event): { db: SessionDb; replica: D1DatabaseSession | null } {
-  const env = getAuthEnv(event);
-  if (env.kind !== "d1") return { db: getNodeDb(event), replica: null };
-  const replica = getReplicaSession(event, readBookmark(event));
-  const db = drizzleD1((replica ?? env.d1!) as unknown as D1Database, {
-    schema: { session: sessionTable, user: userTable },
-    logger: dbLogger(event),
-  }) as unknown as SessionDb;
-  return { db, replica };
-}
-
-function findSessionRow(db: SessionDb, token: string) {
+function findSessionRow(db: Db, token: string) {
   return db
     .select({
       expiresAt: sessionTable.expiresAt,
@@ -103,7 +88,7 @@ function findSessionRow(db: SessionDb, token: string) {
     .limit(1);
 }
 
-async function refreshSession(db: SessionDb, token: string, expiresAt: Date): Promise<boolean> {
+async function refreshSession(db: Db, token: string, expiresAt: Date): Promise<boolean> {
   const now = Date.now();
   const where = eq(sessionTable.token, token);
   if (expiresAt.getTime() < now) {
@@ -123,7 +108,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   try {
     const token = await readSessionToken(event);
     if (!token) return null;
-    const { db, replica } = sessionDb(event);
+    const { db, replica } = openReplica(event);
     const [row] = await findSessionRow(db, token);
     if (!row || !(await refreshSession(db, token, row.expiresAt))) return null;
     if (replica) writeBookmark(event, replica.getBookmark());

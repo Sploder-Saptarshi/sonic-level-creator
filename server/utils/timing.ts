@@ -1,6 +1,6 @@
 import type { H3Event } from "nitro";
 
-export interface TimingState {
+interface TimingState {
   start: number;
   queries: number;
 }

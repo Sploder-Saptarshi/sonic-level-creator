@@ -84,18 +84,14 @@ function attachTip(el: HTMLElement, text: string) {
   el.addEventListener('mouseenter', () => scheduleTip(text, el));
   el.addEventListener('mouseleave', hideTip);
   el.addEventListener('mousedown', hideTip);
-  el.addEventListener('wheel', hideTip, { passive: true } as any);
+  el.addEventListener('wheel', hideTip, { passive: true });
 }
 
-function findTip(id: number, variant = 0, sub = 0): { name: string; desc: string } | undefined {
-  return TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant && (t.sub ?? 0) === sub)
-      ?? TOOLTIPS.find(t => t.id === id && (t.variant ?? 0) === variant)
-      ?? TOOLTIPS.find(t => t.id === id);
-}
+const tipKey = (t: { id: number; variant?: number; sub?: number }) => `${t.id}|${t.variant ?? 0}|${t.sub ?? 0}`;
+const TOOLTIP_TEXT = new Map(TOOLTIPS.map(t => [tipKey(t), `${t.name}: ${t.desc}`]));
 
 function tooltipForDef(def: ObjectDef): string {
-  const t = findTip(def.id, def.variant ?? 0, def.sub ?? 0);
-  return t ? `${t.name}: ${t.desc}` : "";
+  return TOOLTIP_TEXT.get(tipKey(def)) ?? "";
 }
 
 export function updateCounter() {
@@ -211,4 +207,12 @@ export function switchTab(tab: TabType) {
   buildThumbnails();
   updateDesc(`${tab.charAt(0).toUpperCase() + tab.slice(1)} tab — select an item below`);
   draw();
+}
+
+// The tray only scrolls sideways, so map whichever wheel axis dominates.
+export function wireTrayScroll() {
+  S.thumbstrip?.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    S.thumbstrip!.scrollLeft += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  }, { passive: false });
 }

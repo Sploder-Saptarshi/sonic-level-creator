@@ -1,15 +1,12 @@
 import { defineHandler } from "nitro";
 import { getRouterParam, sendRedirect } from "nitro/h3";
 import { HTTPError } from "nitro";
-import { html, renderPlayPage, toPageView } from "../../utils/page";
-import {
-  STOCK_LEVEL_ID,
-  findReportedLevelName,
-  findVisibleLevelName,
-  getReplicaDb,
-  getRequestDb,
-  isSafeId,
-} from "../../utils/levels";
+import { html, toPageView } from "../../utils/page/chrome";
+import { renderPlayPage } from "../../utils/page/game";
+import { STOCK_LEVEL_ID, findVisibleLevelName } from "../../utils/levels";
+import { findReportedLevelName } from "../../utils/reports";
+import { getReplicaDb, getRequestDb } from "../../utils/db";
+import { isSafeId } from "../../utils/validation";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {

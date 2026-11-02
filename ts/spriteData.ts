@@ -3,7 +3,7 @@
 
 import { RING_STEPS } from './format';
 
-export type Anchor = 'center' | 'topleft' | 'bottomcenter';
+type Anchor = 'center' | 'topleft' | 'bottomcenter';
 
 export interface SpritePart {
   img: string;
@@ -35,7 +35,7 @@ function row(img: string, sx: number, sy: number, w: number, h: number): SpriteP
   return parts;
 }
 
-export const SPRITES: Record<number, SpritePart[]> = {
+const SPRITES: Record<number, SpritePart[]> = {
   151: [p(D + 'sonic.png', 0, 0, 29, 40, 0, 0, 'center')],
   44: [p(D + 'gole.png', 0, 0, 48, 48, 0, 10, 'center')],
   36: [
@@ -180,7 +180,7 @@ function triPair(first: BadgeDir, axis: 'h' | 'v', cy = 0, scale = 1): SpritePar
   ];
 }
 
-export function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
+function moveBadge(type: number, sub: number, cy = 0): SpritePart[] {
   if (type !== 16 && type !== 90) return [];
   const scale = sub === 16 ? 32 / 24 : 1;
   const ring = badgePart('ring', undefined, BADGE_WHITE, 24 * scale, 24 * scale, 0, cy);
@@ -256,7 +256,7 @@ const SUBSPRITES: Record<number, Record<number, SpritePart[]>> = {
   },
 };
 // the game reads sub as a signed byte
-export function ringParts(type: number, sub: number): SpritePart[] {
+function ringParts(type: number, sub: number): SpritePart[] {
   const base = SPRITES[type][0];
   const n = 1 + Math.max(0, Math.min(127, sub));
   const [dx, dy] = RING_STEPS[type] ?? [0, 0];

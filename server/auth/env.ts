@@ -3,15 +3,15 @@ import { HTTPError } from "nitro";
 import type { D1Database } from "@cloudflare/workers-types";
 import { ensureNodeMigrated, getNodeClient, getNodeDb } from "../db/node";
 
-export interface AuthEnv {
+interface AuthEnv {
   kind: "d1" | "node";
   d1?: D1Database;
   secret: string;
   baseURL?: string;
 }
 
-export function getCloudflareEnv(event: H3Event): Record<string, any> | undefined {
-  return (event.runtime as any)?.cloudflare?.env;
+export function getCloudflareEnv(event: H3Event): Record<string, unknown> | undefined {
+  return event.runtime?.cloudflare?.env;
 }
 
 export function getAuthEnv(event: H3Event): AuthEnv {

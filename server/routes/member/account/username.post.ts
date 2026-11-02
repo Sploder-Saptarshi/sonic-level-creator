@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { readBody } from "nitro/h3";
 import { verifyPassword } from "../../../auth/argon2";
 import { account as accountTable, user as userTable } from "../../../db/schema";
-import { html, renderAccountPage, toPageView } from "../../../utils/page";
+import { html, toPageView } from "../../../utils/page/chrome";
+import { renderAccountPage } from "../../../utils/page/member";
 import {
   accountErrorBox,
   accountOkBox,
@@ -15,7 +16,7 @@ import {
   redirectToSignin,
   syntheticEmail,
 } from "../../../utils/authFlow";
-import { getRequestDb } from "../../../utils/levels";
+import { getRequestDb } from "../../../utils/db";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { getSessionUser, type SessionUser } from "../../../utils/session";
 

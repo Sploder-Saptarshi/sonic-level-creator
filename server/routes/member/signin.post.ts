@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { getRequestURL, readBody, sendRedirect } from "nitro/h3";
-import { html, renderSigninPage } from "../../utils/page";
+import { html } from "../../utils/page/chrome";
+import { renderSigninPage } from "../../utils/page/member";
 import {
   alreadySignedIn,
   callAuth,
@@ -42,7 +43,7 @@ export default defineHandler(async (event) => {
       },
       headers: event.req.headers,
       returnHeaders: true,
-    } as any),
+    }),
   );
   if (!res.ok) return fail(res.error);
   forwardCookies(event, res.value.headers);

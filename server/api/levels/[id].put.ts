@@ -1,13 +1,10 @@
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { level } from "../../db/schema";
-import {
-  getRequestDb,
-  levelWhere,
-  readLevelBody,
-  requireRow,
-  requireUserAndLevelId,
-} from "../../utils/levels";
+import { getRequestDb } from "../../utils/db";
+import { levelWhere } from "../../utils/levels";
+import { readLevelBody } from "../../utils/validation";
+import { requireRow, requireUserAndLevelId } from "../../utils/guards";
 import { pinFreshBookmark } from "../../utils/replica";
 
 export default defineHandler(async (event) => {

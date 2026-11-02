@@ -2,7 +2,9 @@ import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
 import { eq, sql } from "drizzle-orm";
 import { level, levelSeq } from "../../db/schema";
-import { getRequestDb, readLevelBody, requireUser } from "../../utils/levels";
+import { getRequestDb } from "../../utils/db";
+import { readLevelBody } from "../../utils/validation";
+import { requireUser } from "../../utils/guards";
 import { pinFreshBookmark } from "../../utils/replica";
 import { enforceSameOrigin } from "../../utils/authFlow";
 

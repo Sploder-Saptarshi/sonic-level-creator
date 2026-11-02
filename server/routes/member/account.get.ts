@@ -1,5 +1,6 @@
 import { defineHandler } from "nitro";
-import { html, renderAccountPage, toPageView } from "../../utils/page";
+import { html, toPageView } from "../../utils/page/chrome";
+import { renderAccountPage } from "../../utils/page/member";
 import { redirectToSignin } from "../../utils/authFlow";
 import { getSessionUser } from "../../utils/session";
 

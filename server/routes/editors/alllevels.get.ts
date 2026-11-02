@@ -1,44 +1,19 @@
 import { defineHandler } from "nitro";
-import { getQuery } from "nitro/h3";
-import {
-  html,
-  paginationBar,
-  renderAllLevelsPage,
-  toPageView,
-} from "../../utils/page";
-import {
-  clampListingPage,
-  getPublishedLevelTotal,
-  getReplicaDb,
-  keysetCursors,
-  LEVELS_PER_PAGE,
-  listPublicLevels,
-  parseKeysetQuery,
-} from "../../utils/levels";
+import { html, toPageView } from "../../utils/page/chrome";
+import { listingPagination, renderAllLevelsPage } from "../../utils/page/lists";
+import { LEVELS_PER_PAGE, readListingQuery } from "../../utils/pagination";
+import { getPublishedLevelTotal, listPublicLevels } from "../../utils/levels";
+import { getReplicaDb } from "../../utils/db";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {
   const db = getReplicaDb(event);
-  const q = getQuery(event);
-  const { incoming, keyset } = parseKeysetQuery(q);
-  const [session, total, { rows: levels, hasMore, hasPrev }] = await Promise.all([
+  const query = readListingQuery(event);
+  const [session, total, result] = await Promise.all([
     getSessionUser(event),
     getPublishedLevelTotal(db),
-    listPublicLevels(db, LEVELS_PER_PAGE, keyset),
+    listPublicLevels(db, LEVELS_PER_PAGE, query.keyset),
   ]);
-  const { page, totalPages } = clampListingPage(q.page, total);
-  const { prevCursor, nextCursor } = keysetCursors(levels, {
-    hasMore,
-    hasPrev,
-    incoming,
-    tsOf: (l) => l.updatedAt,
-    idOf: (l) => l.id,
-  });
-  return html(
-    event,
-    renderAllLevelsPage(
-      { ...toPageView(session, event), levels },
-      total === 0 ? "" : paginationBar("/editors/alllevels", page, totalPages, prevCursor, nextCursor),
-    ),
-  );
+  const pagination = listingPagination("/editors/alllevels", query, total, result, (l) => ({ ts: l.updatedAt, id: l.id }));
+  return html(event, renderAllLevelsPage({ ...toPageView(session, event), levels: result.rows }, pagination));
 });

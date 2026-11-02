@@ -57,7 +57,7 @@ export function cellSize(): number {
 }
 
 // never zoom out past the point where the map stops filling the view
-export function effZoom(): number {
+function effZoom(): number {
   const cols = S.grid[0]?.length ?? 0, rows = S.grid.length;
   const wrap = S.canvasWrap;
   if (!cols || !rows || !wrap) return S.zoom;

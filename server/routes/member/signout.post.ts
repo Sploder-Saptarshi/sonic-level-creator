@@ -10,7 +10,7 @@ export default defineHandler(async (event) => {
     const res = await createAuth(event).api.signOut({
       headers: event.req.headers,
       returnHeaders: true,
-    } as any);
+    });
     forwardCookies(event, res.headers);
   } catch {
   }

@@ -2,15 +2,11 @@ import { defineHandler } from "nitro";
 import { getRouterParam, readBody } from "nitro/h3";
 import { HTTPError } from "nitro";
 import { level } from "../../../db/schema";
-import {
-  cleanReportReason,
-  createReport,
-  getRequestDb,
-  isSafeId,
-  requireRow,
-  requireUser,
-  STOCK_LEVEL_ID,
-} from "../../../utils/levels";
+import { cleanReportReason, isSafeId } from "../../../utils/validation";
+import { createReport } from "../../../utils/reports";
+import { getRequestDb } from "../../../utils/db";
+import { requireRow, requireUser } from "../../../utils/guards";
+import { STOCK_LEVEL_ID } from "../../../utils/levels";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin } from "../../../utils/authFlow";
 import { eq } from "drizzle-orm";

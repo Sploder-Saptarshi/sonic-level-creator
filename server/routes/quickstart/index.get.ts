@@ -1,5 +1,6 @@
 import { defineHandler } from "nitro";
-import { html, renderQuickstartPage, toPageView } from "../../utils/page";
+import { html, toPageView } from "../../utils/page/chrome";
+import { renderQuickstartPage } from "../../utils/page/member";
 import { getSessionUser } from "../../utils/session";
 
 export default defineHandler(async (event) => {

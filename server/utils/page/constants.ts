@@ -18,7 +18,6 @@ export {
 
 export const GAME_SWF = "/games/swf/52/52.swf";
 export const PRELOADER_SWF = "/swf/preloader/as3/v2/preloader-signedin.swf";
-export const PRELOADER_SIGNEDIN_SWF = "/swf/preloader/as3/v2/preloader-signedin.swf";
 export const DEFAULT_PLAYER_NAME = "Sonic The Hedgehog Level Player";
 export const REPORTER_HTML =
   `<a class="lozenge1" id="reporter" href="javascript:void(0)"><span>Report Level</span></a>`;

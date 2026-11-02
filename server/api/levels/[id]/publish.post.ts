@@ -1,11 +1,8 @@
 import { defineHandler } from "nitro";
 import { level } from "../../../db/schema";
-import {
-  getRequestDb,
-  levelWhere,
-  requireRow,
-  requireUserAndLevelId,
-} from "../../../utils/levels";
+import { getRequestDb } from "../../../utils/db";
+import { levelWhere } from "../../../utils/levels";
+import { requireRow, requireUserAndLevelId } from "../../../utils/guards";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { notifyLevelPublished } from "../../../utils/webhook";
 

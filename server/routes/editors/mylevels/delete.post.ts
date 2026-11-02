@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import { cleanId, deleteLevelAs } from "../../../utils/levels";
+import { cleanId } from "../../../utils/validation";
+import { deleteLevelAs } from "../../../utils/levels";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";
 

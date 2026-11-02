@@ -284,7 +284,7 @@ export function objectHitIndex(mx: number, my: number): number {
   return -1;
 }
 
-export function tileBadge(bx: number, by: number, cs: number): { cx: number; cy: number; r: number } | null {
+function tileBadge(bx: number, by: number, cs: number): { cx: number; cy: number; r: number } | null {
   if (bx < 0 || by < 0 || by >= S.grid.length || bx >= S.grid[0].length) return null;
   const r = Math.max(5, Math.min(10, cs * 0.15));
   return { cx: (bx + 1) * cs, cy: by * cs + cs / 16, r };
@@ -340,7 +340,7 @@ function drawTileSelection(v: Viewport, cs: number) {
 
 const GLOW_PERIOD_MS = 1600; // one full fade in and out
 
-export function glowAlpha(now = performance.now()): number {
+function glowAlpha(now = performance.now()): number {
   const phase = (now % GLOW_PERIOD_MS) / GLOW_PERIOD_MS;
   return 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
 }

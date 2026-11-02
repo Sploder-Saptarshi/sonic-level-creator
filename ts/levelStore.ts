@@ -9,7 +9,7 @@ import { markDirty } from './testMode';
 import { resizeCanvas } from './viewport';
 
 function isSignedIn(): boolean {
-  const boot = (window as unknown as { __PLAYSEGA__?: { username?: string } }).__PLAYSEGA__;
+  const boot = window.__PLAYSEGA__;
   return !!boot?.username && boot.username !== 'Guest';
 }
 

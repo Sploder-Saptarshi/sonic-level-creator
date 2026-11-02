@@ -1,11 +1,7 @@
 import { defineHandler } from "nitro";
-import {
-  deleteLevelWithReports,
-  getRequestDb,
-  levelWhere,
-  requireRow,
-  requireUserAndLevelId,
-} from "../../utils/levels";
+import { deleteLevelWithReports, levelWhere } from "../../utils/levels";
+import { getRequestDb } from "../../utils/db";
+import { requireRow, requireUserAndLevelId } from "../../utils/guards";
 import { pinFreshBookmark } from "../../utils/replica";
 import { notifyLevelDeleted } from "../../utils/webhook";
 

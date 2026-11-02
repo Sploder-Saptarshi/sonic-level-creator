@@ -1,10 +1,8 @@
 import { defineHandler, HTTPError } from "nitro";
 import { readBody, sendRedirect } from "nitro/h3";
-import {
-  cleanId,
-  dismissReportsForLevel,
-  getRequestDb,
-} from "../../../utils/levels";
+import { cleanId } from "../../../utils/validation";
+import { dismissReportsForLevel } from "../../../utils/reports";
+import { getRequestDb } from "../../../utils/db";
 import { pinFreshBookmark } from "../../../utils/replica";
 import { enforceSameOrigin, redirectToSignin } from "../../../utils/authFlow";
 import { getSessionUser } from "../../../utils/session";

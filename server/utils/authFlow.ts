@@ -30,7 +30,7 @@ export function forwardCookies(event: H3Event, headers: Headers): void {
   for (const c of headers.getSetCookie()) appendResponseHeader(event, "set-cookie", c);
 }
 
-export function apiMessage(e: unknown): string {
+function apiMessage(e: unknown): string {
   const message = (e as { message?: unknown } | null)?.message;
   return typeof message === "string" && message ? message : "Something went wrong. Please try again.";
 }
@@ -51,10 +51,10 @@ export function alreadySignedIn(event: H3Event): Promise<boolean> {
   return getSessionUser(event).then((s) => s !== null);
 }
 
-export const DEFAULT_LANDING = "/editors/mylevels";
+const DEFAULT_LANDING = "/editors/mylevels";
 
 // relative paths only, to prevent open redirects
-export function cleanNext(v: unknown): string | null {
+function cleanNext(v: unknown): string | null {
   const s = first(v);
   if (typeof s !== "string") return null;
   if (s.length < 1 || s.length > 512) return null;
