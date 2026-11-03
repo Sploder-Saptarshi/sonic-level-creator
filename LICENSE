@@ -15,12 +15,15 @@ Code inside public/ that is AGPL-3.0-or-later, because we wrote it:
   touch-fullscreen.js, public/css/touch-controls.css, touch-fullscreen.css,
   and the built public/editors/assets/editor.js.
 
-Image assets made for this project are AGPL-3.0-or-later,
+Assets made for this project are AGPL-3.0-or-later,
 Copyright (C) 2026 ZesCrew2:
+  flash/ (all .fla source files except flash/relvl embed.fla)
   public/editors/assets/glowey.png
   public/images/controls.png, joypad-detected.png, exit-full-btn.png,
   share-btn.png, gamemenu-mylevels.png, popup-btn-blue.gif, sidebar.png,
   welcome_back.png
+
+flash/relvl embed.fla is not ZesCrew2's and is covered by LICENSE-Proprietary.
 
 Third-party libraries in public/js/ (swfobject.js, shadedborder.js, events.js)
 keep the licenses stated in their own file headers.
