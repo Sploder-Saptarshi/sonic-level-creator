@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { S, initGrid } from './state';
+import { S, initGrid } from '../core/state';
 import { updateCounter } from './thumbnails';
-import { query, queryAll } from './dom';
-import { showEditor, updateCreatorHeading } from './levelStore';
+import { query, queryAll } from '../core/dom';
+import { showEditor, updateCreatorHeading } from '../level/levelStore';
 
 function startCreating() {
   const input = query<HTMLInputElement>('.start-name');

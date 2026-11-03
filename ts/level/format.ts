@@ -159,8 +159,8 @@ export function toCSV(binBytes: number[], actBytes: number[]): string {
   return binBytes.concat(actBytes).join(',');
 }
 
-export { encodeCompact, decodeLevel, type CompactObject } from "../server/utils/compact";
-export { encodeBin, encodeAct } from "../server/utils/levelBytes";
+export { encodeCompact, decodeLevel, type CompactObject } from "../../server/utils/compact";
+export { encodeBin, encodeAct } from "../../server/utils/levelBytes";
 
 // Each ring counts toward the tile it lands in, so a bunch can spill into
 // the next tile.

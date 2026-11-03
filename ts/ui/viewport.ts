@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { S, cellSize } from './state';
-import { draw } from './render';
-import { query, queryAll } from './dom';
+import { S, cellSize } from '../core/state';
+import { draw } from '../render/render';
+import { query, queryAll } from '../core/dom';
 
 // A full-grid canvas falls off GPU acceleration, so the canvas only covers
 // the viewport and .canvas-inner provides the scroll range.

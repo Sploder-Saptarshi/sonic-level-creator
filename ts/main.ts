@@ -3,19 +3,19 @@
 
 import EDITOR_CSS from './ui/editor.css' with { type: 'text' };
 import EDITOR_HTML from './ui/editor.html' with { type: 'text' };
-import { S, initGrid } from './state';
-import { draw, initGhostCanvas } from './render';
-import { preloadSprites } from './sprites';
-import { buildThumbnails, switchTab, updateCounter } from './thumbnails';
-import { wireEvents } from './events';
-import { query } from './dom';
-import { resourceMs, timingLog } from './timing';
-import { blockMobileEditor, isMobileDevice } from './mobileGate';
-import { focusNameInput, wireStartScreens } from './startScreen';
-import { loadLevelById } from './levelStore';
-import { warmTestPlayer } from './testMode';
-import { watchTestPlayerFit } from './fullscreen';
-import { resizeCanvas } from './viewport';
+import { S, initGrid } from './core/state';
+import { draw, initGhostCanvas } from './render/render';
+import { preloadSprites } from './render/sprites';
+import { buildThumbnails, switchTab, updateCounter } from './ui/thumbnails';
+import { wireEvents } from './input/events';
+import { query } from './core/dom';
+import { resourceMs, timingLog } from './core/timing';
+import { blockMobileEditor, isMobileDevice } from './ui/mobileGate';
+import { focusNameInput, wireStartScreens } from './ui/startScreen';
+import { loadLevelById } from './level/levelStore';
+import { warmTestPlayer } from './playtest/testMode';
+import { watchTestPlayerFit } from './playtest/fullscreen';
+import { resizeCanvas } from './ui/viewport';
 
 const SPRITESHEET_URL = '/editors/assets/spritesheet.png';
 const WARMUP_TIMEOUT_MS = 15000;

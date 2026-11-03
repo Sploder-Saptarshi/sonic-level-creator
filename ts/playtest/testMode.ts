@@ -5,12 +5,12 @@
 // opens instantly. With editortest=1 the SWF holds its title music until
 // editorStartAudio() is called.
 
-import { updateDesc } from './state';
-import { draw } from './render';
-import { query } from './dom';
-import { levelCSV, levelValid, ensureValid } from './levelData';
-import { showTestError } from './popup';
-import { resizeCanvas } from './viewport';
+import { updateDesc } from '../core/state';
+import { draw } from '../render/render';
+import { query } from '../core/dom';
+import { levelCSV, levelValid, ensureValid } from '../level/levelData';
+import { showTestError } from '../ui/popup';
+import { resizeCanvas } from '../ui/viewport';
 import { applyCachedTestScale, fitTestRuffle, scheduleFit } from './fullscreen';
 
 const TEST_LOAD_OPTS = {

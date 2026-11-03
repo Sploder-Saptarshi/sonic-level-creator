@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
 
-import { query } from './dom';
+import { query } from '../core/dom';
 
 export function showPopup(title: string, msg: string, showOk: boolean) {
   const overlay = query('.save-overlay');

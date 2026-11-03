@@ -7,8 +7,8 @@ import {
   MAX_OBJECTS_PER_TILE, SONIC_TYPE, GOAL_TYPE, objectTileCostInTile, objectTiles,
   countObjectsInTile, type ObjectDef, type PlacedObject,
 } from './format';
-import { S, totalObjects, countPlacedTiles, updateDesc } from './state';
-import { showDeleteError } from './popup';
+import { S, totalObjects, countPlacedTiles, updateDesc } from '../core/state';
+import { showDeleteError } from '../ui/popup';
 
 export function rejectWithPopup(msg: string, show: (msg: string) => void) {
   updateDesc(msg);

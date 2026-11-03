@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { BLOCK_PX, USED_BLOCKS, blockSheetXY, type ObjectDef } from './format';
+import { BLOCK_PX, USED_BLOCKS, blockSheetXY, type ObjectDef } from '../level/format';
 import {
   S, defsForTab, totalObjects, countPlacedTiles,
   updateDesc, clearSelection, type TabType,
-} from './state';
-import { draw } from './render';
-import { partsFor, isMirrored } from './spriteData';
-import { paintThumb } from './sprites';
+} from '../core/state';
+import { draw } from '../render/render';
+import { partsFor, isMirrored } from '../render/spriteData';
+import { paintThumb } from '../render/sprites';
 import { TOOLTIPS } from './tooltipTexts';
-import { timingLog } from './timing';
-import { queryAll } from './dom';
+import { timingLog } from '../core/timing';
+import { queryAll } from '../core/dom';
 
 const NO_ART_NOTE = ' (invisible in-game: no art in this zone)';
 

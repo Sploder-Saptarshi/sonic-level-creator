@@ -116,7 +116,21 @@ the `d1-bookmark` cookie, so the redirect/fetch after a write observes it.
 
 ## Workflow
 
-After editing any `ts/*.ts` file, run `npm run build:editor`, then
+Editor sources (`ts/`, entry `ts/main.ts`):
+
+| Folder         | Contents                                                        |
+| -------------- | --------------------------------------------------------------- |
+| `core/`        | shared state `S`, shadow-DOM query helpers, timing logs         |
+| `level/`       | format/object defs, placement rules, validation + CSV, load/save/share |
+| `render/`      | canvas drawing, ghost, sprite part data + sprite painting       |
+| `input/`       | canvas mouse/keyboard, palette drag-drop, button wiring         |
+| `ui/`          | `editor.html`/`.css`, tray thumbnails + tooltips, popups, start screens, viewport/zoom, mobile gate |
+| `playtest/`    | background Ruffle test player + fullscreen fit                  |
+
+Keep import order in `main.ts` stable — esbuild evaluates modules in
+import order, and a few modules have load-time side effects.
+
+After editing any `ts/**/*.ts` file, run `npm run build:editor`, then
 `npm run lint`. The bundle must always be a strict reflection of the `ts/`
 sources — never hand-edit `editor.js`. Rebuild Nitro after `server/` changes.
 Kept `public/js/`: swfobject, shadedborder, events (RUZEE chrome), ticker,

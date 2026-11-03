@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
 import { encodeBin, encodeAct, toCSV, SONIC_TYPE, GOAL_TYPE } from './format';
-import { S, updateDesc } from './state';
+import { S, updateDesc } from '../core/state';
 
 function countEssentials(): { sonics: number; goals: number } {
   return {

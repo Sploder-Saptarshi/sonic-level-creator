@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { S } from './state';
-import { query } from './dom';
+import { S } from '../core/state';
+import { query } from '../core/dom';
 
 const PLAYER_SELECTOR = '.ruffle-holder ruffle-player, .ruffle-holder ruffle-object';
 

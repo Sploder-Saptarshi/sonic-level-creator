@@ -4,7 +4,7 @@
 // Source rects and anchors copied from the game's draw code (MainCanvas.as).
 // Types the game never draws are left out and get a placeholder.
 
-import { RING_STEPS } from './format';
+import { RING_STEPS } from '../level/format';
 
 type Anchor = 'center' | 'topleft' | 'bottomcenter';
 

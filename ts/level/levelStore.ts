@@ -2,14 +2,14 @@
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
 import { decodeLevel, encodeCompact } from './format';
-import { S, clearSelection, initGrid, updateDesc } from './state';
-import { draw } from './render';
-import { updateCounter } from './thumbnails';
-import { query } from './dom';
+import { S, clearSelection, initGrid, updateDesc } from '../core/state';
+import { draw } from '../render/render';
+import { updateCounter } from '../ui/thumbnails';
+import { query } from '../core/dom';
 import { ensureValid, levelCSV } from './levelData';
-import { showPopup, showSaveComplete, showSaveError, showSaveSaving } from './popup';
-import { markDirty } from './testMode';
-import { resizeCanvas } from './viewport';
+import { showPopup, showSaveComplete, showSaveError, showSaveSaving } from '../ui/popup';
+import { markDirty } from '../playtest/testMode';
+import { resizeCanvas } from '../ui/viewport';
 
 function isSignedIn(): boolean {
   const boot = window.__PLAYSEGA__;

@@ -3,14 +3,14 @@
 
 // Dragging tiles and objects from the tray onto the grid.
 
-import { snap8, type ObjectDef } from './format';
-import { S, inGrid, canvasToWorld } from './state';
-import { draw, updateGhost, hideGhost } from './render';
-import { updateCounter } from './thumbnails';
-import { realTarget } from './dom';
-import { showPlaceError } from './popup';
-import { markDirty } from './testMode';
-import { placementError, rejectWithPopup } from './rules';
+import { snap8, type ObjectDef } from '../level/format';
+import { S, inGrid, canvasToWorld } from '../core/state';
+import { draw, updateGhost, hideGhost } from '../render/render';
+import { updateCounter } from '../ui/thumbnails';
+import { realTarget } from '../core/dom';
+import { showPlaceError } from '../ui/popup';
+import { markDirty } from '../playtest/testMode';
+import { placementError, rejectWithPopup } from '../level/rules';
 
 let ghostEvent: MouseEvent | null = null;
 let ghostQueued = false;

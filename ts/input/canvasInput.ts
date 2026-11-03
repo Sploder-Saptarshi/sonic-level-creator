@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { snap8, pixelToTile } from './format';
+import { snap8, pixelToTile } from '../level/format';
 import {
   S, inGrid, canvasToWorld, cellSize, clearSelection, clearTileSelection,
-} from './state';
-import { draw, requestDraw, ensureGlowLoop, hitTileBadge, objectHitIndex } from './render';
-import { updateCounter } from './thumbnails';
-import { realTarget } from './dom';
-import { showPlaceError } from './popup';
-import { markDirty } from './testMode';
-import { rejectTileClear, rejectWithPopup, tileCrowdedReason } from './rules';
+} from '../core/state';
+import { draw, requestDraw, ensureGlowLoop, hitTileBadge, objectHitIndex } from '../render/render';
+import { updateCounter } from '../ui/thumbnails';
+import { realTarget } from '../core/dom';
+import { showPlaceError } from '../ui/popup';
+import { markDirty } from '../playtest/testMode';
+import { rejectTileClear, rejectWithPopup, tileCrowdedReason } from '../level/rules';
 
 function startObjectDrag(index: number, px: number, py: number) {
   const o = S.objects[index];

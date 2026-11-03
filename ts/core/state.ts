@@ -5,7 +5,7 @@ import {
   BLOCK_PX, DEFAULT_COLS, DEFAULT_ROWS,
   ESSENTIALS, RING_TYPES, OBJECTS, ENEMIES,
   type PlacedObject, type ObjectDef,
-} from './format';
+} from '../level/format';
 
 export type TabType = 'tiles' | 'objects' | 'rings' | 'enemies' | 'essentials';
 

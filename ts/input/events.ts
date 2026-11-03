@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Sploder-Saptarshi
 
-import { S, type TabType } from './state';
-import { switchTab, wireTrayScroll } from './thumbnails';
-import { query, queryAll } from './dom';
-import { hidePopup } from './popup';
-import { doClearAll, doSave, doShare } from './levelStore';
-import { doTest, stopTest } from './testMode';
-import { doFullscreen } from './fullscreen';
-import { resizeCanvas, setZoom } from './viewport';
+import { S, type TabType } from '../core/state';
+import { switchTab, wireTrayScroll } from '../ui/thumbnails';
+import { query, queryAll } from '../core/dom';
+import { hidePopup } from '../ui/popup';
+import { doClearAll, doSave, doShare } from '../level/levelStore';
+import { doTest, stopTest } from '../playtest/testMode';
+import { doFullscreen } from '../playtest/fullscreen';
+import { resizeCanvas, setZoom } from '../ui/viewport';
 import { wireCanvasInput } from './canvasInput';
 import { wirePaletteDrop } from './paletteDrop';
 
