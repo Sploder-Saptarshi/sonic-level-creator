@@ -51,7 +51,13 @@ export function createAuth(event: H3Event) {
       updateAge: SESSION_UPDATE_AGE_MS / 1000,
     },
     // allow any printable ASCII, not just [a-zA-Z0-9_.]
-    plugins: [username({ usernameValidator: isAsciiUsername })],
+    plugins: [
+      username({
+        usernameValidator: isAsciiUsername,
+        // same rule as the sign-up form
+        displayUsernameValidator: (s) => s.length >= 3 && s.length <= 30 && isAsciiUsername(s),
+      }),
+    ],
   });
 }
 

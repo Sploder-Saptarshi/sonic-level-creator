@@ -82,8 +82,9 @@ the `d1-bookmark` cookie, so the redirect/fetch after a write observes it.
   sonic-level-creator --local|--remote`. Never hand-edit applied migrations.
 - Forms POST to `/member/signin|signup` (server-side API calls, cookies +
   redirects, `formError` re-render). Raw Better Auth endpoints at
-  `/api/auth/*`, except sign-in/sign-up (404 there so they can't skip
-  Turnstile). Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
+  `/api/auth/*` are allowlisted to `get-session`, `sign-out`, `ok`; all
+  else 404s (sign-in/up would skip Turnstile, `update-user` allowed
+  spoofing `displayUsername`). Password changes revoke other sessions. Secrets: `BETTER_AUTH_SECRET` via `wrangler pages secret
   put` (+ `BETTER_AUTH_URL` env var); local dev falls back to an insecure
   default — never deploy it.
 - Moderators: `user.role = 'moderator'` (default `'user'`, migration

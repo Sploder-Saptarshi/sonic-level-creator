@@ -38,7 +38,8 @@ export default defineHandler(async (event) => {
   if (typeof input === "string") return fail(input);
   const res = await callAuth(event, (auth) =>
     auth.api.changePassword({
-      body: input,
+      // sign out everywhere else, so a stolen session dies with the old password
+      body: { ...input, revokeOtherSessions: true },
       headers: event.req.headers,
       returnHeaders: true,
     }),
