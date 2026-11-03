@@ -6,13 +6,21 @@ Sonic Level Creator is dual-licensed. The license depends on where a file lives.
     Full text: LICENSE-AGPL
 
   Game assets and content (public/)
-    Proprietary: PlaySEGA and Mediatonic Limited. All rights reserved.
+    Proprietary: PlaySEGA, Mediatonic Limited and SEGA CORPORATION.
+    All rights reserved.
     Terms: LICENSE-Proprietary
 
-Exceptions inside public/ that are AGPL-3.0-or-later, because we wrote them:
+Code inside public/ that is AGPL-3.0-or-later, because we wrote it:
   public/js/gamepad-controls.js, swf-hooks.js, touch-controls.js,
   touch-fullscreen.js, public/css/touch-controls.css, touch-fullscreen.css,
   and the built public/editors/assets/editor.js.
+
+Image assets made for this project are AGPL-3.0-or-later,
+Copyright (C) 2026 ZesCrew2:
+  public/editors/assets/glowey.png
+  public/images/controls.png, joypad-detected.png, exit-full-btn.png,
+  share-btn.png, gamemenu-mylevels.png, popup-btn-blue.gif, sidebar.png,
+  welcome_back.png
 
 Third-party libraries in public/js/ (swfobject.js, shadedborder.js, events.js)
 keep the licenses stated in their own file headers.

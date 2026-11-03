@@ -44,5 +44,5 @@ Cloudflare's always-pass test keys unless you set your own in `.env`.
 
 ## License
 
-The code is AGPL-3.0-or-later. The game assets in `public/` belong to PlaySEGA
-and Mediatonic and are not covered by it. See [LICENSE](LICENSE).
+The code is AGPL-3.0-or-later. The game assets in `public/` belong to PlaySEGA,
+Mediatonic and SEGA and are not covered by it. See [LICENSE](LICENSE).
