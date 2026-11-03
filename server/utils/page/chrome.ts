@@ -51,7 +51,7 @@ export function toPageView(session: SessionUser | null, event?: H3Event): PageVi
 }
 
 export function timingFor(view: PageView): string {
-  return view.event ? timingBadge(view.event) : "";
+  return timingBadge(view.event);
 }
 
 // link previews need an absolute URL

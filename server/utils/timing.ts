@@ -10,6 +10,17 @@ interface TimingState {
 
 const KEY = "timing";
 
+// replaced at build time by nitro.config.ts (`replace`); "" when unknown
+// (bound once: the replacer skips `__COMMIT_SHA__.member` accesses)
+declare const __COMMIT_SHA__: string;
+const COMMIT_SHA: string = __COMMIT_SHA__;
+const REPO_URL = "https://github.com/Sploder-Saptarshi/sonic-level-creator";
+
+function commitLink(): string {
+  if (!COMMIT_SHA) return "";
+  return `<a href="${REPO_URL}/commit/${COMMIT_SHA}" title="Source Commit" target="_blank" rel="noopener" style="color:inherit;cursor:pointer;">${COMMIT_SHA.slice(0, 7)}</a>`;
+}
+
 function stateOf(event: H3Event): TimingState | null {
   const s = (event.context as Record<string, unknown>)[KEY];
   return s && typeof s === "object" ? (s as TimingState) : null;
@@ -32,10 +43,20 @@ export function dbLogger(event: H3Event): { logQuery(): void } {
   return { logQuery: () => countQuery(event) };
 }
 
-export function timingBadge(event: H3Event): string {
-  const s = stateOf(event);
-  if (!s) return "";
+function timingLines(event: H3Event | undefined): string[] {
+  const s = event ? stateOf(event) : null;
+  if (!s) return [];
   const wall = performance.now() - s.start;
   const qLabel = s.queries === 1 ? "1 query" : `${s.queries} queries`;
-  return `<div style="position:fixed;right:0.7vw;bottom:0.7vw;font-size:0.8vw;color:#000;opacity:50%;z-index:1000;text-align:right;cursor:default;user-select:none;"><span title="Page Execution Time">${wall.toFixed(1)}ms</span><br><span title="Database Queries">${qLabel}</span></div>`;
+  return [
+    `<span title="Page Execution Time">${wall.toFixed(1)}ms</span>`,
+    `<span title="Database Queries">${qLabel}</span>`,
+  ];
+}
+
+// bottom-right badge: timing stats (when tracked) + source commit link
+export function timingBadge(event?: H3Event): string {
+  const lines = [...timingLines(event), commitLink()].filter(Boolean);
+  if (!lines.length) return "";
+  return `<div style="position:fixed;right:0.7vw;bottom:0.7vw;font-size:0.8vw;color:#000;opacity:50%;z-index:1000;text-align:right;cursor:default;user-select:none;">${lines.join("<br>")}</div>`;
 }

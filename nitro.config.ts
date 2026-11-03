@@ -1,8 +1,25 @@
+import { execSync } from "node:child_process";
 import { defineConfig } from "nitro";
 import { collectFunctionRoutes } from "./build/pages-routes";
 
+// full SHA of the commit being built ("" when unknown); CI env wins over git
+function commitSha(): string {
+  let sha = process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || "";
+  if (!sha) {
+    try {
+      sha = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    } catch {
+      sha = "";
+    }
+  }
+  return /^[0-9a-f]{40}$/.test(sha) ? sha : "";
+}
+
 export default defineConfig({
   serverDir: "server",
+  replace: {
+    __COMMIT_SHA__: JSON.stringify(commitSha()),
+  },
   // on-the-fly brotli of the spritesheet took ~8s
   compressPublicAssets: { gzip: true, brotli: true },
   cloudflare: {
