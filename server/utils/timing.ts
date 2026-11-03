@@ -18,7 +18,7 @@ const REPO_URL = "https://github.com/Sploder-Saptarshi/sonic-level-creator";
 
 function commitLink(): string {
   if (!COMMIT_SHA) return "";
-  return `<a href="${REPO_URL}/commit/${COMMIT_SHA}" title="Source Commit" target="_blank" rel="noopener" style="color:inherit;cursor:pointer;">${COMMIT_SHA.slice(0, 7)}</a>`;
+  return `<a href="${REPO_URL}/tree/${COMMIT_SHA}" title="Source Commit" target="_blank" rel="noopener" style="color:inherit;cursor:pointer;">${COMMIT_SHA.slice(0, 7)}</a>`;
 }
 
 function stateOf(event: H3Event): TimingState | null {
